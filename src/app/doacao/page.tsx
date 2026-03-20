@@ -4,271 +4,163 @@ import { INSTITUICOES, type Instituicao } from "@/lib/data";
 
 type Etapa = "escolha" | "pagamento" | "confirmado";
 
+// ── BRAND COLORS ─────────────────────────────────────────────────────────────
 const C = {
-  cream: "#FAF7F2",
-  stone: "#F0EBE1",
-  gold: "#B8973A",
-  goldL: "#F5EDD4",
-  ink: "#1C1A16",
-  muted: "#7A7164",
-  green: "#2D7A5F",
-  greenL: "#E6F3ED",
-  blue: "#2A5FA5",
-  blueL: "#E6EEF8",
-  amber: "#9A6B1A",
-  amberL: "#F5EBD4",
-  white: "#FFFFFF",
-  border: "#E8E0D0",
+  black:   "#000000",
+  blue:    "#000DFF",
+  blueL:   "#e0e4ff",
+  orange:  "#FF4E00",
+  orangeL: "#fff0eb",
+  white:   "#FFFFFF",
+  offWhite:"#f8f8f8",
+  border:  "#e2e2e2",
+  muted:   "#777777",
+  ink:     "#111111",
+  card:    "#ffffff",
+  // institution colors mapped to brand
+  green:   "#000DFF",
+  greenL:  "#e0e4ff",
+  amber:   "#FF4E00",
+  amberL:  "#fff0eb",
 };
 
 const instColor = (inst: Instituicao) =>
-  inst.tipo === "Refeição" ? { cor: C.green, bg: C.greenL }
-    : inst.tipo === "Banho" ? { cor: C.blue, bg: C.blueL }
-      : { cor: C.amber, bg: C.amberL };
+  inst.tipo === "Refeição" ? { cor: C.blue,   bg: C.blueL   }
+  : inst.tipo === "Banho"  ? { cor: C.orange,  bg: C.orangeL }
+  :                          { cor: "#6600cc", bg: "#f0e8ff" };
 
-const Divider = () => (
-  <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "1.25rem 0" }}>
-    <div style={{ flex: 1, height: 1, background: C.border }} />
-    <div style={{ width: 5, height: 5, borderRadius: "50%", background: C.gold, opacity: 0.6 }} />
-    <div style={{ flex: 1, height: 1, background: C.border }} />
-  </div>
-);
-
-// ── ILUSTRAÇÃO SVG: Natureza + Cruz ─────────────────────────────────────────
-function NatureBg() {
+// ── BACKGROUND ───────────────────────────────────────────────────────────────
+function PageBg() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      style={{
-        position: "fixed", inset: 0, width: "100%", height: "100%",
-        pointerEvents: "none", zIndex: 0,
-      }}
-      preserveAspectRatio="xMidYMid slice"
-      viewBox="0 0 1440 900"
-    >
-      <defs>
-        {/* céu: aurora quente de manhã cedo */}
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#D4E8F5" />
-          <stop offset="35%" stopColor="#EAD9C0" />
-          <stop offset="65%" stopColor="#F2E4C8" />
-          <stop offset="100%" stopColor="#EDE0C8" />
-        </linearGradient>
-        {/* sol / halo de luz */}
-        <radialGradient id="sun" cx="50%" cy="38%" r="30%">
-          <stop offset="0%" stopColor="#FDF0C8" stopOpacity="0.95" />
-          <stop offset="30%" stopColor="#F5DFA0" stopOpacity="0.6" />
-          <stop offset="65%" stopColor="#EDD47A" stopOpacity="0.2" />
-          <stop offset="100%" stopColor="#EDD47A" stopOpacity="0" />
-        </radialGradient>
-        {/* névoa do horizonte */}
-        <linearGradient id="mist" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#F5EDD4" stopOpacity="0" />
-          <stop offset="100%" stopColor="#F5EDD4" stopOpacity="0.55" />
-        </linearGradient>
-        {/* colina fundo gradient */}
-        <linearGradient id="hill1" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#4A7A52" />
-          <stop offset="100%" stopColor="#2D4A35" />
-        </linearGradient>
-        <linearGradient id="hill2" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#3B6B44" />
-          <stop offset="100%" stopColor="#1C3526" />
-        </linearGradient>
-        <linearGradient id="hill3" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#2D5234" />
-          <stop offset="100%" stopColor="#162A1E" />
-        </linearGradient>
-      </defs>
-
-      {/* ── CÉU ── */}
-      <rect width="1440" height="900" fill="url(#sky)" />
-
-      {/* halo solar */}
-      <ellipse cx="720" cy="340" rx="420" ry="320" fill="url(#sun)" />
-
-      {/* nuvens suaves */}
-      <g opacity="0.5">
-        <ellipse cx="280" cy="180" rx="130" ry="38" fill="#FFF8EE" />
-        <ellipse cx="220" cy="188" rx="80" ry="28" fill="#FFF8EE" />
-        <ellipse cx="340" cy="192" rx="90" ry="26" fill="#FFF8EE" />
-        <ellipse cx="1100" cy="155" rx="150" ry="42" fill="#FFF8EE" />
-        <ellipse cx="1040" cy="165" rx="85" ry="30" fill="#FFF8EE" />
-        <ellipse cx="1180" cy="168" rx="100" ry="28" fill="#FFF8EE" />
-        <ellipse cx="600" cy="120" rx="110" ry="30" fill="#FFF8EE" opacity="0.6" />
-        <ellipse cx="850" cy="140" rx="90" ry="25" fill="#FFF8EE" opacity="0.5" />
-      </g>
-
-      {/* raios de luz finos vindos do topo */}
-      <g stroke="#C9A84C" strokeOpacity="0.07" strokeWidth="1.5">
-        {[620, 660, 700, 720, 740, 780, 820].map((x, i) => (
-          <line key={i} x1={x} y1="0" x2={360 + (x - 720) * 2.2} y2="900" />
-        ))}
-      </g>
-
-      {/* ── COLINAS DISTANTES (fundo) ── */}
-      <path d="M0 580 Q180 500 360 530 Q540 560 720 510 Q900 460 1080 500 Q1260 540 1440 510 L1440 900 L0 900 Z"
-        fill="url(#hill1)" opacity="0.45" />
-
-      {/* ── COLINAS MÉDIAS ── */}
-      <path d="M0 640 Q120 590 280 600 Q440 610 580 575 Q680 555 720 558 Q760 561 860 575 Q1000 595 1160 580 Q1300 568 1440 600 L1440 900 L0 900 Z"
-        fill="url(#hill2)" opacity="0.7" />
-
-      {/* ── COLINAS PRÓXIMAS ── */}
-      <path d="M0 720 Q200 680 380 695 Q520 705 620 680 Q680 667 720 668 Q760 669 820 680 Q920 698 1060 688 Q1240 675 1440 710 L1440 900 L0 900 Z"
-        fill="url(#hill3)" opacity="0.9" />
-
-      {/* ── CHÃO / PRADO ── */}
-      <path d="M0 780 Q360 755 720 762 Q1080 769 1440 755 L1440 900 L0 900 Z"
-        fill="#1C2B1F" />
-      <path d="M0 800 Q360 782 720 788 Q1080 794 1440 782 L1440 900 L0 900 Z"
-        fill="#162018" />
-
-      {/* ── NÉVOA DO HORIZONTE ── */}
-      <rect x="0" y="490" width="1440" height="180" fill="url(#mist)" />
-
-      {/* ── PINHEIROS DISTANTES (pequenos, na colina do fundo) ── */}
-      <g fill="#1C3526" opacity="0.55">
-        {[80, 140, 200, 260, 340, 420, 520, 620, 820, 920, 1020, 1120, 1200, 1280, 1360].map((x, i) => {
-          const h = 55 + (i % 3) * 12;
-          const cx = x;
-          const base = 570 - (i % 4) * 6;
-          return (
-            <g key={i}>
-              <polygon points={`${cx},${base - h} ${cx - 14},${base} ${cx + 14},${base}`} />
-              <polygon points={`${cx},${base - h * 0.68} ${cx - 18},${base - h * 0.12} ${cx + 18},${base - h * 0.12}`} />
-              <rect x={cx - 3} y={base} width={6} height={10} />
-            </g>
-          );
-        })}
-      </g>
-
-      {/* ── PINHEIROS MÉDIOS (colina média) ── */}
-      <g fill="#162A1E" opacity="0.75">
-        {[50, 130, 230, 350, 470, 590, 680, 760, 860, 980, 1090, 1190, 1300, 1400].map((x, i) => {
-          const h = 80 + (i % 4) * 18;
-          const cx = x;
-          const base = 650 - (i % 3) * 8;
-          return (
-            <g key={i}>
-              <polygon points={`${cx},${base - h} ${cx - 18},${base} ${cx + 18},${base}`} />
-              <polygon points={`${cx},${base - h * 0.7} ${cx - 23},${base - h * 0.15} ${cx + 23},${base - h * 0.15}`} />
-              <polygon points={`${cx},${base - h * 0.42} ${cx - 27},${base - h * 0.28} ${cx + 27},${base - h * 0.28}`} />
-              <rect x={cx - 4} y={base} width={8} height={14} />
-            </g>
-          );
-        })}
-      </g>
-
-      {/* ── PINHEIROS GRANDES (primeiro plano) ── */}
-      <g fill="#0F1E14" opacity="0.92">
-        {[0, 100, 210, 330, 460, 600, 840, 980, 1110, 1240, 1360, 1440].map((x, i) => {
-          const h = 130 + (i % 5) * 30;
-          const cx = x;
-          const base = 760 - (i % 3) * 10;
-          return (
-            <g key={i}>
-              <polygon points={`${cx},${base - h} ${cx - 22},${base} ${cx + 22},${base}`} />
-              <polygon points={`${cx},${base - h * 0.72} ${cx - 28},${base - h * 0.18} ${cx + 28},${base - h * 0.18}`} />
-              <polygon points={`${cx},${base - h * 0.46} ${cx - 34},${base - h * 0.3} ${cx + 34},${base - h * 0.3}`} />
-              <polygon points={`${cx},${base - h * 0.24} ${cx - 38},${base - h * 0.38} ${cx + 38},${base - h * 0.38}`} />
-              <rect x={cx - 5} y={base} width={10} height={20} />
-            </g>
-          );
-        })}
-      </g>
-
-      {/* ── CRUZ CENTRAL (horizonte, iluminada) ── */}
-      {/* halo ao redor da cruz */}
-      <ellipse cx="720" cy="548" rx="55" ry="48" fill="#FDF0C8" opacity="0.22" />
-      <ellipse cx="720" cy="548" rx="32" ry="28" fill="#FDF0C8" opacity="0.28" />
-      {/* haste vertical */}
-      <rect x="714" y="492" width="12" height="88" rx="2" fill="#C9A84C" opacity="0.95" />
-      {/* travessa horizontal */}
-      <rect x="690" y="514" width="60" height="9" rx="2" fill="#C9A84C" opacity="0.95" />
-      {/* reflexo de luz no topo da haste */}
-      <rect x="716" y="492" width="4" height="20" rx="1" fill="#FDF0C8" opacity="0.5" />
-
-      {/* ── REFLEXO NO CHÃO (água/prado) ── */}
-      <ellipse cx="720" cy="820" rx="180" ry="18" fill="#C9A84C" opacity="0.06" />
-
-      {/* ── PÁSSAROS distantes ── */}
-      <g stroke="#1C3526" strokeWidth="1.2" fill="none" opacity="0.3">
-        <path d="M380 230 Q384 226 388 230" />
-        <path d="M393 224 Q397 220 401 224" />
-        <path d="M1020 210 Q1024 206 1028 210" />
-        <path d="M1033 218 Q1037 214 1041 218" />
-        <path d="M1048 208 Q1052 204 1056 208" />
-        <path d="M600 180 Q604 176 608 180" />
-      </g>
-
-      {/* ── OVERLAY suave no fundo para o cartão não perder legibilidade ── */}
-      <rect width="1440" height="900" fill="#FAF7F2" opacity="0.28" />
-    </svg>
+    <div style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden", background: C.black }}>
+      {/* ursinho como imagem de fundo ghosted */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/ursinho.png"
+        alt=""
+        style={{
+          position: "absolute",
+          right: "-5%",
+          bottom: "-8%",
+          width: "55vmin",
+          maxWidth: 480,
+          opacity: 0.07,
+          filter: "grayscale(100%) contrast(1.4)",
+          userSelect: "none",
+          pointerEvents: "none",
+        }}
+      />
+      {/* segundo ursinho menor top-left */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/ursinho.png"
+        alt=""
+        style={{
+          position: "absolute",
+          left: "-4%",
+          top: "-6%",
+          width: "28vmin",
+          maxWidth: 240,
+          opacity: 0.045,
+          filter: "grayscale(100%) contrast(1.4)",
+          userSelect: "none",
+          pointerEvents: "none",
+        }}
+      />
+      {/* halo azul de fundo */}
+      <div style={{
+        position: "absolute", bottom: "10%", right: "5%",
+        width: 400, height: 400, borderRadius: "50%",
+        background: C.blue, opacity: 0.06, filter: "blur(80px)",
+      }}/>
+      {/* halo laranja de fundo */}
+      <div style={{
+        position: "absolute", top: "15%", left: "5%",
+        width: 320, height: 320, borderRadius: "50%",
+        background: C.orange, opacity: 0.08, filter: "blur(80px)",
+      }}/>
+      {/* X laranja decorativo */}
+      <svg style={{ position: "absolute", top: 40, right: 60, opacity: 0.12 }} width={40} height={40} viewBox="0 0 40 40">
+        <line x1="2" y1="2" x2="38" y2="38" stroke={C.orange} strokeWidth="5" strokeLinecap="round"/>
+        <line x1="38" y1="2" x2="2" y2="38" stroke={C.orange} strokeWidth="5" strokeLinecap="round"/>
+      </svg>
+      {/* círculo azul decorativo */}
+      <svg style={{ position: "absolute", bottom: 60, left: 50, opacity: 0.12 }} width={44} height={44} viewBox="0 0 44 44">
+        <circle cx="22" cy="22" r="18" fill="none" stroke={C.blue} strokeWidth="4" strokeDasharray="8 5"/>
+      </svg>
+      {/* X pequeno */}
+      <svg style={{ position: "absolute", top: "45%", left: 30, opacity: 0.08 }} width={24} height={24} viewBox="0 0 24 24">
+        <line x1="2" y1="2" x2="22" y2="22" stroke={C.orange} strokeWidth="4" strokeLinecap="round"/>
+        <line x1="22" y1="2" x2="2" y2="22" stroke={C.orange} strokeWidth="4" strokeLinecap="round"/>
+      </svg>
+      {/* cruz da igreja */}
+      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", opacity: 0.04 }}>
+        <svg width={120} height={120} viewBox="0 0 120 120">
+          <rect x="52" y="10" width="16" height="100" rx="4" fill="white"/>
+          <rect x="18" y="34" width="84" height="16" rx="4" fill="white"/>
+        </svg>
+      </div>
+    </div>
   );
 }
 
-// ── TELA ESCOLHA ─────────────────────────────────────────────────────────────
+// ── TELA ESCOLHA ──────────────────────────────────────────────────────────────
 function TelaEscolha({ onEscolher }: { onEscolher: (i: Instituicao) => void }) {
   const [hovered, setHovered] = useState<number | null>(null);
 
   return (
     <div style={{
-      minHeight: "100vh", background: "#D4E8F5",
+      minHeight: "100vh",
       display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center",
       padding: "40px 20px", position: "relative",
     }}>
-      <NatureBg />
+      <PageBg />
 
       <div style={{
         position: "relative", zIndex: 1,
         width: "100%", maxWidth: 480,
-        background: "rgba(255,255,255,0.86)",
-        backdropFilter: "blur(16px)",
-        WebkitBackdropFilter: "blur(16px)",
-        borderRadius: 28,
-        border: "1px solid rgba(232,224,208,0.9)",
-        boxShadow: "0 32px 80px rgba(28,26,22,0.14), 0 4px 20px rgba(28,26,22,0.06)",
+        background: C.white,
+        borderRadius: 24,
+        border: `1.5px solid ${C.border}`,
+        boxShadow: "0 40px 100px rgba(0,0,0,0.45), 0 8px 24px rgba(0,13,255,0.12)",
         overflow: "hidden",
       }}>
-        {/* topo escuro */}
+
+        {/* ── HEADER ── */}
         <div style={{
-          background: "linear-gradient(135deg, #1C2B1F 0%, #2D4A35 100%)",
+          background: C.black,
           padding: "24px 28px 20px",
           position: "relative", overflow: "hidden",
         }}>
-          <div style={{
-            position: "absolute", top: -35, right: -35, width: 120, height: 120,
-            borderRadius: "50%", border: `1px solid ${C.gold}`, opacity: 0.15
-          }} />
-          <div style={{
-            position: "absolute", top: -10, right: -10, width: 65, height: 65,
-            borderRadius: "50%", border: `1px solid ${C.gold}`, opacity: 0.12
-          }} />
+          {/* ursinho pequeno no canto */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/ursinho.png" alt="" style={{
+            position: "absolute", right: -10, top: -10,
+            width: 90, opacity: 0.12,
+            filter: "grayscale(100%)",
+            pointerEvents: "none",
+          }}/>
+          {/* barra colorida no topo */}
+          <div style={{ display: "flex", gap: 0, marginBottom: 18, height: 4 }}>
+            <div style={{ flex: 1, background: C.blue, borderRadius: "2px 0 0 2px" }}/>
+            <div style={{ flex: 1, background: C.orange }}/>
+            <div style={{ flex: 1, background: C.white, borderRadius: "0 2px 2px 0", opacity: 0.2 }}/>
+          </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, position: "relative", zIndex: 1 }}>
             {/* cruz */}
-            <div style={{ position: "relative", width: 28, height: 28, flexShrink: 0 }}>
-              <div style={{
-                position: "absolute", left: "50%", top: 0, transform: "translateX(-50%)",
-                width: 2, height: 28, background: C.gold, opacity: 0.8, borderRadius: 2
-              }} />
-              <div style={{
-                position: "absolute", top: "33%", left: 0,
-                width: 28, height: 2, background: C.gold, opacity: 0.8, borderRadius: 2
-              }} />
+            <div style={{ position: "relative", width: 26, height: 26, flexShrink: 0 }}>
+              <div style={{ position: "absolute", left: "50%", top: 0, transform: "translateX(-50%)", width: 3, height: 26, background: C.orange, borderRadius: 2 }}/>
+              <div style={{ position: "absolute", top: "34%", left: 0, width: 26, height: 3, background: C.orange, borderRadius: 2 }}/>
             </div>
             <div>
-              <p style={{
-                fontSize: 10, letterSpacing: 3.5, color: C.gold,
-                textTransform: "uppercase", fontWeight: 600, marginBottom: 3
-              }}>
+              <p style={{ fontSize: 10, letterSpacing: 3.5, color: C.orange, textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>
                 Faça uma doação
               </p>
               <h1 style={{
                 fontFamily: "'Playfair Display', Georgia, serif",
-                fontSize: 20, fontWeight: 700, color: C.white, margin: 0, lineHeight: 1.2,
+                fontSize: 22, fontWeight: 700, color: C.white, margin: 0, lineHeight: 1.2,
               }}>
                 Escolha como ajudar
               </h1>
@@ -276,10 +168,10 @@ function TelaEscolha({ onEscolher }: { onEscolher: (i: Instituicao) => void }) {
           </div>
         </div>
 
-        {/* corpo */}
-        <div style={{ padding: "20px 24px 26px" }}>
-          <p style={{ fontSize: 13, color: C.muted, marginBottom: 18, lineHeight: 1.65 }}>
-            Cada doação vai diretamente para a instituição, sem intermediários.
+        {/* ── CORPO ── */}
+        <div style={{ padding: "22px 26px 28px" }}>
+          <p style={{ fontSize: 13, color: C.muted, marginBottom: 18, lineHeight: 1.7 }}>
+            Cada doação vai direto para a instituição, sem intermediários. 100% transparente.
           </p>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -293,61 +185,63 @@ function TelaEscolha({ onEscolher }: { onEscolher: (i: Instituicao) => void }) {
                   onMouseEnter={() => setHovered(inst.id)}
                   onMouseLeave={() => setHovered(null)}
                   style={{
-                    background: isHov ? bg : "rgba(250,247,242,0.9)",
-                    border: `1.5px solid ${isHov ? cor : C.border}`,
+                    background: isHov ? cor : C.offWhite,
+                    border: `2px solid ${isHov ? cor : C.border}`,
                     borderRadius: 14, padding: "14px 16px",
                     cursor: "pointer", display: "flex",
                     alignItems: "center", gap: 13, textAlign: "left",
-                    transition: "all 0.18s ease",
-                    transform: isHov ? "translateX(4px)" : "none",
-                    boxShadow: isHov ? `0 4px 16px ${cor}22` : "none",
+                    transition: "all 0.15s ease",
+                    transform: isHov ? "translateX(5px)" : "none",
+                    boxShadow: isHov ? `0 6px 20px ${cor}33` : "none",
                   }}
                 >
                   <div style={{
                     width: 46, height: 46, borderRadius: 12,
-                    background: isHov ? C.white : C.stone,
+                    background: isHov ? "rgba(255,255,255,0.15)" : bg,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 20, flexShrink: 0, transition: "background 0.18s",
+                    fontSize: 22, flexShrink: 0,
                   }}>
-                    {inst.tipo === "Refeição" ? "🍽" : inst.tipo === "Banho" ? "🚿" : "🧣"}
+                    {inst.emoji}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{
-                      fontSize: 14, fontWeight: 600, color: C.ink, marginBottom: 2,
-                      fontFamily: "'Playfair Display', serif",
-                    }}>{inst.nome}</p>
-                    <p style={{ fontSize: 12, color: C.muted }}>{inst.tipo}</p>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: isHov ? C.white : C.ink, marginBottom: 2, fontFamily: "'Playfair Display', serif" }}>
+                      {inst.nome}
+                    </p>
+                    <p style={{ fontSize: 12, color: isHov ? "rgba(255,255,255,0.7)" : C.muted }}>{inst.tipo}</p>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <p style={{
-                      fontSize: 20, fontWeight: 700, color: cor,
-                      fontFamily: "'Playfair Display', serif", lineHeight: 1,
-                    }}>R$ {inst.valor}</p>
-                    <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>por pessoa</p>
+                    <p style={{ fontSize: 22, fontWeight: 800, color: isHov ? C.white : cor, fontFamily: "'Playfair Display', serif", lineHeight: 1 }}>
+                      R$ {inst.valor}
+                    </p>
+                    <p style={{ fontSize: 10, color: isHov ? "rgba(255,255,255,0.6)" : C.muted, marginTop: 2 }}>por pessoa</p>
                   </div>
                   <div style={{
-                    width: 24, height: 24, borderRadius: "50%",
-                    background: isHov ? cor : C.stone,
+                    width: 26, height: 26, borderRadius: "50%",
+                    background: isHov ? "rgba(255,255,255,0.2)" : cor + "18",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 11, color: isHov ? C.white : C.muted,
-                    flexShrink: 0, transition: "all 0.18s",
+                    fontSize: 13, color: isHov ? C.white : cor,
+                    flexShrink: 0,
                   }}>→</div>
                 </button>
               );
             })}
           </div>
 
-          <Divider />
-          <p style={{ textAlign: "center", fontSize: 11, color: C.muted, lineHeight: 1.8, opacity: 0.8 }}>
-            🔒 Pix · Transparente · 100% para a instituição
+          {/* divider */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "20px 0 14px" }}>
+            <div style={{ flex: 1, height: 1, background: C.border }}/>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: C.orange }}/>
+            <div style={{ flex: 1, height: 1, background: C.border }}/>
+          </div>
+
+          <p style={{ textAlign: "center", fontSize: 11, color: C.muted, lineHeight: 1.8 }}>
+            🔒 Pagamento via Pix · Direto para a instituição
           </p>
         </div>
       </div>
 
-      <p style={{
-        position: "relative", zIndex: 1, marginTop: 18, fontSize: 10,
-        color: "rgba(255,255,255,0.5)", letterSpacing: 2, textTransform: "uppercase"
-      }}>
+      {/* footer */}
+      <p style={{ position: "relative", zIndex: 1, marginTop: 20, fontSize: 11, color: "rgba(255,255,255,0.25)", letterSpacing: 2, textTransform: "uppercase" }}>
         DoaFácil
       </p>
     </div>
@@ -355,128 +249,108 @@ function TelaEscolha({ onEscolher }: { onEscolher: (i: Instituicao) => void }) {
 }
 
 // ── TELA PAGAMENTO ────────────────────────────────────────────────────────────
-function TelaPagamento({
-  inst, onConfirmar, onVoltar,
-}: { inst: Instituicao; onConfirmar: (qtd: number) => void; onVoltar: () => void }) {
+function TelaPagamento({ inst, onConfirmar, onVoltar }: {
+  inst: Instituicao; onConfirmar: (qtd: number) => void; onVoltar: () => void;
+}) {
   const [qtd, setQtd] = useState(1);
   const { cor, bg } = instColor(inst);
   const total = inst.valor * qtd;
 
   return (
     <div style={{
-      minHeight: "100vh", background: "#D4E8F5",
+      minHeight: "100vh",
       display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center",
       padding: "32px 20px", position: "relative",
     }}>
-      <NatureBg />
+      <PageBg />
       <div style={{
-        position: "relative", zIndex: 1,
-        width: "100%", maxWidth: 480,
-        background: "rgba(255,255,255,0.88)",
-        backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-        borderRadius: 28, border: "1px solid rgba(232,224,208,0.9)",
-        boxShadow: "0 32px 80px rgba(28,26,22,0.14)",
+        position: "relative", zIndex: 1, width: "100%", maxWidth: 480,
+        background: C.white, borderRadius: 24,
+        border: `1.5px solid ${C.border}`,
+        boxShadow: "0 40px 100px rgba(0,0,0,0.45), 0 8px 24px rgba(0,13,255,0.12)",
         overflow: "hidden",
       }}>
+        {/* header */}
         <div style={{
-          background: "linear-gradient(135deg, #1C2B1F, #2D4A35)",
-          padding: "18px 22px",
+          background: C.black, padding: "18px 22px",
           display: "flex", alignItems: "center", gap: 12,
         }}>
           <button onClick={onVoltar} style={{
-            background: "rgba(255,255,255,0.1)", border: "none",
-            borderRadius: 8, width: 30, height: 30, cursor: "pointer",
-            color: C.white, fontSize: 15,
+            background: "rgba(255,255,255,0.08)", border: `1px solid rgba(255,255,255,0.12)`,
+            borderRadius: 9, width: 32, height: 32, cursor: "pointer",
+            color: C.white, fontSize: 16,
             display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
           }}>←</button>
           <div style={{
             width: 40, height: 40, borderRadius: 10, background: bg,
-            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19,
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20,
           }}>
-            {inst.tipo === "Refeição" ? "🍽" : inst.tipo === "Banho" ? "🚿" : "🧣"}
+            {inst.emoji}
           </div>
           <div>
-            <p style={{
-              fontSize: 10, color: "rgba(255,255,255,0.45)", letterSpacing: 2,
-              textTransform: "uppercase", marginBottom: 1
-            }}>Doando para</p>
-            <p style={{
-              fontFamily: "'Playfair Display', serif", fontSize: 16,
-              fontWeight: 700, color: C.white
-            }}>
-              {inst.nome}
-            </p>
+            <p style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", letterSpacing: 2, textTransform: "uppercase", marginBottom: 1 }}>Doando para</p>
+            <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, color: C.white }}>{inst.nome}</p>
+          </div>
+          {/* stripe color */}
+          <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
+            <div style={{ width: 8, height: 28, borderRadius: 4, background: cor, opacity: 0.8 }}/>
+            <div style={{ width: 4, height: 28, borderRadius: 4, background: cor, opacity: 0.4 }}/>
           </div>
         </div>
 
-        <div style={{ padding: "24px 26px" }}>
-          <p style={{ fontSize: 13, color: C.muted, textAlign: "center", marginBottom: 18 }}>
+        <div style={{ padding: "26px 28px" }}>
+          <p style={{ fontSize: 13, color: C.muted, textAlign: "center", marginBottom: 20 }}>
             Quantas pessoas você quer ajudar?
           </p>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 28, marginBottom: 24 }}>
+
+          {/* quantity selector */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 28, marginBottom: 26 }}>
             <button onClick={() => setQtd(q => Math.max(1, q - 1))} style={{
-              width: 42, height: 42, borderRadius: 11,
-              border: `1.5px solid ${C.border}`, background: C.stone,
-              fontSize: 20, cursor: "pointer", color: C.ink,
+              width: 46, height: 46, borderRadius: 12,
+              border: `2px solid ${C.border}`, background: C.offWhite,
+              fontSize: 22, cursor: "pointer", color: C.ink,
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>−</button>
-            <div style={{ textAlign: "center", minWidth: 52 }}>
-              <div style={{
-                fontSize: 48, fontWeight: 700, color: C.ink,
-                fontFamily: "'Playfair Display', serif", lineHeight: 1
-              }}>{qtd}</div>
-              <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>
-                {qtd === 1 ? "pessoa" : "pessoas"}
-              </div>
+            <div style={{ textAlign: "center", minWidth: 60 }}>
+              <div style={{ fontSize: 52, fontWeight: 800, color: C.ink, fontFamily: "'Playfair Display', serif", lineHeight: 1 }}>{qtd}</div>
+              <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{qtd === 1 ? "pessoa" : "pessoas"}</div>
             </div>
             <button onClick={() => setQtd(q => q + 1)} style={{
-              width: 42, height: 42, borderRadius: 11,
-              border: `1.5px solid ${cor}`, background: bg,
-              fontSize: 20, cursor: "pointer", color: cor,
+              width: 46, height: 46, borderRadius: 12,
+              border: `2px solid ${cor}`, background: bg,
+              fontSize: 22, cursor: "pointer", color: cor,
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>+</button>
           </div>
 
-          <div style={{
-            background: "rgba(250,247,242,0.9)", borderRadius: 13,
-            padding: "15px 18px", marginBottom: 12
-          }}>
-            <div style={{
-              display: "flex", justifyContent: "space-between",
-              fontSize: 13, color: C.muted, paddingBottom: 11,
-              borderBottom: `1px solid ${C.border}`, marginBottom: 11
-            }}>
+          {/* total */}
+          <div style={{ background: C.black, borderRadius: 14, padding: "16px 20px", marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "rgba(255,255,255,0.35)", paddingBottom: 10, borderBottom: "1px solid rgba(255,255,255,0.08)", marginBottom: 10 }}>
               <span>{qtd}x {inst.tipo}</span>
               <span>R$ {inst.valor}/pessoa</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: C.ink }}>Total</span>
-              <span style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: 30, fontWeight: 700, color: cor
-              }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>Total</span>
+              <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 34, fontWeight: 800, color: cor }}>
                 R$ {total.toFixed(2).replace(".", ",")}
               </span>
             </div>
           </div>
 
-          <div style={{
-            background: C.goldL, border: `1px solid ${C.gold}28`,
-            borderRadius: 11, padding: "11px 15px", marginBottom: 20,
-            display: "flex", gap: 9, alignItems: "flex-start",
-          }}>
+          <div style={{ background: bg, border: `1px solid ${cor}30`, borderRadius: 12, padding: "11px 15px", marginBottom: 22, display: "flex", gap: 9, alignItems: "flex-start" }}>
             <span style={{ fontSize: 15 }}>🏦</span>
-            <p style={{ fontSize: 12, color: C.amber, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 12, color: cor, lineHeight: 1.6 }}>
               A chave Pix aparece na próxima tela. O valor vai direto para a instituição.
             </p>
           </div>
 
           <button onClick={() => onConfirmar(qtd)} style={{
-            width: "100%", padding: "15px", borderRadius: 13,
-            background: "linear-gradient(135deg, #1C2B1F, #2D4A35)",
-            color: C.white, border: "none", fontSize: 14, fontWeight: 600,
-            cursor: "pointer", boxShadow: "0 8px 24px rgba(29,80,56,0.28)",
+            width: "100%", padding: "16px",
+            borderRadius: 14, background: cor,
+            color: C.white, border: "none", fontSize: 15, fontWeight: 700,
+            cursor: "pointer", boxShadow: `0 8px 24px ${cor}44`,
+            letterSpacing: 0.3,
           }}>
             Confirmar · R$ {total.toFixed(2).replace(".", ",")}
           </button>
@@ -488,7 +362,7 @@ function TelaPagamento({
 
 // ── TELA CONFIRMADO ───────────────────────────────────────────────────────────
 function TelaConfirmado({ inst, qtd, onNova }: { inst: Instituicao; qtd: number; onNova: () => void }) {
-  const { cor } = instColor(inst);
+  const { cor, bg } = instColor(inst);
   const total = inst.valor * qtd;
   const [copiado, setCopiado] = useState(false);
 
@@ -500,37 +374,42 @@ function TelaConfirmado({ inst, qtd, onNova }: { inst: Instituicao; qtd: number;
 
   return (
     <div style={{
-      minHeight: "100vh", background: "#D4E8F5",
+      minHeight: "100vh",
       display: "flex", alignItems: "center", justifyContent: "center",
       padding: "32px 20px", position: "relative",
     }}>
-      <NatureBg />
+      <PageBg />
       <div style={{
         position: "relative", zIndex: 1,
         width: "100%", maxWidth: 440,
-        background: "rgba(255,255,255,0.88)",
-        backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-        borderRadius: 28, border: "1px solid rgba(232,224,208,0.9)",
-        boxShadow: "0 32px 80px rgba(28,26,22,0.14)",
-        padding: "32px 28px", textAlign: "center",
+        background: C.white, borderRadius: 24,
+        border: `1.5px solid ${C.border}`,
+        boxShadow: "0 40px 100px rgba(0,0,0,0.45), 0 8px 24px rgba(0,13,255,0.12)",
+        padding: "36px 30px", textAlign: "center",
+        overflow: "hidden",
       }}>
+        {/* barra de cores no topo */}
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 5, display: "flex" }}>
+          <div style={{ flex: 1, background: C.blue }}/>
+          <div style={{ flex: 1, background: C.orange }}/>
+          <div style={{ flex: 1, background: C.black }}/>
+        </div>
+
+        {/* check icon */}
         <div style={{
-          width: 68, height: 68, borderRadius: "50%",
-          background: "linear-gradient(135deg, #1C2B1F, #2D4A35)",
+          width: 70, height: 70, borderRadius: "50%",
+          background: C.black,
           display: "flex", alignItems: "center", justifyContent: "center",
-          margin: "0 auto 20px", fontSize: 26,
-          boxShadow: "0 12px 32px rgba(29,80,56,0.28)",
+          margin: "10px auto 22px", fontSize: 28,
+          boxShadow: `0 12px 32px rgba(0,0,0,0.35)`,
         }}>✓</div>
 
-        <p style={{
-          fontSize: 10, letterSpacing: 3, color: C.gold,
-          textTransform: "uppercase", fontWeight: 600, marginBottom: 10
-        }}>
+        <p style={{ fontSize: 10, letterSpacing: 3, color: C.orange, textTransform: "uppercase", fontWeight: 700, marginBottom: 10 }}>
           Doação registrada
         </p>
         <h2 style={{
           fontFamily: "'Playfair Display', serif",
-          fontSize: "clamp(20px, 5vw, 27px)", fontWeight: 700,
+          fontSize: "clamp(20px, 5vw, 26px)", fontWeight: 700,
           color: C.ink, lineHeight: 1.25, marginBottom: 10,
         }}>
           Que Deus abençoe<br />sua generosidade!
@@ -541,41 +420,25 @@ function TelaConfirmado({ inst, qtd, onNova }: { inst: Instituicao; qtd: number;
           <strong style={{ color: C.ink }}>{inst.nome}</strong>
         </p>
 
-        <div style={{
-          background: "rgba(250,247,242,0.9)", borderRadius: 13,
-          padding: "15px 17px", marginBottom: 12
-        }}>
-          <p style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>Valor da doação</p>
-          <p style={{
-            fontFamily: "'Playfair Display', serif", fontSize: 34,
-            fontWeight: 700, color: cor
-          }}>
+        {/* valor */}
+        <div style={{ background: C.black, borderRadius: 14, padding: "16px 18px", marginBottom: 14 }}>
+          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginBottom: 4 }}>Valor da doação</p>
+          <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 36, fontWeight: 800, color: cor }}>
             R$ {total.toFixed(2).replace(".", ",")}
           </p>
         </div>
 
-        <div style={{
-          background: C.goldL, border: `1px solid ${C.gold}28`,
-          borderRadius: 13, padding: "13px 16px", marginBottom: 16, textAlign: "left",
-        }}>
-          <p style={{
-            fontSize: 10, color: C.amber, fontWeight: 600, marginBottom: 6,
-            letterSpacing: 0.5, textTransform: "uppercase"
-          }}>Chave Pix</p>
-          <div style={{
-            display: "flex", alignItems: "center",
-            justifyContent: "space-between", gap: 8
-          }}>
-            <span style={{ fontSize: 13, color: C.ink, fontWeight: 500, wordBreak: "break-all" }}>
-              {inst.pixKey}
-            </span>
+        {/* pix key */}
+        <div style={{ background: bg, border: `1px solid ${cor}30`, borderRadius: 14, padding: "14px 16px", marginBottom: 16, textAlign: "left" }}>
+          <p style={{ fontSize: 10, color: cor, fontWeight: 700, marginBottom: 6, letterSpacing: 0.5, textTransform: "uppercase" }}>Chave Pix</p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+            <span style={{ fontSize: 13, color: C.ink, fontWeight: 500, wordBreak: "break-all" }}>{inst.pixKey}</span>
             <button onClick={copiar} style={{
-              background: copiado ? C.greenL : C.white,
-              border: `1px solid ${copiado ? C.green : C.border}`,
-              borderRadius: 8, padding: "5px 11px",
-              fontSize: 11, color: copiado ? C.green : C.muted,
-              cursor: "pointer", transition: "all 0.2s",
-              whiteSpace: "nowrap", flexShrink: 0,
+              background: copiado ? cor : C.white,
+              border: `1.5px solid ${copiado ? cor : C.border}`,
+              borderRadius: 8, padding: "5px 12px",
+              fontSize: 11, color: copiado ? C.white : C.muted,
+              cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, transition: "all 0.2s",
             }}>
               {copiado ? "Copiado ✓" : "Copiar"}
             </button>
@@ -583,9 +446,9 @@ function TelaConfirmado({ inst, qtd, onNova }: { inst: Instituicao; qtd: number;
         </div>
 
         <button onClick={onNova} style={{
-          width: "100%", padding: "13px", borderRadius: 12,
-          background: "none", border: `1.5px solid ${C.border}`,
-          color: C.ink, fontSize: 13, fontWeight: 500, cursor: "pointer",
+          width: "100%", padding: "14px", borderRadius: 12,
+          background: "none", border: `2px solid ${C.border}`,
+          color: C.ink, fontSize: 13, fontWeight: 600, cursor: "pointer",
         }}>
           Fazer outra doação
         </button>
@@ -596,13 +459,14 @@ function TelaConfirmado({ inst, qtd, onNova }: { inst: Instituicao; qtd: number;
 
 // ── ROOT ──────────────────────────────────────────────────────────────────────
 export default function DoacaoPage() {
-  const [etapa, setEtapa] = useState<Etapa>("escolha");
+  const [etapa, setEtapa]       = useState<Etapa>("escolha");
   const [escolhida, setEscolhida] = useState<Instituicao | null>(null);
-  const [qtd, setQtd] = useState(1);
+  const [qtd, setQtd]           = useState(1);
 
   if (etapa === "confirmado" && escolhida)
     return <TelaConfirmado inst={escolhida} qtd={qtd}
       onNova={() => { setEtapa("escolha"); setEscolhida(null); setQtd(1); }} />;
+
   if (etapa === "pagamento" && escolhida)
     return <TelaPagamento inst={escolhida}
       onConfirmar={(q) => { setQtd(q); setEtapa("confirmado"); }}

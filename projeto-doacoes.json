@@ -1,0 +1,145 @@
+{
+  "projeto": {
+    "nome": "DoaFácil",
+    "versao": "0.1.0",
+    "descricao": "Sistema de gestão de doações para instituições beneficentes vinculadas à igreja. Permite que doadores escolham como ajudar via QR Code, e que a igreja e as instituições controlem tudo com transparência.",
+    "stack": {
+      "framework": "Next.js 15 (App Router)",
+      "linguagem": "TypeScript",
+      "estilizacao": "Tailwind CSS + inline styles",
+      "fontes": ["Playfair Display (serif, títulos)", "DM Sans (sans, corpo)"],
+      "pagamento": "Pix (integração futura: Mercado Pago ou Stripe Connect)",
+      "hospedagem_sugerida": "Vercel ou VPS"
+    }
+  },
+
+  "estrutura_de_pastas": {
+    "src/app/doacao/page.tsx": "Tela pública de doação — acessada via QR Code. Fluxo: escolha da instituição → quantidade → confirmação com chave Pix.",
+    "src/app/admin/page.tsx": "Painel administrativo da Igreja. Visualiza todas as doações, métricas, distribuição por instituição e repasses.",
+    "src/app/instituicao/page.tsx": "Painel de prestação de contas das instituições. Registra gastos, anexa comprovantes e acompanha saldo.",
+    "src/app/layout.tsx": "Layout raiz. Inclui Navbar, fontes Google (Playfair Display + DM Sans) e globals.css.",
+    "src/app/globals.css": "Reset global e configuração do Tailwind.",
+    "src/app/page.tsx": "Rota raiz — redireciona automaticamente para /doacao.",
+    "src/components/Navbar.tsx": "Barra de navegação superior com links para as 3 telas. Usa usePathname para indicar rota ativa.",
+    "src/components/ui.tsx": "Componentes reutilizáveis: Badge, Card, Stat.",
+    "src/lib/data.ts": "Tipos TypeScript e dados mockados: INSTITUICOES, DOACOES_MOCK, GASTOS_MOCK."
+  },
+
+  "rotas": {
+    "/": "Redireciona para /doacao",
+    "/doacao": "Tela pública — acesso via QR Code. Sem autenticação.",
+    "/admin": "Painel da Igreja. Em produção deve ter autenticação.",
+    "/instituicao": "Painel das Instituições. Em produção cada instituição terá login próprio."
+  },
+
+  "telas": {
+    "doacao": {
+      "descricao": "Tela acessada via QR Code pelo doador",
+      "background": "Ilustração SVG de natureza: céu aurora, colinas em camadas, pinheiros em 3 planos, cruz dourada no horizonte",
+      "cartao": "Glassmorphism com backdrop-blur sobre a ilustração",
+      "fluxo": [
+        "1. Doador escaneia QR Code e cai na tela",
+        "2. Escolhe a instituição (Refeição / Banho / Cobertor)",
+        "3. Seleciona quantidade de pessoas",
+        "4. Vê o total e confirma",
+        "5. Recebe a chave Pix da instituição com botão Copiar"
+      ],
+      "etapas_de_estado": ["escolha", "pagamento", "confirmado"],
+      "cores_por_tipo": {
+        "Refeição": { "cor": "#2D7A5F", "bg": "#E6F3ED" },
+        "Banho":    { "cor": "#2A5FA5", "bg": "#E6EEF8" },
+        "Cobertor": { "cor": "#9A6B1A", "bg": "#F5EBD4" }
+      }
+    },
+
+    "admin": {
+      "descricao": "Dashboard da Igreja para controle geral das doações",
+      "layout": "Sidebar escura (220px) + conteúdo principal",
+      "responsividade": "Sidebar vira drawer com hambúrguer no mobile (< 768px)",
+      "componentes": [
+        "MetricCard com Sparkline — 4 cards: total recebido, repassado, aguardando, pessoas ajudadas",
+        "DonutChart — distribuição percentual entre as 3 instituições",
+        "ProgressBar — alocação de recursos por instituição com gradiente",
+        "Tabela de doações — com avatar de iniciais, filtro por instituição, scroll horizontal no mobile",
+        "Card de próximo repasse — com data e valor aguardando"
+      ]
+    },
+
+    "instituicao": {
+      "descricao": "Painel de prestação de contas para cada instituição",
+      "layout": "Sidebar escura com lista de instituições + conteúdo principal",
+      "responsividade": "Sidebar vira drawer com hambúrguer no mobile (< 768px)",
+      "componentes": [
+        "Header da instituição — banner escuro com emoji, nome e alerta de comprovantes faltando",
+        "MetricCard — recebido, utilizado, saldo (fica vermelho quando negativo)",
+        "HealthGauge — barra de saúde financeira: verde (saudável) / âmbar (moderado) / vermelho (atenção)",
+        "FormGasto — formulário com descrição, valor e upload simulado de comprovante",
+        "Timeline de gastos — cada gasto com ícone, data, badge de comprovante e valor em vermelho"
+      ]
+    }
+  },
+
+  "instituicoes": [
+    {
+      "id": 1,
+      "nome": "Lar São Francisco",
+      "tipo": "Refeição",
+      "valor_por_pessoa": 15,
+      "pix": "doacoes@larsaofrancisco.org"
+    },
+    {
+      "id": 2,
+      "nome": "Abrigo da Paz",
+      "tipo": "Banho",
+      "valor_por_pessoa": 8,
+      "pix": "doacoes@abrigodapaz.org"
+    },
+    {
+      "id": 3,
+      "nome": "Casa do Aconchego",
+      "tipo": "Cobertor",
+      "valor_por_pessoa": 25,
+      "pix": "doacoes@casadoaconchego.org"
+    }
+  ],
+
+  "paleta_de_cores": {
+    "cream":  "#FAF7F2",
+    "stone":  "#F0EBE1",
+    "gold":   "#B8973A",
+    "goldL":  "#F5EDD4",
+    "ink":    "#1C1A16",
+    "muted":  "#7A7164",
+    "green":  "#2D7A5F",
+    "greenL": "#E6F3ED",
+    "blue":   "#2A5FA5",
+    "blueL":  "#E6EEF8",
+    "amber":  "#9A6B1A",
+    "amberL": "#F5EBD4",
+    "red":    "#A32D2D",
+    "redL":   "#FCEBEB",
+    "dark":   "#1C2B1F",
+    "dark2":  "#2D4A35",
+    "border": "#E8E0D0"
+  },
+
+  "proximos_passos": {
+    "autenticacao": "Implementar login para admin (padre) e para cada instituição separadamente",
+    "banco_de_dados": "Substituir dados mockados por banco real (Supabase ou PlanetScale recomendado)",
+    "pagamento": {
+      "opcao_simples": "Exibir chave Pix e registrar manualmente (já implementado no MVP)",
+      "opcao_avancada": "Mercado Pago Connect ou Stripe Connect — doação vai direto para conta da instituição. Requer aprovação da plataforma (1 a 4 semanas)."
+    },
+    "qr_code": "Gerar QR Code real apontando para /doacao em produção (biblioteca: qrcode.react)",
+    "comprovantes": "Integrar upload real de arquivos (Supabase Storage ou S3)",
+    "notificacoes": "E-mail para padre quando nova doação entrar (Resend ou Nodemailer)",
+    "carteirinha_doador": "Feature futura: QR único por doador para rastrear histórico de doações individuais"
+  },
+
+  "comandos": {
+    "instalar": "npm install",
+    "desenvolvimento": "npm run dev",
+    "build": "npm run build",
+    "url_local": "http://localhost:3000"
+  }
+}
