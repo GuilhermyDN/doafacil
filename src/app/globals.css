@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: var(--font-dm), 'DM Sans', sans-serif;
+  background: #FAF7F2;
+  color: #1C1A16;
+}
