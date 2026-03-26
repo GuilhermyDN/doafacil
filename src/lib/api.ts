@@ -12,7 +12,11 @@ function authHeaders(): Record<string, string> {
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    headers: {
+      'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+      ...authHeaders(),
+    },
     ...options,
   })
   if (!res.ok) {
