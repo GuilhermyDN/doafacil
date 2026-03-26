@@ -8,6 +8,11 @@ const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm" });
 export const metadata: Metadata = {
   title: "Humanity Bearers – Sistema de Doações",
   description: "Gestão de doações para instituições",
+  icons: {
+    icon: "/ursinho.png",
+    shortcut: "/ursinho.png",
+    apple: "/ursinho.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
