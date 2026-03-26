@@ -1,19 +1,23 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { type Doador, type Missao, type Doacao } from "@/lib/data";
 import {
-  DOACOES_MOCK, INSTITUICOES, RANKING_MOCK, MISSOES_MOCK, QR_EVENTOS,
-  type Doador,
-} from "@/lib/data";
+  login as apiLogin, logout as apiLogout, isLoggedIn,
+  getDoacoes, getRanking, getMissoes, getEventos, getEventoQRCodes,
+  getDashboardResumo, getInstituicoes, getGastos, postGasto, postInstituicao, putInstituicao, gerarLinkMP,
+  type QREvento, type Evento, type DashboardResumo,
+} from "@/lib/api";
 
 // ── BRAND COLORS ─────────────────────────────────────────────────────────────
 const C = {
   // brand
-  blue:    "#000DFF",
-  blueL:   "#e0e4ff",
-  orange:  "#FF4E00",
-  orangeL: "#fff0eb",
-  black:   "#000000",
-  white:   "#FFFFFF",
+  blue:     "#000DFF",
+  blueL:    "#e0e4ff",
+  orange:   "#FF4E00",
+  orangeL:  "#fff0eb",
+  black:    "#000000",
+  white:    "#FFFFFF",
+  offWhite: "#f4f4f4",
   // ui
   cream:   "#f8f8f8",
   stone:   "#f0f0f0",
@@ -63,6 +67,8 @@ const Icons = {
   qr:      "M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM17 14h.01M14 14h.01M20 14h.01M14 17h.01M17 17h.01M20 17h.01M14 20h7",
   game:    "M6 12h4M8 10v4M15 11h.01M17 13h.01M21 8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2h14a2 2 0 002-2V8z",
   heart:   "M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z",
+  receipt: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zM14 2v6h6M16 13H8M16 17H8M10 9H8",
+  settings:"M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z",
 };
 
 // ── BEAR MASCOT IMAGE ────────────────────────────────────────────────────────
@@ -232,32 +238,189 @@ function RankingCard({ doador, posicao }: { doador: Doador; posicao: number }) {
   );
 }
 
-type Tab = "dashboard" | "ranking" | "qrcodes" | "homenagens" | "missao";
+type Tab = "dashboard" | "ranking" | "qrcodes" | "homenagens" | "missao" | "gastos" | "prestacao" | "instituicoes" | "config";
 
 const TABS: { id: Tab; label: string; icon: string; emoji?: string }[] = [
-  { id: "dashboard",  label: "Dashboard",   icon: Icons.church },
-  { id: "ranking",    label: "Ranking",      icon: Icons.trophy, emoji: "🐻" },
-  { id: "qrcodes",    label: "QR Codes",     icon: Icons.qr },
-  { id: "homenagens", label: "Homenagens",   icon: Icons.heart },
-  { id: "missao",     label: "Missão",       icon: Icons.game },
+  { id: "dashboard",   label: "Dashboard",       icon: Icons.church },
+  { id: "ranking",     label: "Ranking",          icon: Icons.trophy, emoji: "🐻" },
+  { id: "qrcodes",     label: "QR Codes",         icon: Icons.qr },
+  { id: "homenagens",  label: "Homenagens",       icon: Icons.heart },
+  { id: "missao",      label: "Missão",           icon: Icons.game },
+  { id: "gastos",      label: "Gastos",           icon: Icons.receipt },
+  { id: "prestacao",   label: "Prestação",        icon: Icons.wallet },
+  { id: "instituicoes",label: "Instituições",     icon: Icons.users },
+  { id: "config",      label: "Configurações",    icon: Icons.settings },
 ];
 
+// ── LOGIN FORM ────────────────────────────────────────────────────────────────
+function LoginForm({ onLogin }: { onLogin: () => void }) {
+  const [email, setEmail] = useState("admin@igreja.com");
+  const [senha, setSenha] = useState("");
+  const [erro, setErro]   = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email || !senha) { setErro("Preencha email e senha"); return; }
+    setLoading(true); setErro("");
+    try {
+      await apiLogin(email, senha);
+      onLogin();
+    } catch (e: any) {
+      setErro(e.message || "Credenciais inválidas");
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.black }}>
+      <div style={{ background: C.white, borderRadius: 24, padding: "40px 36px", width: "100%", maxWidth: 380, boxShadow: "0 40px 100px rgba(0,0,0,0.5)" }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <UrsinhoSVG size={64} />
+          <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, color: C.ink, marginTop: 12 }}>Humanity Bearers Admin</h1>
+          <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>Acesso restrito à liderança</p>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email"
+            style={{ border: `1.5px solid ${C.border}`, borderRadius: 12, padding: "12px 14px", fontSize: 13, outline: "none" }} />
+          <input type="password" value={senha} onChange={e => setSenha(e.target.value)} placeholder="Senha"
+            onKeyDown={e => e.key === "Enter" && handleLogin()}
+            style={{ border: `1.5px solid ${C.border}`, borderRadius: 12, padding: "12px 14px", fontSize: 13, outline: "none" }} />
+          {erro && <p style={{ fontSize: 12, color: C.orange, textAlign: "center" }}>{erro}</p>}
+          <button onClick={handleLogin} disabled={loading}
+            style={{ background: C.black, color: C.white, border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", marginTop: 4 }}>
+            {loading ? "Entrando..." : "Entrar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage() {
+  const [autenticado, setAutenticado] = useState(false);
   const [tab, setTab]               = useState<Tab>("dashboard");
   const [filtro, setFiltro]         = useState("todas");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const doacoes   = DOACOES_MOCK;
-  const total     = doacoes.reduce((s, d) => s + d.valor, 0);
-  const repassado = Math.round(total * 0.82);
-  const pendente  = total - repassado;
-  const pessoas   = doacoes.reduce((s, d) => s + Math.floor(d.valor / 15), 0);
-  const filtradas = filtro === "todas" ? doacoes : doacoes.filter(d => d.instituicao === filtro);
-  const instNomes = Array.from(new Set(doacoes.map(d => d.instituicao)));
-  const donutData = INSTITUICOES.map(inst => ({
+  // dados carregados da API
+  const [doacoes, setDoacoes]           = useState<Doacao[]>([]);
+  const [ranking, setRanking]           = useState<Doador[]>([]);
+  const [missoes, setMissoes]           = useState<Missao[]>([]);
+  const [eventos, setEventos]           = useState<Evento[]>([]);
+  const [qrEventos, setQrEventos]       = useState<QREvento[]>([]);
+  const [resumo, setResumo]             = useState<DashboardResumo | null>(null);
+  const [loadingData, setLoadingData]   = useState(false);
+  // gastos admin
+  const [gastosInstId, setGastosInstId] = useState<number | null>(null);
+  const [gastosLista, setGastosLista]   = useState<import("@/lib/data").Gasto[]>([]);
+  const [gastosLoading, setGastosLoading] = useState(false);
+  const [gastosInsts, setGastosInsts]   = useState<import("@/lib/data").Instituicao[]>([]);
+  const [gastoForm, setGastoForm]       = useState({ desc: "", valor: "", data: new Date().toISOString().slice(0,10), comprovante: false });
+  const [gastoSaving, setGastoSaving]   = useState(false);
+  // instituicoes tab
+  const TIPO_DEFAULTS = {
+    Refeicao: { emoji: "🍽", cor: "#000DFF", bg: "#e0e4ff" },
+    Banho:    { emoji: "🚿", cor: "#2A5FA5", bg: "#E6EEF8" },
+    Cobertor: { emoji: "🧣", cor: "#FF4E00", bg: "#fff0eb" },
+  };
+  const instFormBlank = { nome: "", tipo: "Refeicao" as "Refeicao"|"Banho"|"Cobertor", valor: "", pixKey: "", emoji: "🍽", cor: "#000DFF", bg: "#e0e4ff" };
+  const [instAdminList, setInstAdminList] = useState<import("@/lib/data").Instituicao[]>([]);
+  const [instAdminForm, setInstAdminForm] = useState(instFormBlank);
+  const [instAdminEditing, setInstAdminEditing] = useState<number | "new" | null>(null);
+  const [instAdminSaving, setInstAdminSaving] = useState(false);
+  const [instLinkGerado, setInstLinkGerado]   = useState<Record<number, string>>({});
+  const [instLinkCopiado, setInstLinkCopiado] = useState<Record<number, boolean>>({});
+  // prestacao tab
+  const [prestInsts, setPrestInsts]     = useState<import("@/lib/data").Instituicao[]>([]);
+  const [prestInstId, setPrestInstId]   = useState<number | null>(null);
+  const [prestGastos, setPrestGastos]   = useState<import("@/lib/data").Gasto[]>([]);
+  const [prestLoading, setPrestLoading] = useState(false);
+  // config tab
+  const [configInsts, setConfigInsts]   = useState<import("@/lib/data").Instituicao[]>([]);
+  const [configTokens, setConfigTokens] = useState<Record<number, string>>({});
+  const [configSaving, setConfigSaving] = useState<Record<number, boolean>>({});
+  const [configSaved, setConfigSaved]   = useState<Record<number, boolean>>({});
+
+  useEffect(() => {
+    setAutenticado(isLoggedIn());
+  }, []);
+
+  useEffect(() => {
+    if (!autenticado) return;
+    setLoadingData(true);
+    Promise.all([
+      getDoacoes({ limit: 50 }).then(r => setDoacoes(r.doacoes)).catch(() => {}),
+      getRanking().then(setRanking).catch(() => {}),
+      getMissoes().then(setMissoes).catch(() => {}),
+      getEventos().then(async (evs) => {
+        setEventos(evs);
+        if (evs.length > 0) {
+          const qrs = await getEventoQRCodes(evs[0].id).catch(() => []);
+          setQrEventos(qrs);
+        }
+      }).catch(() => {}),
+      getDashboardResumo().then(setResumo).catch(() => {}),
+    ]).finally(() => setLoadingData(false));
+  }, [autenticado]);
+
+  // carregar instituições para aba gastos
+  useEffect(() => {
+    if (!autenticado || tab !== "gastos") return;
+    getInstituicoes().then(insts => {
+      setGastosInsts(insts);
+      if (insts.length > 0 && !gastosInstId) setGastosInstId(insts[0].id);
+    });
+  }, [autenticado, tab]);
+
+  // carregar instituições para aba instituicoes
+  useEffect(() => {
+    if (!autenticado || tab !== "instituicoes") return;
+    getInstituicoes().then(setInstAdminList);
+  }, [autenticado, tab]);
+
+  // carregar instituições para aba prestação
+  useEffect(() => {
+    if (!autenticado || tab !== "prestacao") return;
+    getInstituicoes().then(insts => {
+      setPrestInsts(insts);
+      if (insts.length > 0 && !prestInstId) setPrestInstId(insts[0].id);
+    });
+  }, [autenticado, tab]);
+
+  useEffect(() => {
+    if (!prestInstId) return;
+    setPrestLoading(true);
+    getGastos(prestInstId).then(setPrestGastos).finally(() => setPrestLoading(false));
+  }, [prestInstId]);
+
+  // carregar instituições para aba config
+  useEffect(() => {
+    if (!autenticado || tab !== "config") return;
+    getInstituicoes().then(insts => {
+      setConfigInsts(insts);
+      const tokens: Record<number, string> = {};
+      insts.forEach(i => { tokens[i.id] = i.mercadoPagoToken ?? ""; });
+      setConfigTokens(tokens);
+    });
+  }, [autenticado, tab]);
+
+  useEffect(() => {
+    if (!gastosInstId) return;
+    setGastosLoading(true);
+    getGastos(gastosInstId).then(setGastosLista).finally(() => setGastosLoading(false));
+  }, [gastosInstId]);
+
+  if (!autenticado) return <LoginForm onLogin={() => setAutenticado(true)} />;
+
+  const total     = resumo?.totalArrecadado ?? 0;
+  const repassado = resumo?.totalRepassado  ?? 0;
+  const pendente  = resumo?.totalPendente   ?? 0;
+  const pessoas   = resumo?.pessoasAjudadas ?? 0;
+  const filtradas = filtro === "todas" ? doacoes : doacoes.filter(d => d.instituicao?.nome === filtro);
+  const instNomes = Array.from(new Set(doacoes.map(d => d.instituicao?.nome || "").filter(Boolean)));
+  const donutData = (resumo?.doacoesPorInstituicao ?? []).map((inst, i) => ({
     label: inst.nome,
-    value: doacoes.filter(d => d.instituicao === inst.nome).reduce((s, d) => s + d.valor, 0),
-    color: inst.tipo === "Refeição" ? C.green : inst.tipo === "Banho" ? C.blue : C.amber,
+    value: inst.total,
+    color: [C.green, C.blue, C.amber][i % 3],
   }));
 
   const SidebarContent = () => (
@@ -268,7 +431,7 @@ export default function AdminPage() {
             <UrsinhoSVG size={40} />
           </div>
           <div>
-            <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 15, fontWeight: 700, color: "#fff", lineHeight: 1.1 }}>DoaFácil</p>
+            <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 15, fontWeight: 700, color: "#fff", lineHeight: 1.1 }}>Humanity Bearers</p>
             <p style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1.5, textTransform: "uppercase", marginTop: 2 }}>Painel da Igreja</p>
           </div>
         </div>
@@ -317,16 +480,15 @@ export default function AdminPage() {
             <p style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>Alocação de recursos</p>
             <Badge color={C.green} bg={C.greenL}>Atualizado agora</Badge>
           </div>
-          {INSTITUICOES.map(inst => {
-            const v = doacoes.filter(d => d.instituicao === inst.nome).reduce((s, d) => s + d.valor, 0);
-            const pct = Math.round((v / total) * 100);
-            const cor = inst.tipo === "Refeição" ? C.green : inst.tipo === "Banho" ? C.blue : C.amber;
-            return <ProgressBar key={inst.id} label={inst.nome} value={`R$ ${v}`} pct={pct} color={cor} />;
+          {(resumo?.doacoesPorInstituicao ?? []).map((inst, idx) => {
+            const pct = inst.percentual;
+            const cor = [C.green, C.blue, C.amber][idx % 3];
+            return <ProgressBar key={inst.instituicaoId} label={inst.nome} value={`R$ ${inst.total.toFixed(2)}`} pct={pct} color={cor} />;
           })}
           <div style={{ marginTop: 8, background: C.goldL, borderRadius: 12, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <div>
               <p style={{ fontSize: 11, color: C.amber, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Próximo repasse</p>
-              <p style={{ fontSize: 13, color: C.ink, marginTop: 2 }}>25/03/2026</p>
+              <p style={{ fontSize: 13, color: C.ink, marginTop: 2 }}>{resumo?.proximoRepasse ? new Date(resumo.proximoRepasse).toLocaleDateString("pt-BR") : "—"}</p>
             </div>
             <div style={{ textAlign: "right" }}>
               <p style={{ fontSize: 18, fontWeight: 700, color: C.amber, fontFamily: "'Playfair Display',serif" }}>R$ {pendente}</p>
@@ -360,22 +522,23 @@ export default function AdminPage() {
             </thead>
             <tbody>
               {filtradas.map((d, i) => {
-                const tc = d.tipo === "Refeição" ? { c: C.green, bg: C.greenL } : d.tipo === "Banho" ? { c: C.blue, bg: C.blueL } : { c: C.amber, bg: C.amberL };
+                const tipo = d.instituicao?.tipo || "";
+                const tc = tipo === "Refeicao" ? { c: C.green, bg: C.greenL } : tipo === "Banho" ? { c: C.blue, bg: C.blueL } : { c: C.amber, bg: C.amberL };
                 return (
                   <tr key={d.id} style={{ borderTop: `1px solid ${C.stone}`, background: i % 2 === 0 ? C.white : "rgba(250,247,242,0.5)" }}>
                     <td style={{ padding: "12px 16px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
                         <div style={{ width: 30, height: 30, borderRadius: "50%", background: C.dark + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600, color: C.dark, flexShrink: 0 }}>
-                          {d.doador.split(" ").map(w => w[0]).join("").slice(0, 2)}
+                          {(d.doadorNome || "?").split(" ").map((w: string) => w[0]).join("").slice(0, 2)}
                         </div>
-                        <span style={{ fontSize: 13, fontWeight: 500, color: C.ink, whiteSpace: "nowrap" }}>{d.doador}</span>
+                        <span style={{ fontSize: 13, fontWeight: 500, color: C.ink, whiteSpace: "nowrap" }}>{d.doadorNome}</span>
                       </div>
                     </td>
-                    <td style={{ padding: "12px 16px", fontSize: 13, color: C.muted, whiteSpace: "nowrap" }}>{d.instituicao}</td>
-                    <td style={{ padding: "12px 16px" }}><Badge color={tc.c} bg={tc.bg}>{d.tipo}</Badge></td>
-                    <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 14, fontWeight: 700, color: C.green, fontFamily: "'Playfair Display',serif", whiteSpace: "nowrap" }}>R$ {d.valor}</span></td>
-                    <td style={{ padding: "12px 16px", fontSize: 13, color: C.muted, whiteSpace: "nowrap" }}>{d.data}</td>
-                    <td style={{ padding: "12px 16px" }}><div style={{ display: "flex", alignItems: "center", gap: 5 }}><Icon d={Icons.check} size={13} color={C.green} /><Badge color={C.green} bg={C.greenL}>Confirmado</Badge></div></td>
+                    <td style={{ padding: "12px 16px", fontSize: 13, color: C.muted, whiteSpace: "nowrap" }}>{d.instituicao?.nome || "—"}</td>
+                    <td style={{ padding: "12px 16px" }}><Badge color={tc.c} bg={tc.bg}>{d.instituicao?.tipo || "—"}</Badge></td>
+                    <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 14, fontWeight: 700, color: C.green, fontFamily: "'Playfair Display',serif", whiteSpace: "nowrap" }}>R$ {d.valorTotal}</span></td>
+                    <td style={{ padding: "12px 16px", fontSize: 13, color: C.muted, whiteSpace: "nowrap" }}>{new Date(d.dataCriacao).toLocaleDateString("pt-BR")}</td>
+                    <td style={{ padding: "12px 16px" }}><div style={{ display: "flex", alignItems: "center", gap: 5 }}>{d.pago ? <><Icon d={Icons.check} size={13} color={C.green} /><Badge color={C.green} bg={C.greenL}>Confirmado</Badge></> : <Badge color={C.amber} bg={C.amberL}>Pendente</Badge>}</div></td>
                   </tr>
                 );
               })}
@@ -402,8 +565,8 @@ export default function AdminPage() {
         </div>
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
           {[
-            { label: "Doadores",   value: RANKING_MOCK.length,                          color: C.gold   },
-            { label: "Top pontos", value: RANKING_MOCK[0].pontos.toLocaleString("pt-BR"), color: C.orange },
+            { label: "Doadores",   value: ranking.length,                                          color: C.gold   },
+            { label: "Top pontos", value: ranking[0]?.pontos.toLocaleString("pt-BR") ?? "0",  color: C.orange },
           ].map(stat => (
             <div key={stat.label} style={{ textAlign: "center", background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "12px 20px", border: "1px solid rgba(255,255,255,0.07)" }}>
               <p style={{ fontSize: 22, fontWeight: 700, color: stat.color, fontFamily: "'Playfair Display',serif" }}>{stat.value}</p>
@@ -419,8 +582,9 @@ export default function AdminPage() {
           </span>
         ))}
       </div>
+      {ranking.length === 0 && !loadingData && <p style={{ textAlign: "center", color: C.muted, padding: "40px 0" }}>Nenhum doador no ranking ainda.</p>}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {RANKING_MOCK.map((doador, i) => <RankingCard key={doador.id} doador={doador} posicao={i + 1} />)}
+        {ranking.map((doador, i) => <RankingCard key={doador.id} doador={doador} posicao={i + 1} />)}
       </div>
       <div style={{ background: C.goldL, borderRadius: 16, padding: "16px 20px", border: `1px solid ${C.gold}28` }}>
         <p style={{ fontSize: 13, fontWeight: 600, color: C.amber, marginBottom: 8 }}>📋 Como funciona a pontuação?</p>
@@ -444,31 +608,44 @@ export default function AdminPage() {
           <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>Exiba no telão ou imprima para distribuir na entrada</p>
         </div>
       </div>
+      {qrEventos.length === 0 && !loadingData && (
+        <div style={{ textAlign: "center", color: C.muted, padding: "40px 0" }}>
+          <p style={{ fontSize: 14, marginBottom: 8 }}>Nenhum QR Code gerado ainda.</p>
+          <p style={{ fontSize: 12 }}>Crie um evento no painel para gerar QR Codes automaticamente.</p>
+        </div>
+      )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 16 }}>
-        {QR_EVENTOS.map((qr, i) => {
-          const inst = INSTITUICOES.find(ins => ins.id === qr.instituicaoId)!;
-          const cor  = inst.tipo === "Refeição" ? C.green : inst.tipo === "Banho" ? C.blue : C.amber;
-          const bg   = inst.tipo === "Refeição" ? C.greenL : inst.tipo === "Banho" ? C.blueL : C.amberL;
+        {qrEventos.map((qr, i) => {
+          const inst = qr.instituicao;
+          const cor  = inst?.tipo === "Refeicao" ? C.green : inst?.tipo === "Banho" ? C.blue : C.amber;
+          const bg   = inst?.tipo === "Refeicao" ? C.greenL : inst?.tipo === "Banho" ? C.blueL : C.amberL;
+          const evento = eventos.find(e => e.id === qr.eventoId);
           return (
             <div key={i} style={{ background: C.white, borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden", boxShadow: "0 4px 16px rgba(28,26,22,0.07)" }}>
               <div style={{ background: `linear-gradient(90deg, ${cor}18, ${cor}28)`, borderBottom: `1px solid ${cor}22`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 18 }}>{inst.emoji}</span>
+                <span style={{ fontSize: 18 }}>{inst?.emoji ?? "🏛️"}</span>
                 <div>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: cor }}>{inst.nome}</p>
-                  <p style={{ fontSize: 10, color: C.muted }}>{qr.evento} · {qr.dataEvento}</p>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: cor }}>{inst?.nome ?? "Instituição"}</p>
+                  <p style={{ fontSize: 10, color: C.muted }}>{evento?.nome ?? "Evento"} · {evento ? new Date(evento.dataEvento).toLocaleDateString("pt-BR") : ""}</p>
                 </div>
               </div>
               <div style={{ padding: "20px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
                 <div style={{ padding: 12, background: "#fafafa", borderRadius: 12, border: `1px solid ${C.border}` }}>
-                  <QRCodeVisual value={qr.pixKey + qr.valor + qr.dataEvento} size={110} color={cor} />
+                  {/* QR real do banco ou visual fallback */}
+                  {qr.qrCodeBase64 ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={qr.qrCodeBase64} alt="QR Code" width={110} height={110} style={{ borderRadius: 4 }} />
+                  ) : (
+                    <QRCodeVisual value={qr.urlDoacao} size={110} color={cor} />
+                  )}
                 </div>
                 <div style={{ textAlign: "center" }}>
                   <p style={{ fontSize: 22, fontWeight: 700, color: cor, fontFamily: "'Playfair Display',serif" }}>R$ {qr.valor}</p>
                   <p style={{ fontSize: 11, color: C.muted }}>por pessoa</p>
                 </div>
                 <div style={{ background: bg, borderRadius: 10, padding: "8px 14px", width: "100%", textAlign: "center" }}>
-                  <p style={{ fontSize: 10, color: cor, fontWeight: 600, letterSpacing: 0.5, marginBottom: 2 }}>CHAVE PIX</p>
-                  <p style={{ fontSize: 10, color: cor, wordBreak: "break-all", lineHeight: 1.4 }}>{qr.pixKey}</p>
+                  <p style={{ fontSize: 10, color: cor, fontWeight: 600, letterSpacing: 0.5, marginBottom: 2 }}>URL DO QR</p>
+                  <p style={{ fontSize: 10, color: cor, wordBreak: "break-all", lineHeight: 1.4 }}>{qr.urlDoacao}</p>
                 </div>
               </div>
             </div>
@@ -486,7 +663,7 @@ export default function AdminPage() {
 
   // ── HOMENAGENS ───────────────────────────────────────────────────────────
   const renderHomenagens = () => {
-    const todos = RANKING_MOCK;
+    const todos = ranking;
 
     // Medalha SVG inline
     const Medalha = ({ cor, pos }: { cor: string; pos: number }) => (
@@ -697,8 +874,8 @@ export default function AdminPage() {
 
   // ── MISSÃO ───────────────────────────────────────────────────────────────
   const renderMissao = () => {
-    const totalPontos = MISSOES_MOCK.filter(m => m.completa).reduce((s, m) => s + m.pontos, 0);
-    const maxPontos   = MISSOES_MOCK.reduce((s, m) => s + m.pontos, 0);
+    const totalPontos = 0; // progresso individual — sem doadorId selecionado
+    const maxPontos   = missoes.reduce((s: number, m: Missao) => s + m.pontos, 0);
     const pct = Math.round((totalPontos / maxPontos) * 100);
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -724,18 +901,17 @@ export default function AdminPage() {
           </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 12 }}>
-          {MISSOES_MOCK.map(missao => (
-            <div key={missao.id} style={{ background: missao.completa ? "linear-gradient(135deg, #E1F5EE, #f5fff9)" : C.white, borderRadius: 16, border: `${missao.completa ? "2px" : "1px"} solid ${missao.completa ? C.green + "55" : C.border}`, padding: "16px 18px", boxShadow: missao.completa ? `0 4px 16px ${C.green}22` : "0 1px 6px rgba(28,26,22,0.04)", display: "flex", gap: 14, alignItems: "flex-start" }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: missao.completa ? C.green + "22" : C.stone, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
-                {missao.completa ? "✅" : missao.emoji}
+          {missoes.map((missao: Missao) => (
+            <div key={missao.id} style={{ background: C.white, borderRadius: 16, border: `1px solid ${C.border}`, padding: "16px 18px", boxShadow: "0 1px 6px rgba(28,26,22,0.04)", display: "flex", gap: 14, alignItems: "flex-start" }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: C.stone, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
+                {missao.emoji}
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, flexWrap: "wrap" }}>
                   <p style={{ fontSize: 14, fontWeight: 600, color: C.ink }}>{missao.titulo}</p>
-                  <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 10px", borderRadius: 99, background: missao.completa ? C.greenL : C.goldL, color: missao.completa ? C.green : C.amber }}>+{missao.pontos} pts</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 10px", borderRadius: 99, background: C.goldL, color: C.amber }}>+{missao.pontos} pts</span>
                 </div>
                 <p style={{ fontSize: 12, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>{missao.descricao}</p>
-                {missao.completa && <p style={{ fontSize: 11, color: C.green, fontWeight: 600, marginTop: 6 }}>✓ Missão concluída!</p>}
               </div>
             </div>
           ))}
@@ -750,6 +926,527 @@ export default function AdminPage() {
             +400 pts · Missão Galera
           </div>
         </div>
+      </div>
+    );
+  };
+
+  // ── GASTOS ───────────────────────────────────────────────────────────────
+  const renderGastos = () => {
+    const instSel = gastosInsts.find(i => i.id === gastosInstId);
+    const totalGasto = gastosLista.reduce((s, g) => s + g.valor, 0);
+
+    const handleSalvarGasto = async () => {
+      if (!gastoForm.desc || !gastoForm.valor || !gastosInstId) return;
+      setGastoSaving(true);
+      try {
+        const salvo = await postGasto({
+          instituicaoId: gastosInstId,
+          desc: gastoForm.desc,
+          valor: parseFloat(gastoForm.valor),
+          data: new Date(gastoForm.data).toISOString(),
+          comprovante: gastoForm.comprovante,
+        });
+        setGastosLista(prev => [salvo, ...prev]);
+        setGastoForm({ desc: "", valor: "", data: new Date().toISOString().slice(0,10), comprovante: false });
+      } catch { alert("Erro ao salvar gasto."); }
+      finally { setGastoSaving(false); }
+    };
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        {/* header */}
+        <div style={{ background: C.black, borderRadius: 18, padding: "20px 24px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ width: 48, height: 48, background: "rgba(255,255,255,0.08)", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Icon d={Icons.receipt} size={22} color={C.gold} />
+          </div>
+          <div>
+            <p style={{ fontSize: 11, color: C.gold, letterSpacing: 3, textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>Prestação de Contas</p>
+            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: C.white, margin: 0 }}>Registro de Gastos</h2>
+          </div>
+        </div>
+
+        {/* seletor de instituição */}
+        <div style={{ background: C.white, borderRadius: 16, border: `1px solid ${C.border}`, padding: "18px 20px" }}>
+          <p style={{ fontSize: 12, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 12 }}>Instituição</p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {gastosInsts.map(inst => (
+              <button key={inst.id} onClick={() => setGastosInstId(inst.id)}
+                style={{ padding: "8px 16px", borderRadius: 99, fontSize: 13, fontWeight: 600, cursor: "pointer", border: `2px solid ${gastosInstId === inst.id ? C.blue : C.border}`, background: gastosInstId === inst.id ? C.blueL : C.offWhite, color: gastosInstId === inst.id ? C.blue : C.muted, transition: "all 0.15s" }}>
+                {inst.emoji} {inst.nome}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* formulário */}
+        <div style={{ background: C.white, borderRadius: 16, border: `1px solid ${C.border}`, padding: "20px" }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: C.ink, marginBottom: 16 }}>Novo registro de gasto</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 10, marginBottom: 12 }}>
+            <input placeholder="Descrição do gasto" value={gastoForm.desc}
+              onChange={e => setGastoForm(f => ({ ...f, desc: e.target.value }))}
+              style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 13, outline: "none", gridColumn: "1/-1" }} />
+            <input type="number" placeholder="R$ Valor" value={gastoForm.valor}
+              onChange={e => setGastoForm(f => ({ ...f, valor: e.target.value }))}
+              style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 13, outline: "none" }} />
+            <input type="date" value={gastoForm.data}
+              onChange={e => setGastoForm(f => ({ ...f, data: e.target.value }))}
+              style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 13, outline: "none" }} />
+          </div>
+          <button onClick={() => setGastoForm(f => ({ ...f, comprovante: !f.comprovante }))}
+            style={{ display: "flex", alignItems: "center", gap: 8, background: gastoForm.comprovante ? C.greenL : C.offWhite, border: `1px solid ${gastoForm.comprovante ? C.green : C.border}`, borderRadius: 10, padding: "8px 14px", cursor: "pointer", marginBottom: 14, fontSize: 13, color: gastoForm.comprovante ? C.green : C.muted }}>
+            <div style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${gastoForm.comprovante ? C.green : C.border}`, background: gastoForm.comprovante ? C.green : "transparent", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {gastoForm.comprovante && <span style={{ color: "#fff", fontSize: 10 }}>✓</span>}
+            </div>
+            Tem comprovante fiscal
+          </button>
+          <button onClick={handleSalvarGasto} disabled={gastoSaving || !gastoForm.desc || !gastoForm.valor}
+            style={{ background: C.black, color: C.white, border: "none", borderRadius: 10, padding: "10px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: !gastoForm.desc || !gastoForm.valor ? 0.4 : 1 }}>
+            {gastoSaving ? "Salvando..." : "Salvar gasto"}
+          </button>
+        </div>
+
+        {/* lista */}
+        <div style={{ background: C.white, borderRadius: 16, border: `1px solid ${C.border}`, padding: "20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 600, color: C.ink }}>{instSel?.nome ?? "Instituição"} — Histórico</p>
+              <p style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{gastosLista.length} registros · Total: R$ {totalGasto.toFixed(2)}</p>
+            </div>
+          </div>
+          {gastosLoading && <p style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "20px 0" }}>Carregando...</p>}
+          {!gastosLoading && gastosLista.length === 0 && (
+            <p style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "30px 0" }}>Nenhum gasto registrado para esta instituição.</p>
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {gastosLista.map((g, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: C.offWhite, borderRadius: 12, gap: 12, flexWrap: "wrap" }}>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 13, fontWeight: 500, color: C.ink }}>{g.desc}</p>
+                  <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                    {new Date(g.data).toLocaleDateString("pt-BR")} ·{" "}
+                    {g.comprovante
+                      ? <span style={{ color: C.green, fontWeight: 600 }}>✓ Com comprovante</span>
+                      : <span style={{ color: C.amber }}>Sem comprovante</span>}
+                  </p>
+                </div>
+                <p style={{ fontSize: 16, fontWeight: 700, color: "#A32D2D", fontFamily: "'Playfair Display',serif", whiteSpace: "nowrap" }}>− R$ {g.valor.toFixed(2)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ── INSTITUIÇÕES CRUD ────────────────────────────────────────────────────
+  const renderInstituicoes = () => {
+    const isNew = instAdminEditing === "new";
+    const editInst = typeof instAdminEditing === "number"
+      ? instAdminList.find(i => i.id === instAdminEditing) ?? null
+      : null;
+
+    const handleOpenNew = () => {
+      setInstAdminForm(instFormBlank);
+      setInstAdminEditing("new");
+    };
+    const handleOpenEdit = (inst: import("@/lib/data").Instituicao) => {
+      setInstAdminForm({ nome: inst.nome, tipo: inst.tipo, valor: String(inst.valor), pixKey: inst.pixKey, emoji: inst.emoji, cor: inst.cor, bg: inst.bg });
+      setInstAdminEditing(inst.id);
+    };
+    const handleTipoChange = (tipo: "Refeicao"|"Banho"|"Cobertor") => {
+      const d = TIPO_DEFAULTS[tipo];
+      setInstAdminForm(f => ({ ...f, tipo, emoji: d.emoji, cor: d.cor, bg: d.bg }));
+    };
+    const handleSalvar = async () => {
+      if (!instAdminForm.nome || !instAdminForm.pixKey || !instAdminForm.valor) return;
+      setInstAdminSaving(true);
+      try {
+        const body = { nome: instAdminForm.nome, tipo: instAdminForm.tipo, valor: parseFloat(instAdminForm.valor), pixKey: instAdminForm.pixKey, emoji: instAdminForm.emoji, cor: instAdminForm.cor, bg: instAdminForm.bg };
+        if (isNew) {
+          const nova = await postInstituicao(body);
+          setInstAdminList(l => [...l, nova]);
+        } else if (typeof instAdminEditing === "number") {
+          const atualizada = await putInstituicao(instAdminEditing, body);
+          setInstAdminList(l => l.map(i => i.id === instAdminEditing ? atualizada : i));
+        }
+        setInstAdminEditing(null);
+      } catch { alert("Erro ao salvar instituição."); }
+      finally { setInstAdminSaving(false); }
+    };
+    const handleToggleAtivo = async (inst: import("@/lib/data").Instituicao) => {
+      try {
+        const atualizada = await putInstituicao(inst.id, { ativo: !inst.ativo });
+        setInstAdminList(l => l.map(i => i.id === inst.id ? atualizada : i));
+      } catch { alert("Erro ao atualizar status."); }
+    };
+    const handleGerarLink = async (inst: import("@/lib/data").Instituicao) => {
+      try {
+        const { link } = await gerarLinkMP(inst.id);
+        setInstLinkGerado(m => ({ ...m, [inst.id]: link }));
+      } catch { alert("Erro ao gerar link. Verifique se o backend está rodando."); }
+    };
+    const handleCopiarLink = (instId: number, link: string) => {
+      navigator.clipboard.writeText(link);
+      setInstLinkCopiado(m => ({ ...m, [instId]: true }));
+      setTimeout(() => setInstLinkCopiado(m => ({ ...m, [instId]: false })), 2000);
+    };
+
+    const Form = () => (
+      <div style={{ background: C.white, borderRadius: 18, border: `2px solid ${C.blue}`, padding: "24px" }}>
+        <p style={{ fontSize: 14, fontWeight: 700, color: C.ink, marginBottom: 20 }}>
+          {isNew ? "➕ Nova instituição" : `✏️ Editar — ${editInst?.nome}`}
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 12, marginBottom: 16 }}>
+          <div style={{ gridColumn: "1/-1" }}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Nome da instituição *</label>
+            <input value={instAdminForm.nome} onChange={e => setInstAdminForm(f => ({ ...f, nome: e.target.value }))}
+              placeholder="Ex: Sopão do Amor" style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 13, outline: "none" }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Tipo *</label>
+            <select value={instAdminForm.tipo} onChange={e => handleTipoChange(e.target.value as any)}
+              style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 13, outline: "none", background: C.white, cursor: "pointer" }}>
+              <option value="Refeicao">🍽 Refeição</option>
+              <option value="Banho">🚿 Banho</option>
+              <option value="Cobertor">🧣 Cobertor</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Valor por pessoa (R$) *</label>
+            <input type="number" min="0" step="0.50" value={instAdminForm.valor}
+              onChange={e => setInstAdminForm(f => ({ ...f, valor: e.target.value }))}
+              placeholder="Ex: 15.00" style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 13, outline: "none" }} />
+          </div>
+          <div style={{ gridColumn: "1/-1" }}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Chave Pix *</label>
+            <input value={instAdminForm.pixKey} onChange={e => setInstAdminForm(f => ({ ...f, pixKey: e.target.value }))}
+              placeholder="CPF, CNPJ, email, telefone ou chave aleatória" style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 13, outline: "none" }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Emoji</label>
+            <input value={instAdminForm.emoji} onChange={e => setInstAdminForm(f => ({ ...f, emoji: e.target.value }))}
+              maxLength={4} placeholder="🍽" style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 22, outline: "none", textAlign: "center" }} />
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Cor</label>
+              <input type="color" value={instAdminForm.cor} onChange={e => setInstAdminForm(f => ({ ...f, cor: e.target.value }))}
+                style={{ width: "100%", height: 42, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: 2, cursor: "pointer" }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Fundo</label>
+              <input type="color" value={instAdminForm.bg} onChange={e => setInstAdminForm(f => ({ ...f, bg: e.target.value }))}
+                style={{ width: "100%", height: 42, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: 2, cursor: "pointer" }} />
+            </div>
+          </div>
+        </div>
+        {/* preview */}
+        <div style={{ background: C.offWhite, borderRadius: 12, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 46, height: 46, borderRadius: 12, background: instAdminForm.bg, border: `1.5px solid ${instAdminForm.cor}40`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>
+            {instAdminForm.emoji}
+          </div>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 700, color: C.ink }}>{instAdminForm.nome || "Nome da instituição"}</p>
+            <p style={{ fontSize: 12, color: instAdminForm.cor, fontWeight: 600 }}>R$ {instAdminForm.valor || "0"}/pessoa · {instAdminForm.tipo}</p>
+          </div>
+          <div style={{ marginLeft: "auto", background: instAdminForm.cor, color: "#fff", fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 99 }}>Preview</div>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={handleSalvar} disabled={instAdminSaving || !instAdminForm.nome || !instAdminForm.pixKey || !instAdminForm.valor}
+            style={{ background: C.black, color: C.white, border: "none", borderRadius: 10, padding: "10px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: !instAdminForm.nome || !instAdminForm.pixKey || !instAdminForm.valor ? 0.4 : 1 }}>
+            {instAdminSaving ? "Salvando..." : isNew ? "Criar instituição" : "Salvar alterações"}
+          </button>
+          <button onClick={() => setInstAdminEditing(null)} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 16px", fontSize: 13, color: C.muted, cursor: "pointer" }}>Cancelar</button>
+        </div>
+      </div>
+    );
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        {/* header */}
+        <div style={{ background: C.black, borderRadius: 18, padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ width: 48, height: 48, background: "rgba(255,255,255,0.08)", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Icon d={Icons.users} size={22} color={C.gold} />
+            </div>
+            <div>
+              <p style={{ fontSize: 11, color: C.gold, letterSpacing: 3, textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>Gerenciamento</p>
+              <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: C.white, margin: 0 }}>Instituições</h2>
+            </div>
+          </div>
+          <button onClick={handleOpenNew} style={{ background: C.orange, color: C.white, border: "none", borderRadius: 12, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <Icon d={Icons.send} size={14} color={C.white} />
+            Nova instituição
+          </button>
+        </div>
+
+        {/* form */}
+        {instAdminEditing !== null && <Form />}
+
+        {/* lista */}
+        {instAdminList.length === 0 && instAdminEditing === null && (
+          <div style={{ textAlign: "center", padding: "60px 20px", color: C.muted }}>
+            <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.3 }}>🏛️</div>
+            <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Nenhuma instituição cadastrada</p>
+            <p style={{ fontSize: 13 }}>Clique em "Nova instituição" para começar.</p>
+          </div>
+        )}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {instAdminList.map(inst => (
+            <div key={inst.id} style={{ background: C.white, borderRadius: 16, border: `1px solid ${inst.ativo === false ? C.border : inst.cor + "33"}`, padding: "16px 20px", display: "flex", alignItems: "flex-start", gap: 14, flexWrap: "wrap", opacity: inst.ativo === false ? 0.55 : 1 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 13, background: inst.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>{inst.emoji}</div>
+              <div style={{ flex: 1, minWidth: 150 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <p style={{ fontSize: 15, fontWeight: 700, color: C.ink }}>{inst.nome}</p>
+                  {inst.ativo === false && <span style={{ fontSize: 10, background: C.stone, color: C.muted, padding: "2px 8px", borderRadius: 99, fontWeight: 600 }}>Inativa</span>}
+                </div>
+                <p style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{inst.tipo} · R$ {inst.valor}/pessoa · Pix: <span style={{ fontWeight: 600 }}>{inst.pixKey}</span></p>
+              </div>
+              <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
+                <button onClick={() => handleOpenEdit(inst)} style={{ background: C.blueL, color: C.blue, border: "none", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>✏️ Editar</button>
+                <button onClick={() => handleToggleAtivo(inst)} style={{ background: inst.ativo === false ? C.greenL : C.stone, color: inst.ativo === false ? C.green : C.muted, border: "none", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                  {inst.ativo === false ? "✓ Ativar" : "⊘ Desativar"}
+                </button>
+                {!inst.mercadoPagoToken
+                  ? <button onClick={() => handleGerarLink(inst)} style={{ background: "#009EE3", color: C.white, border: "none", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>🔗 Gerar link MP</button>
+                  : <span style={{ background: C.greenL, color: C.green, fontSize: 11, fontWeight: 600, padding: "7px 12px", borderRadius: 9 }}>✓ MP vinculado</span>
+                }
+              </div>
+              {/* link gerado */}
+              {instLinkGerado[inst.id] && (
+                <div style={{ width: "100%", background: "#e6f6fd", border: "1px solid #009EE333", borderRadius: 12, padding: "12px 16px", marginTop: 4, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 16 }}>🔗</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 11, color: "#009EE3", fontWeight: 700, marginBottom: 3 }}>Envie este link para a instituição vincular o Mercado Pago:</p>
+                    <p style={{ fontSize: 12, color: "#333", wordBreak: "break-all", fontFamily: "monospace" }}>{instLinkGerado[inst.id]}</p>
+                  </div>
+                  <button onClick={() => handleCopiarLink(inst.id, instLinkGerado[inst.id])} style={{ background: instLinkCopiado[inst.id] ? C.green : "#009EE3", color: C.white, border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
+                    {instLinkCopiado[inst.id] ? "✓ Copiado" : "Copiar"}
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // ── PRESTAÇÃO DE CONTAS ───────────────────────────────────────────────────
+  const renderPrestacao = () => {
+    const instSel = prestInsts.find(i => i.id === prestInstId) ?? null;
+    const utilizado = prestGastos.reduce((s, g) => s + g.valor, 0);
+    const semComp = prestGastos.filter(g => !g.comprovante).length;
+
+    // cores por tipo
+    const instCor = (inst: import("@/lib/data").Instituicao) =>
+      inst.tipo === "Refeicao" ? { cor: "#000DFF", bg: "#e0e4ff" }
+        : inst.tipo === "Banho" ? { cor: "#2A5FA5", bg: "#E6EEF8" }
+          : { cor: "#FF4E00", bg: "#fff0eb" };
+
+    const { cor, bg } = instSel ? instCor(instSel) : { cor: C.blue, bg: C.blueL };
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        {/* header */}
+        <div style={{ background: C.black, borderRadius: 18, padding: "20px 24px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ width: 48, height: 48, background: "rgba(255,255,255,0.08)", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Icon d={Icons.wallet} size={22} color={C.gold} />
+          </div>
+          <div>
+            <p style={{ fontSize: 11, color: C.gold, letterSpacing: 3, textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>Transparência</p>
+            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: C.white, margin: 0 }}>Prestação de Contas</h2>
+            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 4 }}>Gastos por instituição — registre no campo Gastos</p>
+          </div>
+        </div>
+
+        {/* seletor instituição */}
+        <div style={{ background: C.white, borderRadius: 16, border: `1px solid ${C.border}`, padding: "18px 20px" }}>
+          <p style={{ fontSize: 12, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 12 }}>Selecionar instituição</p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {prestInsts.map(inst => {
+              const { cor: c } = instCor(inst);
+              const ativa = prestInstId === inst.id;
+              return (
+                <button key={inst.id} onClick={() => { setPrestInstId(inst.id); setPrestGastos([]); }}
+                  style={{ padding: "8px 16px", borderRadius: 99, fontSize: 13, fontWeight: 600, cursor: "pointer", border: `2px solid ${ativa ? c : C.border}`, background: ativa ? c + "18" : C.offWhite, color: ativa ? c : C.muted }}>
+                  {inst.emoji} {inst.nome}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {instSel && (
+          <>
+            {/* header instituição */}
+            <div style={{ background: `linear-gradient(135deg,${C.dark},${C.dark2})`, borderRadius: 18, padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", right: -30, top: -30, width: 140, height: 140, borderRadius: "50%", border: `1px solid ${cor}`, opacity: 0.15 }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 13, background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>
+                  {instSel.tipo === "Refeicao" ? "🍽" : instSel.tipo === "Banho" ? "🚿" : "🧣"}
+                </div>
+                <div>
+                  <p style={{ fontSize: 10, letterSpacing: 3, color: cor, textTransform: "uppercase", fontWeight: 600, marginBottom: 3 }}>{instSel.tipo}</p>
+                  <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: C.white }}>{instSel.nome}</p>
+                </div>
+              </div>
+              {semComp > 0 && (
+                <div style={{ background: "#fff0eb", border: `1px solid ${C.amber}40`, borderRadius: 10, padding: "7px 12px", display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 12, color: C.amber, fontWeight: 500 }}>⚠ {semComp} sem comprovante</span>
+                </div>
+              )}
+            </div>
+
+            {/* métricas */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12 }}>
+              {[
+                { label: "Utilizado", value: `R$ ${utilizado.toFixed(2)}`, sub: `${prestGastos.length} gastos`, color: "#A32D2D", icon: Icons.receipt },
+                { label: "Com comprovante", value: `${prestGastos.filter(g => g.comprovante).length}`, sub: `de ${prestGastos.length} registros`, color: cor, icon: Icons.check },
+                { label: "Sem comprovante", value: `${semComp}`, sub: semComp > 0 ? "Atenção necessária" : "Tudo certo", color: semComp > 0 ? C.amber : cor, icon: Icons.filter },
+              ].map((m, i) => (
+                <div key={i} style={{ background: C.white, borderRadius: 16, border: `1px solid ${C.border}`, padding: "18px 20px", boxShadow: "0 2px 8px rgba(28,26,22,0.04)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                    <p style={{ fontSize: 11, color: C.muted, letterSpacing: 0.5, textTransform: "uppercase", fontWeight: 600 }}>{m.label}</p>
+                    <div style={{ width: 32, height: 32, borderRadius: 9, background: m.color + "18", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Icon d={m.icon} size={15} color={m.color} />
+                    </div>
+                  </div>
+                  <p style={{ fontSize: 26, fontWeight: 700, color: m.color, fontFamily: "'Playfair Display',serif", lineHeight: 1, marginBottom: 4 }}>{m.value}</p>
+                  <p style={{ fontSize: 12, color: C.muted }}>{m.sub}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* timeline de gastos */}
+            <div style={{ background: C.white, borderRadius: 18, border: `1px solid ${C.border}`, padding: "20px", boxShadow: "0 2px 8px rgba(28,26,22,0.04)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 8 }}>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: C.ink }}>Histórico de gastos</p>
+                  <p style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{prestGastos.length} registros · {prestGastos.filter(g => g.comprovante).length} com comprovante</p>
+                </div>
+                <span style={{ background: bg, color: cor, fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 99 }}>Total: R$ {utilizado.toFixed(2)}</span>
+              </div>
+              {prestLoading && <p style={{ textAlign: "center", color: C.muted, padding: "20px 0", fontSize: 13 }}>Carregando...</p>}
+              {!prestLoading && prestGastos.length === 0 && (
+                <div style={{ textAlign: "center", padding: "36px 20px", color: C.muted }}>
+                  <div style={{ fontSize: 32, marginBottom: 10, opacity: 0.3 }}>📋</div>
+                  <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Nenhum gasto registrado</p>
+                  <p style={{ fontSize: 12 }}>Registre gastos na aba Gastos.</p>
+                </div>
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {prestGastos.map((g, i) => (
+                  <div key={i} style={{ display: "flex", gap: 12 }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: "50%", background: g.comprovante ? bg : C.stone, border: `2px solid ${g.comprovante ? cor : C.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Icon d={g.comprovante ? Icons.check : Icons.receipt} size={13} color={g.comprovante ? cor : C.muted} />
+                      </div>
+                      {i < prestGastos.length - 1 && <div style={{ width: 1.5, flex: 1, background: C.border, minHeight: 16, marginTop: 4 }} />}
+                    </div>
+                    <div style={{ flex: 1, background: C.offWhite, border: `1px solid ${C.border}`, borderRadius: 14, padding: "12px 16px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 13, fontWeight: 500, color: C.ink, marginBottom: 4 }}>{g.desc}</p>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 11, color: C.muted }}>{new Date(g.data).toLocaleDateString("pt-BR")}</span>
+                          {g.comprovante
+                            ? <span style={{ fontSize: 10, background: bg, color: cor, padding: "2px 8px", borderRadius: 99, fontWeight: 600 }}>✓ Comprovante</span>
+                            : <span style={{ fontSize: 10, background: C.amberL, color: C.amber, padding: "2px 8px", borderRadius: 99, fontWeight: 600 }}>⚠ Sem comprovante</span>
+                          }
+                        </div>
+                      </div>
+                      <p style={{ fontSize: 16, fontWeight: 700, color: "#A32D2D", fontFamily: "'Playfair Display',serif", whiteSpace: "nowrap" }}>− R$ {g.valor.toFixed(2)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  // ── CONFIGURAÇÕES ────────────────────────────────────────────────────────
+  const renderConfig = () => {
+    const handleSalvarToken = async (instId: number) => {
+      setConfigSaving(s => ({ ...s, [instId]: true }));
+      try {
+        await putInstituicao(instId, { mercadoPagoToken: configTokens[instId] || null });
+        setConfigSaved(s => ({ ...s, [instId]: true }));
+        setTimeout(() => setConfigSaved(s => ({ ...s, [instId]: false })), 2000);
+      } catch { alert("Erro ao salvar token."); }
+      finally { setConfigSaving(s => ({ ...s, [instId]: false })); }
+    };
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        {/* header */}
+        <div style={{ background: C.black, borderRadius: 18, padding: "20px 24px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ width: 48, height: 48, background: "rgba(255,255,255,0.08)", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Icon d={Icons.settings} size={22} color={C.gold} />
+          </div>
+          <div>
+            <p style={{ fontSize: 11, color: C.gold, letterSpacing: 3, textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>Integrações</p>
+            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: C.white, margin: 0 }}>Contas Mercado Pago</h2>
+            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 4 }}>Cada instituição recebe diretamente no seu access token</p>
+          </div>
+        </div>
+
+        {/* aviso */}
+        <div style={{ background: C.amberL, borderRadius: 14, padding: "14px 18px", border: `1px solid ${C.amber}28`, display: "flex", gap: 10 }}>
+          <span style={{ fontSize: 18, flexShrink: 0 }}>🔐</span>
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 600, color: C.amber, marginBottom: 4 }}>Como obter o Access Token</p>
+            <p style={{ fontSize: 12, color: C.amber, lineHeight: 1.7 }}>
+              Acesse <strong>mercadopago.com.br → Seu negócio → Credenciais</strong> e copie o <em>Access Token de Produção</em>.
+              Cada instituição deve ter sua própria conta Mercado Pago cadastrada aqui para receber automaticamente.
+            </p>
+          </div>
+        </div>
+
+        {/* cards de cada instituição */}
+        {configInsts.map(inst => {
+          const saved = configSaved[inst.id];
+          const saving = configSaving[inst.id];
+          const token = configTokens[inst.id] ?? "";
+          const hasToken = token.length > 0;
+          return (
+            <div key={inst.id} style={{ background: C.white, borderRadius: 16, border: `1px solid ${C.border}`, padding: "20px 22px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 11, background: C.stone, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>
+                  {inst.emoji}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: C.ink }}>{inst.nome}</p>
+                  <p style={{ fontSize: 11, color: C.muted }}>{inst.tipo} · Pix: {inst.pixKey}</p>
+                </div>
+                {hasToken
+                  ? <span style={{ fontSize: 11, background: C.greenL, color: C.green, padding: "3px 10px", borderRadius: 99, fontWeight: 600 }}>✓ Configurado</span>
+                  : <span style={{ fontSize: 11, background: C.amberL, color: C.amber, padding: "3px 10px", borderRadius: 99, fontWeight: 600 }}>Pendente</span>
+                }
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  type="password"
+                  placeholder="APP_USR-xxxx... (Access Token de Produção)"
+                  value={token}
+                  onChange={e => setConfigTokens(t => ({ ...t, [inst.id]: e.target.value }))}
+                  style={{ flex: 1, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 13, outline: "none", fontFamily: "monospace" }}
+                />
+                <button
+                  onClick={() => handleSalvarToken(inst.id)}
+                  disabled={saving}
+                  style={{ background: saved ? C.green : C.black, color: C.white, border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", whiteSpace: "nowrap", transition: "background 0.2s" }}>
+                  {saving ? "..." : saved ? "✓ Salvo" : "Salvar"}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+        {configInsts.length === 0 && (
+          <p style={{ textAlign: "center", color: C.muted, padding: "40px 0" }}>Carregando instituições...</p>
+        )}
       </div>
     );
   };
@@ -786,9 +1483,12 @@ export default function AdminPage() {
               </p>
               <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: "clamp(20px,4vw,28px)", fontWeight: 700, color: C.ink, lineHeight: 1 }}>{tabInfo.label}</h1>
             </div>
-            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: "6px 14px", display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.green }} />
-              <span style={{ fontSize: 12, color: C.muted }}>Mar 2026</span>
+            <div style={{ display: "flex", gap: 8 }}>
+              {loadingData && <span style={{ fontSize: 12, color: C.muted, alignSelf: "center" }}>Carregando...</span>}
+              <button onClick={async () => { await apiLogout(); setAutenticado(false); }}
+                style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: "6px 14px", fontSize: 12, color: C.muted, cursor: "pointer" }}>
+                Sair
+              </button>
             </div>
           </div>
 
@@ -806,6 +1506,10 @@ export default function AdminPage() {
           {tab === "qrcodes"    && renderQRCodes()}
           {tab === "homenagens" && renderHomenagens()}
           {tab === "missao"     && renderMissao()}
+          {tab === "gastos"       && renderGastos()}
+          {tab === "prestacao"    && renderPrestacao()}
+          {tab === "instituicoes" && renderInstituicoes()}
+          {tab === "config"       && renderConfig()}
         </main>
       </div>
 

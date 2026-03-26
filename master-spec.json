@@ -1,0 +1,528 @@
+{
+  "_instrucoes_claude_code": "Este arquivo é o spec completo do projeto DoaFácil. O frontend já está construído em Next.js com dados mockados em src/lib/data.ts. Sua tarefa é implementar o backend real substituindo todos os mocks por dados vindos de uma API + banco de dados, e conectar o frontend a ela. Leia este arquivo inteiro antes de começar.",
+
+  "projeto": {
+    "nome": "DoaFácil",
+    "descricao": "Sistema de gestão de doações para igrejas. Permite que membros da congregação doem via QR Code/Pix para instituições beneficentes. O sistema inclui gamificação (ranking, missões, pontuação), homenagens paroquiais (estilo lousa), entrega de QR Codes por evento/culto e painel administrativo completo para a liderança da igreja.",
+    "contexto": "Igreja com dinâmica paroquial: durante o culto, os QR Codes são exibidos no telão. Doadores acumulam pontos. Os top doadores do mês ganham medalhas, diplomas e reconhecimento público (quadro de homenagens). A mascote é um ursinho com estética sketch/drip.",
+    "status_atual": "Frontend 100% pronto com mocks. Backend: a implementar do zero.",
+    "stack_frontend": {
+      "framework": "Next.js 15 (App Router)",
+      "linguagem": "TypeScript",
+      "estilo": "CSS-in-JS inline (sem Tailwind em uso efetivo)",
+      "fontes": "Playfair Display (serif), DM Sans (sans)",
+      "cores_marca": {
+        "azul": "#000DFF",
+        "laranja": "#FF4E00",
+        "preto": "#000000",
+        "branco": "#FFFFFF"
+      },
+      "mascote": "ursinho.png em /public — sketch art com fundo transparente"
+    }
+  },
+
+  "arquitetura_recomendada": {
+    "backend": "Next.js API Routes (mesma repo) ou Node.js/Express separado",
+    "banco_de_dados": "PostgreSQL via Prisma ORM (recomendado) ou SQLite para dev local",
+    "auth": "NextAuth.js com credenciais simples para o painel /admin",
+    "qrcode_lib": "qrcode (npm) para geração de QR Codes reais",
+    "pix": "Integração futura — por ora exibir chave Pix estática",
+    "deploy_sugerido": "Vercel (frontend) + Supabase (PostgreSQL) ou Railway"
+  },
+
+  "rotas_frontend_existentes": [
+    {
+      "rota": "/",
+      "descricao": "Redireciona para /doacao"
+    },
+    {
+      "rota": "/doacao",
+      "descricao": "Tela pública do doador — 3 etapas: escolher instituição → definir quantidade → confirmação com chave Pix",
+      "dados_consumidos": ["GET /api/instituicoes"],
+      "fluxo": [
+        "1. Listar instituições disponíveis com emoji, nome, tipo, valor por pessoa e pixKey",
+        "2. Doador escolhe quantidade de pessoas a ajudar",
+        "3. Sistema registra a intenção de doação (POST /api/doacoes)",
+        "4. Exibe chave Pix para o doador fazer o pagamento manualmente"
+      ]
+    },
+    {
+      "rota": "/admin",
+      "descricao": "Painel administrativo da igreja com 5 abas",
+      "autenticacao": "Requer login (admin da igreja)",
+      "abas": [
+        {
+          "id": "dashboard",
+          "titulo": "Dashboard",
+          "descricao": "Visão geral: total arrecadado, repasses, pessoas ajudadas, gráfico donut por instituição, barras de alocação, tabela de doações recentes com filtro por instituição",
+          "dados_consumidos": [
+            "GET /api/doacoes",
+            "GET /api/instituicoes",
+            "GET /api/dashboard/resumo"
+          ]
+        },
+        {
+          "id": "ranking",
+          "titulo": "🐻 Ranking",
+          "descricao": "Leaderboard gamificado de doadores com pontuação, níveis e badges. Header com ursinho mascote.",
+          "regras_pontuacao": "R$1 doado = 10 pontos base. Missões concluídas somam pontos bônus.",
+          "niveis": {
+            "bronze":   { "minPontos": 0,    "badge": "🥉" },
+            "prata":    { "minPontos": 500,  "badge": "🥈 Guerreiro de Prata" },
+            "ouro":     { "minPontos": 1000, "badge": "⭐ Estrela de Ouro" },
+            "diamante": { "minPontos": 1500, "badge": "💎 Guardião Diamante" },
+            "lenda":    { "minPontos": 2000, "badge": "🏆 Lenda da Missão" }
+          },
+          "dados_consumidos": ["GET /api/ranking"]
+        },
+        {
+          "id": "qrcodes",
+          "titulo": "QR Codes",
+          "descricao": "Grade de QR Codes gerados por evento/culto. Cada QR aponta para /doacao?inst={id}&evento={eventoId}. Pensado para projetar no telão ou imprimir e distribuir na entrada da igreja.",
+          "dados_consumidos": [
+            "GET /api/eventos",
+            "GET /api/qrcodes?eventoId={id}"
+          ],
+          "observacao": "QR Code deve gerar uma URL que já pré-seleciona a instituição na tela /doacao"
+        },
+        {
+          "id": "homenagens",
+          "titulo": "Homenagens",
+          "descricao": "Quadro paroquial estilo lousa com: pódio visual (top 3 com colunas de altura diferente), lista geral de todos os doadores, prêmios e plaquinhas (diploma, placa de honra, fala no culto, sorteio). Visual verde escuro estilo lousa de giz.",
+          "dados_consumidos": ["GET /api/ranking", "GET /api/premios"],
+          "premios_fixos": [
+            { "titulo": "Fala no Culto",      "quem": "1º lugar",  "descricao": "Top 1 compartilha motivação com a congregação" },
+            { "titulo": "Diploma de Papel",   "quem": "Top 3",     "descricao": "Certificado impresso pelo pastor" },
+            { "titulo": "Plaquinha de Honra", "quem": "Top 5",     "descricao": "Placa com nome exposta na entrada" },
+            { "titulo": "Surpresa Especial",  "quem": "Sorteio",   "descricao": "Presente simbólico, surpresa no fim do culto" }
+          ]
+        },
+        {
+          "id": "missao",
+          "titulo": "Missão",
+          "descricao": "Sistema de missões/desafios estilo game. Cada missão tem emoji, descrição, pontos e status (completa/pendente). Barra de progresso geral. Header com ursinho.",
+          "dados_consumidos": [
+            "GET /api/missoes",
+            "GET /api/missoes/progresso?doadorId={id}"
+          ]
+        }
+      ]
+    },
+    {
+      "rota": "/instituicao",
+      "descricao": "Prestação de contas da instituição — gastos com comprovantes",
+      "dados_consumidos": ["GET /api/instituicoes/:id/gastos"]
+    }
+  ],
+
+  "modelos_de_dados": {
+    "Instituicao": {
+      "id":       "Int — PK autoincrement",
+      "nome":     "String — nome da instituição",
+      "tipo":     "Enum: Refeição | Banho | Cobertor",
+      "valor":    "Float — valor por pessoa (R$)",
+      "cor":      "String — hex color para o frontend",
+      "bg":       "String — hex color de fundo",
+      "emoji":    "String",
+      "pixKey":   "String — chave Pix da instituição",
+      "ativo":    "Boolean — default true"
+    },
+    "Doacao": {
+      "id":             "Int — PK autoincrement",
+      "doadorNome":     "String — nome do doador (sem cadastro obrigatório)",
+      "doadorEmail":    "String? — opcional, para vincular ao Doador",
+      "doadorId":       "Int? — FK Doador (se cadastrado)",
+      "instituicaoId":  "Int — FK Instituicao",
+      "eventoId":       "Int? — FK Evento (se veio de QR de evento)",
+      "quantidade":     "Int — número de pessoas ajudadas",
+      "valorTotal":     "Float — quantidade × instituicao.valor",
+      "pago":           "Boolean — default false",
+      "dataCriacao":    "DateTime — quando registrou a intenção",
+      "dataPagamento":  "DateTime? — quando confirmou o Pix",
+      "observacao":     "String?"
+    },
+    "Doador": {
+      "id":             "Int — PK autoincrement",
+      "nome":           "String",
+      "apelido":        "String?",
+      "email":          "String — unique",
+      "telefone":       "String?",
+      "avatar":         "String — 2 iniciais geradas automaticamente",
+      "totalDoado":     "Float — calculado, soma de doacoes confirmadas",
+      "pontos":         "Int — calculado: totalDoado×10 + pontos de missões",
+      "nivel":          "Enum: bronze | prata | ouro | diamante | lenda — calculado",
+      "badge":          "String? — texto do badge atual",
+      "homenagem":      "String? — texto personalizado pelo admin",
+      "missaoCompleta": "Boolean — true se completou pelo menos 1 missão bônus",
+      "createdAt":      "DateTime"
+    },
+    "Missao": {
+      "id":        "Int — PK autoincrement",
+      "titulo":    "String",
+      "descricao": "String",
+      "pontos":    "Int — bônus ao completar",
+      "emoji":     "String",
+      "ativa":     "Boolean — default true",
+      "tipo":      "Enum: PRIMEIRA_DOACAO | FAMILIA | META_REFEICAO | MES_COMPLETO | META_VALOR | INDICACAO | CUSTOM"
+    },
+    "MissaoDoador": {
+      "id":        "Int — PK autoincrement",
+      "doadorId":  "Int — FK Doador",
+      "missaoId":  "Int — FK Missao",
+      "completa":  "Boolean",
+      "completaEm":"DateTime?"
+    },
+    "Evento": {
+      "id":          "Int — PK autoincrement",
+      "nome":        "String — ex: 'Culto de Domingo'",
+      "dataEvento":  "DateTime",
+      "ativo":       "Boolean — default true",
+      "createdAt":   "DateTime"
+    },
+    "QREvento": {
+      "id":            "Int — PK autoincrement",
+      "eventoId":      "Int — FK Evento",
+      "instituicaoId": "Int — FK Instituicao",
+      "urlDoacao":     "String — URL gerada: /doacao?inst={id}&evento={eventoId}",
+      "qrCodeBase64":  "String — PNG em base64 gerado pelo servidor",
+      "valor":         "Float — snapshot do valor da instituição no momento"
+    },
+    "Gasto": {
+      "id":            "Int — PK autoincrement",
+      "instituicaoId": "Int — FK Instituicao",
+      "desc":          "String",
+      "valor":         "Float",
+      "data":          "DateTime",
+      "comprovante":   "Boolean — se tem nota fiscal",
+      "arquivoUrl":    "String? — URL do comprovante anexado"
+    },
+    "AdminUser": {
+      "id":       "Int — PK autoincrement",
+      "email":    "String — unique",
+      "senha":    "String — hash bcrypt",
+      "nome":     "String",
+      "role":     "Enum: SUPER_ADMIN | ADMIN — para futuras permissões"
+    }
+  },
+
+  "api_endpoints": {
+    "base_url": "/api",
+    "autenticacao": "JWT via cookie httpOnly. Rotas /api/admin/* exigem token válido.",
+
+    "instituicoes": [
+      {
+        "method": "GET",
+        "path": "/api/instituicoes",
+        "auth": false,
+        "descricao": "Lista todas as instituições ativas",
+        "response": "Instituicao[]"
+      },
+      {
+        "method": "GET",
+        "path": "/api/instituicoes/:id",
+        "auth": false,
+        "descricao": "Retorna uma instituição pelo ID",
+        "response": "Instituicao"
+      },
+      {
+        "method": "POST",
+        "path": "/api/admin/instituicoes",
+        "auth": true,
+        "descricao": "Cria nova instituição",
+        "body": "{ nome, tipo, valor, pixKey, emoji, cor, bg }",
+        "response": "Instituicao"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/admin/instituicoes/:id",
+        "auth": true,
+        "descricao": "Atualiza instituição",
+        "body": "Partial<Instituicao>",
+        "response": "Instituicao"
+      }
+    ],
+
+    "doacoes": [
+      {
+        "method": "POST",
+        "path": "/api/doacoes",
+        "auth": false,
+        "descricao": "Registra intenção de doação (antes do Pix ser enviado). Retorna ID para posterior confirmação.",
+        "body": "{ doadorNome, doadorEmail?, instituicaoId, quantidade, eventoId? }",
+        "response": "{ doacaoId, pixKey, valorTotal, instrucoes }",
+        "observacao": "Cria Doacao com pago=false. Frontend exibe chave Pix. Pagamento confirmado depois via webhook ou manualmente."
+      },
+      {
+        "method": "POST",
+        "path": "/api/doacoes/:id/confirmar",
+        "auth": true,
+        "descricao": "Admin confirma que o Pix foi recebido. Marca pago=true, calcula pontos do doador.",
+        "body": "{}",
+        "response": "Doacao"
+      },
+      {
+        "method": "GET",
+        "path": "/api/admin/doacoes",
+        "auth": true,
+        "descricao": "Lista todas as doações com filtros opcionais",
+        "query": "?instituicaoId=&pago=&dataInicio=&dataFim=&page=&limit=",
+        "response": "{ doacoes: Doacao[], total, page, totalPages }"
+      },
+      {
+        "method": "GET",
+        "path": "/api/admin/doacoes/:id",
+        "auth": true,
+        "descricao": "Retorna uma doação com detalhes",
+        "response": "Doacao & { instituicao: Instituicao, doador?: Doador }"
+      }
+    ],
+
+    "dashboard": [
+      {
+        "method": "GET",
+        "path": "/api/admin/dashboard/resumo",
+        "auth": true,
+        "descricao": "Retorna todos os números do dashboard em uma única chamada",
+        "response": {
+          "totalArrecadado": "Float",
+          "totalRepassado": "Float",
+          "totalPendente": "Float",
+          "pessoasAjudadas": "Int",
+          "totalDoacoes": "Int",
+          "doacoesPorInstituicao": "{ instituicaoId, nome, total, percentual }[]",
+          "sparklines": "{ label, valores: number[] }[]",
+          "proximoRepasse": "DateTime"
+        }
+      }
+    ],
+
+    "ranking": [
+      {
+        "method": "GET",
+        "path": "/api/ranking",
+        "auth": false,
+        "descricao": "Ranking público dos doadores do mês atual, ordenado por pontos",
+        "query": "?mes=&ano=&limit=20",
+        "response": "Doador[] ordenado por pontos DESC, com posicao e nivel calculado"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/admin/ranking/:doadorId/homenagem",
+        "auth": true,
+        "descricao": "Admin edita o texto de homenagem de um doador",
+        "body": "{ homenagem: string }",
+        "response": "Doador"
+      }
+    ],
+
+    "missoes": [
+      {
+        "method": "GET",
+        "path": "/api/missoes",
+        "auth": false,
+        "descricao": "Lista todas as missões ativas",
+        "response": "Missao[]"
+      },
+      {
+        "method": "GET",
+        "path": "/api/missoes/progresso",
+        "auth": false,
+        "descricao": "Retorna progresso das missões. Se doadorId passado, mostra quais completou.",
+        "query": "?doadorId=",
+        "response": "{ missao: Missao, completa: boolean, completaEm?: DateTime }[]"
+      },
+      {
+        "method": "POST",
+        "path": "/api/admin/missoes",
+        "auth": true,
+        "descricao": "Cria nova missão",
+        "body": "{ titulo, descricao, pontos, emoji, tipo }",
+        "response": "Missao"
+      }
+    ],
+
+    "eventos_e_qrcodes": [
+      {
+        "method": "GET",
+        "path": "/api/admin/eventos",
+        "auth": true,
+        "descricao": "Lista eventos cadastrados",
+        "response": "Evento[]"
+      },
+      {
+        "method": "POST",
+        "path": "/api/admin/eventos",
+        "auth": true,
+        "descricao": "Cria evento (culto, missão especial, etc) e gera QR Codes para cada instituição ativa",
+        "body": "{ nome, dataEvento }",
+        "response": "{ evento: Evento, qrCodes: QREvento[] }",
+        "observacao": "Ao criar, gerar automaticamente um QREvento por instituição ativa usando a lib qrcode"
+      },
+      {
+        "method": "GET",
+        "path": "/api/admin/eventos/:id/qrcodes",
+        "auth": true,
+        "descricao": "Retorna QR Codes de um evento para exibir no admin",
+        "response": "QREvento[] com qrCodeBase64 para renderizar como <img>"
+      }
+    ],
+
+    "gastos": [
+      {
+        "method": "GET",
+        "path": "/api/instituicoes/:id/gastos",
+        "auth": false,
+        "descricao": "Lista gastos de uma instituição (tela de prestação de contas)",
+        "response": "Gasto[]"
+      },
+      {
+        "method": "POST",
+        "path": "/api/admin/gastos",
+        "auth": true,
+        "descricao": "Registra gasto de uma instituição",
+        "body": "{ instituicaoId, desc, valor, data, comprovante, arquivoUrl? }",
+        "response": "Gasto"
+      }
+    ],
+
+    "auth": [
+      {
+        "method": "POST",
+        "path": "/api/auth/login",
+        "auth": false,
+        "descricao": "Login do admin",
+        "body": "{ email, senha }",
+        "response": "{ token, user: AdminUser }"
+      },
+      {
+        "method": "POST",
+        "path": "/api/auth/logout",
+        "auth": true,
+        "descricao": "Invalida token",
+        "response": "{ ok: true }"
+      },
+      {
+        "method": "GET",
+        "path": "/api/auth/me",
+        "auth": true,
+        "descricao": "Retorna usuário logado",
+        "response": "AdminUser"
+      }
+    ]
+  },
+
+  "logica_de_negocios_critica": {
+    "calculo_pontos": {
+      "regra": "Ao confirmar uma doação (pago=true): pontos += Math.round(valorTotal * 10). Ao completar uma missão: pontos += missao.pontos.",
+      "onde_calcular": "No endpoint POST /api/doacoes/:id/confirmar e no hook de verificação de missões",
+      "recalculo": "Se admin editar valorTotal de uma doação, recalcular pontos do doador"
+    },
+    "calculo_nivel": {
+      "regra": "Calculado dinamicamente a partir dos pontos: <500=bronze, 500-999=prata, 1000-1499=ouro, 1500-1999=diamante, >=2000=lenda",
+      "onde_calcular": "Pode ser campo computado no Prisma ou calculado no endpoint de ranking"
+    },
+    "verificacao_missoes_automatica": {
+      "descricao": "Após cada doação confirmada, o backend deve verificar automaticamente se o doador completou alguma missão",
+      "missoes_automaticas": [
+        { "tipo": "PRIMEIRA_DOACAO", "condicao": "count(doacoes do doador onde pago=true) == 1" },
+        { "tipo": "META_VALOR",      "condicao": "totalDoado >= 200" },
+        { "tipo": "MES_COMPLETO",    "condicao": "doou em pelo menos 4 semanas distintas no mês" }
+      ],
+      "missoes_manuais": ["FAMILIA", "INDICACAO — admin marca manualmente"]
+    },
+    "qrcode_url_pattern": "A URL do QR deve ser: https://[dominio]/doacao?inst={instituicaoId}&evento={eventoId}. O frontend em /doacao deve ler esses query params e pré-selecionar a instituição.",
+    "repasse": {
+      "descricao": "Campo calculado: totalArrecadado × 0.82 (18% de taxa operacional). Sem lógica automática de transferência — admin gerencia manualmente."
+    }
+  },
+
+  "front_para_conectar_ao_back": {
+    "instrucao": "O frontend em src/lib/data.ts usa dados mockados estáticos (DOACOES_MOCK, RANKING_MOCK, etc). Para conectar ao backend, substitua os imports de dados mockados por chamadas fetch aos endpoints da API. Crie um arquivo src/lib/api.ts com as funções de fetch.",
+    "arquivos_a_modificar": [
+      {
+        "arquivo": "src/lib/data.ts",
+        "acao": "Manter apenas os tipos TypeScript. Remover todas as constantes _MOCK e _MOCK. Exportar apenas: Instituicao, Doacao, Doador, Missao, QRDoacao, Gasto."
+      },
+      {
+        "arquivo": "src/lib/api.ts (CRIAR)",
+        "acao": "Criar com funções async: getInstituicoes(), getDoacoes(), getRanking(), getMissoes(), getEventos(), getDashboardResumo(), postDoacao(body), confirmarDoacao(id), etc."
+      },
+      {
+        "arquivo": "src/app/doacao/page.tsx",
+        "acao": "Substituir INSTITUICOES por await getInstituicoes(). Chamar postDoacao() no step de confirmação."
+      },
+      {
+        "arquivo": "src/app/admin/page.tsx",
+        "acao": "Substituir DOACOES_MOCK por getDoacoes(), RANKING_MOCK por getRanking(), MISSOES_MOCK por getMissoes(), QR_EVENTOS por getEventos(). Adicionar useEffect + loading states."
+      }
+    ]
+  },
+
+  "estrutura_de_pastas_sugerida": {
+    "src/app/api/": "Rotas de API Next.js (Route Handlers)",
+    "src/app/api/doacoes/route.ts": "GET + POST /api/doacoes",
+    "src/app/api/doacoes/[id]/confirmar/route.ts": "POST confirmar doação",
+    "src/app/api/instituicoes/route.ts": "GET /api/instituicoes",
+    "src/app/api/ranking/route.ts": "GET /api/ranking",
+    "src/app/api/missoes/route.ts": "GET /api/missoes",
+    "src/app/api/admin/": "Rotas protegidas por middleware de auth",
+    "src/app/api/auth/": "login, logout, me",
+    "src/lib/prisma.ts": "Client Prisma singleton",
+    "src/lib/api.ts": "Funções de fetch do frontend",
+    "src/middleware.ts": "Proteger rotas /api/admin/* e /admin com JWT",
+    "prisma/schema.prisma": "Schema completo conforme modelos_de_dados acima"
+  },
+
+  "seed_inicial": {
+    "descricao": "Criar arquivo prisma/seed.ts com dados iniciais",
+    "dados": [
+      "3 instituições (Lar São Francisco, Abrigo da Paz, Casa do Aconchego)",
+      "6 missões padrão conforme MISSOES_MOCK",
+      "1 admin user padrão: email=admin@igreja.com senha=admin123 (trocar em prod)",
+      "1 evento de exemplo: Culto de Domingo"
+    ]
+  },
+
+  "variaveis_de_ambiente": {
+    "arquivo": ".env.local",
+    "variaveis": {
+      "DATABASE_URL":      "postgresql://user:pass@host:5432/doacoes",
+      "JWT_SECRET":        "string aleatória longa para assinar tokens",
+      "NEXT_PUBLIC_URL":   "https://seu-dominio.com — usado para gerar URLs dos QR Codes",
+      "NODE_ENV":          "development | production"
+    }
+  },
+
+  "dependencias_a_instalar": {
+    "producao": [
+      "@prisma/client",
+      "prisma",
+      "bcryptjs",
+      "jsonwebtoken",
+      "qrcode",
+      "zod"
+    ],
+    "dev": [
+      "@types/bcryptjs",
+      "@types/jsonwebtoken",
+      "@types/qrcode",
+      "prisma"
+    ],
+    "comando": "npm install @prisma/client bcryptjs jsonwebtoken qrcode zod && npm install -D prisma @types/bcryptjs @types/jsonwebtoken @types/qrcode"
+  },
+
+  "ordem_de_implementacao_sugerida": [
+    "1. Configurar Prisma + banco (prisma init, schema, migrate, seed)",
+    "2. Implementar auth (/api/auth/login, middleware JWT)",
+    "3. Implementar /api/instituicoes GET",
+    "4. Implementar /api/doacoes POST (criar intenção)",
+    "5. Implementar /api/admin/doacoes GET + confirmar",
+    "6. Implementar /api/admin/dashboard/resumo",
+    "7. Implementar /api/ranking com cálculo de pontos e níveis",
+    "8. Implementar /api/missoes + lógica automática pós-doação",
+    "9. Implementar /api/admin/eventos POST com geração de QR Codes",
+    "10. Criar src/lib/api.ts e conectar frontend (remover mocks)",
+    "11. Adicionar loading states e error handling no frontend",
+    "12. Proteger rota /admin com redirect para login"
+  ]
+}
