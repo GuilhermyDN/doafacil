@@ -1091,7 +1091,7 @@ export default function AdminPage() {
       setTimeout(() => setInstLinkCopiado(m => ({ ...m, [instId]: false })), 2000);
     };
 
-    const Form = () => (
+    const renderForm = () => (
       <div style={{ background: C.white, borderRadius: 18, border: `2px solid ${C.blue}`, padding: "24px" }}>
         <p style={{ fontSize: 14, fontWeight: 700, color: C.ink, marginBottom: 20 }}>
           {isNew ? "➕ Nova instituição" : `✏️ Editar — ${editInst?.nome}`}
@@ -1181,7 +1181,7 @@ export default function AdminPage() {
         </div>
 
         {/* form */}
-        {instAdminEditing !== null && <Form />}
+        {instAdminEditing !== null && renderForm()}
 
         {/* lista */}
         {instAdminList.length === 0 && instAdminEditing === null && (
