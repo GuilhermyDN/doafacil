@@ -2,9 +2,9 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { type Instituicao } from "@/lib/data";
-import { getInstituicoes, postDoacao, criarPreferenciaMp, type PostDoacaoResponse } from "@/lib/api";
+import { getInstituicoes, postDoacao, criarPixMp, type PostDoacaoResponse, type MpPixResponse } from "@/lib/api";
 
-type Etapa = "escolha" | "pagamento" | "confirmado";
+type Etapa = "escolha" | "pagamento" | "pixqr" | "cartaobrick" | "confirmado";
 
 // ── BRAND COLORS ─────────────────────────────────────────────────────────────
 const C = {
@@ -159,18 +159,30 @@ function TelaEscolha({ onEscolher }: { onEscolher: (i: Instituicao) => void }) {
 }
 
 // ── TELA PAGAMENTO ────────────────────────────────────────────────────────────
-function TelaPagamento({ inst, onConfirmar, onVoltar }: {
+function TelaPagamento({ inst, tagSerial, autoSerial, onConfirmar, onVoltar }: {
   inst: Instituicao;
-  onConfirmar: (qtd: number, nome: string, email: string) => void;
+  tagSerial?: string;    // veio pelo QR code físico
+  autoSerial?: string;   // gerado automaticamente ao entrar sem QR
+  onConfirmar: (qtd: number, nome: string, email: string, telefone: string, metodo: "pix" | "cartao") => void;
   onVoltar: () => void;
 }) {
   const [qtd, setQtd] = useState(1);
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
+  const [telefone, setTelefone] = useState("");
   const [anonimo, setAnonimo] = useState(false);
+  const [serialCopiado, setSerialCopiado] = useState(false);
   const { cor, bg } = instColor(inst);
   const total = inst.valor * qtd;
-  const podeConfirmar = anonimo || nome.trim().length > 0;
+  const podeConfirmar = anonimo || (nome.trim().length > 0 && email.trim().length > 0 && telefone.trim().length > 0);
+
+  const BASE = typeof window !== "undefined" ? window.location.origin : "https://humanitybearers.com.br";
+  const qrUrl = autoSerial ? `${BASE}/doacao?tag=${autoSerial}` : null;
+  const qrImgUrl = qrUrl ? `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qrUrl)}&bgcolor=ffffff&color=000000&margin=6` : null;
+
+  const copiarSerial = () => {
+    if (autoSerial) { navigator.clipboard.writeText(autoSerial).catch(() => {}); setSerialCopiado(true); setTimeout(() => setSerialCopiado(false), 2000); }
+  };
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 20px", position: "relative" }}>
@@ -190,9 +202,58 @@ function TelaPagamento({ inst, onConfirmar, onVoltar }: {
         </div>
 
         <div style={{ padding: "26px 28px" }}>
+          {/* Badge da tag vinculada via QR físico */}
+          {tagSerial && (
+            <div style={{
+              background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 10, padding: "10px 14px", marginBottom: 14,
+              display: "flex", alignItems: "center", gap: 10,
+            }}>
+              <span style={{ fontSize: 16 }}>🏷️</span>
+              <div>
+                <p style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", letterSpacing: 2, textTransform: "uppercase", marginBottom: 2 }}>Tag vinculada</p>
+                <p style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: 1 }}>{tagSerial}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Card de serial auto-gerado (sem QR físico) */}
+          {autoSerial && !tagSerial && (
+            <div style={{
+              background: "linear-gradient(135deg, #0e0e0e, #1a1000)",
+              border: "1px solid rgba(255,78,0,0.25)",
+              borderRadius: 14, padding: "16px", marginBottom: 16,
+            }}>
+              <p style={{ fontSize: 9, color: C.orange, letterSpacing: 2.5, textTransform: "uppercase", fontWeight: 700, marginBottom: 10 }}>
+                🎯 Seu serial exclusivo
+              </p>
+              <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+                {/* QR Code */}
+                {qrImgUrl && (
+                  <div style={{ flexShrink: 0, background: "#fff", borderRadius: 8, padding: 4 }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={qrImgUrl} alt="QR Code do seu serial" width={72} height={72} style={{ display: "block", borderRadius: 4 }} />
+                  </div>
+                )}
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: "#fff", letterSpacing: 0.5, marginBottom: 6, wordBreak: "break-all" }}>
+                    {autoSerial}
+                  </p>
+                  <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", lineHeight: 1.5, marginBottom: 8 }}>
+                    Guarde esse QR Code para acumular pontos, participar das missões e receber prêmios nas próximas doações.
+                  </p>
+                  <button onClick={copiarSerial}
+                    style={{ fontSize: 11, fontWeight: 600, padding: "5px 12px", borderRadius: 7, border: "1px solid rgba(255,78,0,0.3)", background: serialCopiado ? "rgba(255,78,0,0.15)" : "transparent", color: serialCopiado ? C.orange : "rgba(255,255,255,0.45)", cursor: "pointer", transition: "all 0.2s" }}>
+                    {serialCopiado ? "✓ Copiado!" : "📋 Copiar serial"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* anônimo toggle */}
           <button
-            onClick={() => { setAnonimo(a => !a); setNome(""); setEmail(""); }}
+            onClick={() => { setAnonimo(a => !a); setNome(""); setEmail(""); setTelefone(""); }}
             style={{
               width: "100%", marginBottom: 12, padding: "10px 14px", borderRadius: 12,
               border: `1.5px solid ${anonimo ? cor : C.border}`,
@@ -221,10 +282,16 @@ function TelaPagamento({ inst, onConfirmar, onVoltar }: {
                 style={{ border: `1.5px solid ${nome ? cor : C.border}`, borderRadius: 12, padding: "11px 14px", fontSize: 13, color: C.ink, outline: "none", transition: "border 0.15s" }}
               />
               <input
-                placeholder="Email (opcional — para entrar no ranking)"
+                placeholder="Email *"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 style={{ border: `1.5px solid ${email ? cor : C.border}`, borderRadius: 12, padding: "11px 14px", fontSize: 13, color: C.ink, outline: "none", transition: "border 0.15s" }}
+              />
+              <input
+                placeholder="Telefone *"
+                value={telefone}
+                onChange={e => setTelefone(e.target.value)}
+                style={{ border: `1.5px solid ${telefone ? cor : C.border}`, borderRadius: 12, padding: "11px 14px", fontSize: 13, color: C.ink, outline: "none", transition: "border 0.15s" }}
               />
             </div>
           )}
@@ -256,18 +323,224 @@ function TelaPagamento({ inst, onConfirmar, onVoltar }: {
             <p style={{ fontSize: 12, color: cor, lineHeight: 1.6 }}>A chave Pix aparece na próxima tela. O valor vai direto para a instituição.</p>
           </div>
 
-          <button
-            onClick={() => podeConfirmar && onConfirmar(qtd, anonimo ? "Anônimo" : nome.trim(), anonimo ? "" : email.trim())}
-            disabled={!podeConfirmar}
-            style={{
-              width: "100%", padding: "16px", borderRadius: 14, background: podeConfirmar ? cor : C.border,
-              color: C.white, border: "none", fontSize: 15, fontWeight: 700,
-              cursor: podeConfirmar ? "pointer" : "not-allowed",
-              boxShadow: podeConfirmar ? `0 8px 24px ${cor}44` : "none", letterSpacing: 0.3,
-            }}>
-            Confirmar · R$ {total.toFixed(2).replace(".", ",")}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <button
+              onClick={() => podeConfirmar && onConfirmar(qtd, anonimo ? "Anônimo" : nome.trim(), anonimo ? "" : email.trim(), anonimo ? "" : telefone.trim(), "pix")}
+              disabled={!podeConfirmar}
+              style={{
+                width: "100%", padding: "15px", borderRadius: 14,
+                background: podeConfirmar ? "#32BCAD" : C.border,
+                color: C.white, border: "none", fontSize: 14, fontWeight: 700,
+                cursor: podeConfirmar ? "pointer" : "not-allowed",
+                boxShadow: podeConfirmar ? "0 8px 24px #32BCAD44" : "none",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              }}>
+              <span style={{ fontSize: 18 }}>⚡</span> Pagar com Pix · R$ {total.toFixed(2).replace(".", ",")}
+            </button>
+            <button
+              onClick={() => podeConfirmar && onConfirmar(qtd, anonimo ? "Anônimo" : nome.trim(), anonimo ? "" : email.trim(), anonimo ? "" : telefone.trim(), "cartao")}
+              disabled={!podeConfirmar}
+              style={{
+                width: "100%", padding: "15px", borderRadius: 14,
+                background: podeConfirmar ? cor : C.border,
+                color: C.white, border: "none", fontSize: 14, fontWeight: 700,
+                cursor: podeConfirmar ? "pointer" : "not-allowed",
+                boxShadow: podeConfirmar ? `0 8px 24px ${cor}44` : "none",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              }}>
+              <span style={{ fontSize: 18 }}>💳</span> Pagar com Cartão · R$ {total.toFixed(2).replace(".", ",")}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── TELA CARTÃO BRICKS ───────────────────────────────────────────────────────
+function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar }: {
+  inst: Instituicao; qtd: number; doacaoId: number; valorTotal: number;
+  onSucesso: () => void; onVoltar: () => void;
+}) {
+  const { cor } = instColor(inst);
+  const [erro, setErro] = useState("");
+  const [processando, setProcessando] = useState(false);
+  const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+  const PK  = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY || '';
+
+  useEffect(() => {
+    if (!PK) return;
+    // Carrega SDK do MP dinamicamente
+    const script = document.createElement("script");
+    script.src = "https://sdk.mercadopago.com/js/v2";
+    script.onload = () => {
+      const mp = new (window as any).MercadoPago(PK, { locale: "pt-BR" });
+      const bricksBuilder = mp.bricks();
+      bricksBuilder.create("cardPayment", "mp-card-brick", {
+        initialization: { amount: valorTotal },
+        customization: {
+          paymentMethods: { minInstallments: 1, maxInstallments: 1 },
+          visual: { style: { theme: "default" } },
+        },
+        callbacks: {
+          onReady: () => {},
+          onError: (err: any) => setErro(err?.message || "Erro no formulário"),
+          onSubmit: async (formData: any) => {
+            setProcessando(true);
+            setErro("");
+            try {
+              const res = await fetch(`${API}/api/mp/cartao-token`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+                body: JSON.stringify({
+                  doacaoId,
+                  token: formData.token,
+                  installments: formData.installments,
+                  paymentMethodId: formData.payment_method_id,
+                  issuerId: formData.issuer_id,
+                  payerEmail: formData.payer?.email,
+                  payerIdentification: formData.payer?.identification,
+                }),
+              });
+              const data = await res.json();
+              if (data.status === "approved") {
+                onSucesso();
+              } else {
+                setErro("Pagamento não aprovado. Verifique os dados e tente novamente.");
+              }
+            } catch {
+              setErro("Erro ao processar pagamento.");
+            } finally {
+              setProcessando(false);
+            }
+          },
+        },
+      });
+    };
+    document.head.appendChild(script);
+    return () => { document.head.removeChild(script); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 20px", position: "relative" }}>
+      <PageBg />
+      <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 480, background: C.white, borderRadius: 24, border: `1.5px solid ${C.border}`, boxShadow: "0 40px 100px rgba(0,0,0,0.45)", overflow: "hidden" }}>
+        <div style={{ background: C.black, padding: "18px 22px", display: "flex", alignItems: "center", gap: 12 }}>
+          <button onClick={onVoltar} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 9, width: 32, height: 32, cursor: "pointer", color: C.white, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>←</button>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: instColor(inst).bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{inst.emoji}</div>
+          <div>
+            <p style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", letterSpacing: 2, textTransform: "uppercase", marginBottom: 1 }}>Pagamento com cartão</p>
+            <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, color: C.white }}>{inst.nome}</p>
+          </div>
+          <div style={{ marginLeft: "auto" }}>
+            <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 800, color: cor }}>R$ {valorTotal.toFixed(2).replace(".", ",")}</p>
+          </div>
+        </div>
+        <div style={{ padding: "24px 24px 28px" }}>
+          {erro && <div style={{ background: "#fff0f0", border: "1px solid #ff444433", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: "#cc0000" }}>{erro}</div>}
+          {processando && <div style={{ textAlign: "center", padding: "20px 0", color: C.muted, fontSize: 14 }}>Processando pagamento...</div>}
+          <div id="mp-card-brick" />
+          <p style={{ fontSize: 11, color: C.muted, textAlign: "center", marginTop: 16, lineHeight: 1.6 }}>
+            🔒 Dados criptografados pelo Mercado Pago · {qtd} {qtd === 1 ? "pessoa" : "pessoas"} com {inst.tipo}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── TELA PIX QR CODE ─────────────────────────────────────────────────────────
+function TelaPixQrCode({ inst, qtd, doacaoId, pixData, onPago, onNova }: {
+  inst: Instituicao; qtd: number; doacaoId: number; pixData: MpPixResponse;
+  onPago: () => void; onNova: () => void;
+}) {
+  const { cor, bg } = instColor(inst);
+  const [copiado, setCopiado] = useState(false);
+  const [pago, setPago]       = useState(false);
+  const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+
+  // Polling — verifica a cada 5s se o pagamento foi confirmado
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API}/api/doacoes/${doacaoId}/status`, {
+          headers: { 'ngrok-skip-browser-warning': 'true' }
+        });
+        const data = await res.json();
+        if (data.pago) {
+          setPago(true);
+          clearInterval(interval);
+          setTimeout(onPago, 2000); // aguarda 2s na tela de sucesso antes de redirecionar
+        }
+      } catch { /* ignora erros de rede */ }
+    }, 5000);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doacaoId]);
+
+  const copiar = () => {
+    navigator.clipboard.writeText(pixData.pixCopiaECola);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 3000);
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 20px", position: "relative" }}>
+      <PageBg />
+      <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 440, background: C.white, borderRadius: 24, border: `1.5px solid ${C.border}`, boxShadow: "0 40px 100px rgba(0,0,0,0.45)", padding: "32px 28px", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 5, display: "flex" }}>
+          <div style={{ flex: 1, background: "#32BCAD" }}/><div style={{ flex: 1, background: C.orange }}/><div style={{ flex: 1, background: C.black }}/>
+        </div>
+
+        <div style={{ textAlign: "center", marginBottom: 24, marginTop: 8 }}>
+          <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#32BCAD18", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px", fontSize: 28 }}>⚡</div>
+          <p style={{ fontSize: 10, letterSpacing: 3, color: "#32BCAD", textTransform: "uppercase", fontWeight: 700, marginBottom: 6 }}>Pix gerado</p>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: C.ink, marginBottom: 4 }}>Escaneie o QR Code</h2>
+          <p style={{ fontSize: 13, color: C.muted }}>ou copie o código abaixo</p>
+        </div>
+
+        {/* QR Code */}
+        {pixData.qrCodeBase64 ? (
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={pixData.qrCodeBase64} alt="QR Code Pix" width={200} height={200} style={{ borderRadius: 12, border: `2px solid ${C.border}` }} />
+          </div>
+        ) : (
+          <div style={{ width: 200, height: 200, margin: "0 auto 20px", background: C.offWhite, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>📷</div>
+        )}
+
+        {/* Valor */}
+        <div style={{ background: C.black, borderRadius: 12, padding: "12px 16px", marginBottom: 14, textAlign: "center" }}>
+          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginBottom: 2 }}>Valor da doação</p>
+          <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, fontWeight: 800, color: cor }}>R$ {pixData.valorTotal.toFixed(2).replace(".", ",")}</p>
+        </div>
+
+        {/* Copia e cola */}
+        <div style={{ background: bg, border: `1.5px solid ${cor}30`, borderRadius: 12, padding: "14px 16px", marginBottom: 20 }}>
+          <p style={{ fontSize: 10, color: cor, fontWeight: 700, marginBottom: 8, letterSpacing: 0.5, textTransform: "uppercase" }}>Pix Copia e Cola</p>
+          <p style={{ fontSize: 11, color: C.ink, wordBreak: "break-all", lineHeight: 1.5, marginBottom: 10, fontFamily: "monospace" }}>
+            {pixData.pixCopiaECola.slice(0, 80)}...
+          </p>
+          <button onClick={copiar} style={{
+            width: "100%", padding: "10px", borderRadius: 10,
+            background: copiado ? "#32BCAD" : C.white,
+            border: `1.5px solid ${copiado ? "#32BCAD" : cor}`,
+            color: copiado ? C.white : cor, fontSize: 13, fontWeight: 700, cursor: "pointer",
+            transition: "all 0.2s",
+          }}>
+            {copiado ? "✓ Copiado!" : "📋 Copiar código Pix"}
           </button>
         </div>
+
+        <p style={{ fontSize: 12, color: C.muted, textAlign: "center", marginBottom: 16, lineHeight: 1.6 }}>
+          Após o pagamento, a confirmação é automática.<br/>
+          <strong>{qtd} {qtd === 1 ? "pessoa" : "pessoas"}</strong> com {inst.tipo} via <strong>{inst.nome}</strong>
+        </p>
+
+        <button onClick={onNova} style={{ width: "100%", padding: "13px", borderRadius: 12, background: "none", border: `2px solid ${C.border}`, color: C.ink, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+          Fazer outra doação
+        </button>
       </div>
     </div>
   );
@@ -351,43 +624,60 @@ function TelaConfirmado({ inst, qtd, pixData, viaMp, onNova }: {
 // ── ROOT (inner — precisa de Suspense por causa do useSearchParams) ───────────
 function DoacaoPageInner() {
   const params = useSearchParams();
-  const statusMp  = params.get("status");   // "sucesso" | "falha" | "pendente"
+  const statusMp  = params.get("status");
   const idMpStr   = params.get("id");
+  const tagSerial = params.get("tag") || undefined;  // serial da tag GS-HB25-... (via QR)
 
   const [etapa, setEtapa]         = useState<Etapa>(statusMp === "sucesso" ? "confirmado" : "escolha");
   const [escolhida, setEscolhida] = useState<Instituicao | null>(null);
   const [qtd, setQtd]             = useState(1);
   const [pixData, setPixData]     = useState<PostDoacaoResponse | null>(null);
+  const [pixMpData, setPixMpData]   = useState<MpPixResponse | null>(null);
+  const [cartaoDoacaoId, setCartaoDoacaoId] = useState<number | null>(null);
+  const [cartaoValor, setCartaoValor]       = useState(0);
   const [loading, setLoading]     = useState(false);
   const [erro, setErro]           = useState(statusMp === "falha" ? "O pagamento foi cancelado ou falhou. Tente novamente." : "");
+  // serial auto-gerado quando não veio pela URL
+  const [autoSerial, setAutoSerial] = useState<string | undefined>(undefined);
   const viaMp = statusMp === "sucesso";
 
-  const handleConfirmar = async (quantidade: number, nome: string, email: string) => {
+  // Ao entrar na tela de pagamento sem tag na URL → gera serial automaticamente
+  useEffect(() => {
+    if (tagSerial || etapa !== "pagamento" || autoSerial) return;
+    const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003";
+    fetch(`${API}/api/tags/gerar-unico`, { method: "POST", headers: { "ngrok-skip-browser-warning": "true" } })
+      .then(r => r.json())
+      .then(d => { if (d.serial) setAutoSerial(d.serial); })
+      .catch(() => {}); // falha silenciosa — serial é opcional
+  }, [etapa, tagSerial, autoSerial]);
+
+  // serial efetivo: o do QR tem prioridade, senão usa o auto-gerado
+  const serialEfetivo = tagSerial || autoSerial;
+
+  const handleConfirmar = async (quantidade: number, nome: string, email: string, telefone: string, metodo: "pix" | "cartao") => {
     if (!escolhida) return;
     setLoading(true);
     setErro("");
     try {
-      // 1. Registra a intenção de doação
       const data = await postDoacao({
         doadorNome: nome,
         doadorEmail: email || undefined,
+        doadorTel: telefone || undefined,
+        tagSerial: serialEfetivo,
         instituicaoId: escolhida.id,
         quantidade,
       });
       setQtd(quantidade);
       setPixData(data);
 
-      // 2. Tenta criar preferência Checkout Pro
-      try {
-        const pref = await criarPreferenciaMp(data.doacaoId);
-        // Usa sandbox se disponível e em dev; caso contrário usa produção
-        const isSandbox = !!pref.sandbox_init_point && window.location.hostname === "localhost";
-        const url = isSandbox ? pref.sandbox_init_point : pref.init_point;
-        window.location.href = url;
-        return; // aguarda redirect — não muda etapa aqui
-      } catch {
-        // Sem conta MP vinculada ou erro → mostra Pix como fallback
-        setEtapa("confirmado");
+      if (metodo === "pix") {
+        const pix = await criarPixMp(data.doacaoId);
+        setPixMpData(pix);
+        setEtapa("pixqr");
+      } else {
+        setCartaoDoacaoId(data.doacaoId);
+        setCartaoValor(data.valorTotal);
+        setEtapa("cartaobrick");
       }
     } catch (e: any) {
       setErro(e.message || "Erro ao registrar doação");
@@ -397,9 +687,15 @@ function DoacaoPageInner() {
   };
 
   const resetar = () => {
-    setEtapa("escolha"); setEscolhida(null); setQtd(1); setPixData(null); setErro("");
+    setEtapa("escolha"); setEscolhida(null); setQtd(1); setPixData(null); setPixMpData(null); setCartaoDoacaoId(null); setErro("");
     window.history.replaceState({}, "", "/doacao");
   };
+
+  if (etapa === "cartaobrick" && escolhida && cartaoDoacaoId)
+    return <TelaCartaoBrick inst={escolhida} qtd={qtd} doacaoId={cartaoDoacaoId} valorTotal={cartaoValor} onSucesso={() => setEtapa("confirmado")} onVoltar={() => setEtapa("pagamento")} />;
+
+  if (etapa === "pixqr" && escolhida && pixMpData && pixData)
+    return <TelaPixQrCode inst={escolhida} qtd={qtd} doacaoId={pixData.doacaoId} pixData={pixMpData} onPago={() => setEtapa("confirmado")} onNova={resetar} />;
 
   if (etapa === "confirmado")
     return <TelaConfirmado inst={escolhida} qtd={qtd} pixData={pixData} viaMp={viaMp} onNova={resetar} />;
@@ -411,10 +707,10 @@ function DoacaoPageInner() {
         {loading && (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 998, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
             <div style={{ width: 48, height: 48, border: "4px solid rgba(255,255,255,0.15)", borderTop: `4px solid ${C.blue}`, borderRadius: "50%", animation: "spin 0.8s linear infinite" }}/>
-            <p style={{ color: "#fff", fontSize: 14 }}>Redirecionando para o Mercado Pago...</p>
+            <p style={{ color: "#fff", fontSize: 14 }}>Gerando pagamento...</p>
           </div>
         )}
-        <TelaPagamento inst={escolhida} onConfirmar={handleConfirmar} onVoltar={() => setEtapa("escolha")} />
+        <TelaPagamento inst={escolhida} tagSerial={tagSerial} autoSerial={autoSerial} onConfirmar={handleConfirmar} onVoltar={() => setEtapa("escolha")} />
       </>
     );
 

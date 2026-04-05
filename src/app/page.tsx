@@ -103,6 +103,8 @@ export default function HomePage() {
             <a href="#quem-somos" className="nav-link">Quem somos</a>
             <a href="#como-funciona" className="nav-link">Como funciona</a>
             <a href="#instituicoes" className="nav-link">Instituições</a>
+            <a href="/missoes" className="nav-link">🎯 Missões</a>
+            <a href="/pedido-patch" className="nav-link">🎖️ Meu Perfil</a>
             <a href="/admin" className="nav-link">Admin</a>
           </div>
           {/* CTA */}
@@ -123,6 +125,8 @@ export default function HomePage() {
                 {["Quem somos","Como funciona","Instituições"][i]}
               </a>
             ))}
+            <a href="/missoes" onClick={() => setMenuOpen(false)} style={{ color: "rgba(255,255,255,0.65)", fontSize: 14, fontWeight: 500, textDecoration: "none" }}>🎯 Missões</a>
+            <a href="/pedido-patch" onClick={() => setMenuOpen(false)} style={{ color: "rgba(255,255,255,0.65)", fontSize: 14, fontWeight: 500, textDecoration: "none" }}>🎖️ Meu Perfil</a>
             <a href="/admin" style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, textDecoration: "none" }}>Admin</a>
           </div>
         )}
@@ -371,6 +375,61 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── MISSÕES DESTAQUE ── */}
+      <section style={{ background: "#0a0a0a", padding: "80px 24px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16, marginBottom: 48 }}>
+            <div>
+              <p style={{ fontSize: 11, color: C.orange, letterSpacing: 3, textTransform: "uppercase", fontWeight: 700, marginBottom: 8 }}>🎮 GAME MODE</p>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(26px,4vw,40px)", fontWeight: 700, color: C.white, margin: 0 }}>
+                Missões em Destaque
+              </h2>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", marginTop: 10, maxWidth: 440 }}>
+                Complete missões, acumule pontos e ajude mais pessoas. A comunidade escolhe as missões da semana e do mês.
+              </p>
+            </div>
+            <a href="/missoes" style={{ background: C.orange, color: C.white, fontWeight: 700, fontSize: 14, padding: "12px 24px", borderRadius: 12, textDecoration: "none", whiteSpace: "nowrap" }}>
+              Ver todas as missões →
+            </a>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
+            {[
+              { emoji: "🤝", titulo: "Primeira Doação", descricao: "Faça sua primeira doação e entre para a comunidade Humanity Bearers.", pontos: 200, periodo: "semana" },
+              { emoji: "👨‍👩‍👧", titulo: "Missão Família", descricao: "Convide um familiar para se juntar ao movimento e multiplicar o impacto.", pontos: 300, periodo: "semana" },
+              { emoji: "🌟", titulo: "Mês Completo", descricao: "Doe todos os meses durante um ano inteiro e torne-se um herói permanente.", pontos: 500, periodo: "mes" },
+            ].map((m, i) => (
+              <div key={i} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 18, padding: "24px", display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+                  <div style={{ width: 52, height: 52, borderRadius: 14, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, flexShrink: 0 }}>
+                    {m.emoji}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+                      <p style={{ fontSize: 15, fontWeight: 700, color: C.white, margin: 0 }}>{m.titulo}</p>
+                      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", padding: "2px 8px", borderRadius: 99, background: m.periodo === "semana" ? "rgba(255,78,0,0.15)" : "rgba(0,13,255,0.15)", color: m.periodo === "semana" ? C.orange : "#4f9ef8", border: `1px solid ${m.periodo === "semana" ? "rgba(255,78,0,0.3)" : "rgba(79,158,248,0.3)"}` }}>
+                        📌 {m.periodo === "semana" ? "Semana" : "Mês"}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", lineHeight: 1.6, margin: 0 }}>{m.descricao}</p>
+                  </div>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 12 }}>
+                  <span style={{ fontSize: 18, fontWeight: 800, color: C.orange }}>+{m.pontos} pts</span>
+                  <a href="/doacao" style={{ fontSize: 12, fontWeight: 700, color: C.orange, textDecoration: "none", border: `1px solid rgba(255,78,0,0.3)`, padding: "6px 14px", borderRadius: 8 }}>
+                    Participar →
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ textAlign: "center", marginTop: 36 }}>
+            <a href="/missoes" style={{ fontSize: 13, color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>
+              Acompanhar progresso e missões completas →
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* ── FOOTER ── */}
       <footer style={{ background: "#050505", borderTop: "1px solid rgba(255,255,255,0.05)", padding: "40px 24px" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 20 }}>
@@ -383,7 +442,7 @@ export default function HomePage() {
             <span style={{ fontSize: 12, color: "rgba(255,255,255,0.2)" }}>— Igreja Missão Humanidade</span>
           </div>
           <div style={{ display: "flex", gap: 24 }}>
-            {[["Doar","/doacao"],["Admin","/admin"]].map(([l, h]) => (
+            {[["Doar","/doacao"],["Missões","/missoes"],["Insígnias","/pedido-patch"],["Meu Progresso","/meu-desempenho"],["Admin","/admin"]].map(([l, h]) => (
               <a key={l} href={h} style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>{l}</a>
             ))}
           </div>

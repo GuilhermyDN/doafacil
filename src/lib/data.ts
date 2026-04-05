@@ -60,6 +60,11 @@ export type Missao = {
   emoji: string;
   tipo?: string;
   ativa?: boolean;
+  destaque?: boolean;
+  periodoDestaque?: string | null;
+  inicioDestaque?: string | null;
+  fimDestaque?: string | null;
+  totalCompletas?: number;
 };
 
 export type QRDoacao = {

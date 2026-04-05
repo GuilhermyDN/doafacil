@@ -3,9 +3,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
-  { href: "/doacao",      label: "Doação",       icon: "♡" },
-  { href: "/admin",       label: "Painel Admin",  icon: "⊞" },
-  { href: "/instituicao", label: "Instituições",  icon: "◎" },
+  { href: "/doacao",       label: "Doação",          icon: "♡"  },
+  { href: "/pedido-patch", label: "Meu Perfil",       icon: "🎖️" },
+  { href: "/admin",        label: "Painel Admin",     icon: "⊞"  },
 ];
 
 export default function Navbar() {

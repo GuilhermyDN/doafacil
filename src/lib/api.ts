@@ -14,7 +14,6 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API}${path}`, {
     headers: {
       'Content-Type': 'application/json',
-      'ngrok-skip-browser-warning': 'true',
       ...authHeaders(),
     },
     ...options,
@@ -62,6 +61,8 @@ export async function getInstituicao(id: number) {
 export interface PostDoacaoBody {
   doadorNome: string
   doadorEmail?: string
+  doadorTel?: string
+  tagSerial?: string
   instituicaoId: number
   quantidade: number
   eventoId?: number
@@ -90,6 +91,21 @@ export interface MpPreferenciaResponse {
 
 export async function criarPreferenciaMp(doacaoId: number): Promise<MpPreferenciaResponse> {
   return apiFetch('/api/mp/preferencia', { method: 'POST', body: JSON.stringify({ doacaoId }) })
+}
+
+export interface MpPixResponse {
+  pixCopiaECola: string
+  qrCodeBase64: string | null
+  valorTotal: number
+  expiracao: string | null
+}
+
+export async function criarPixMp(doacaoId: number): Promise<MpPixResponse> {
+  return apiFetch('/api/mp/pix', { method: 'POST', body: JSON.stringify({ doacaoId }) })
+}
+
+export async function criarCartaoMp(doacaoId: number): Promise<{ init_point: string }> {
+  return apiFetch('/api/mp/cartao', { method: 'POST', body: JSON.stringify({ doacaoId }) })
 }
 
 export async function gerarLinkMp(instId: number): Promise<{ link: string }> {

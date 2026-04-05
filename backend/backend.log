@@ -1,0 +1,110 @@
+
+> doafacil-backend@1.0.0 dev
+> ts-node-dev --respawn --transpile-only src/index.ts
+
+[INFO] 02:27:16 ts-node-dev ver. 2.0.0 (using ts-node ver. 10.9.2, typescript ver. 5.9.3)
+🚀 Backend rodando em http://localhost:3003
+[INFO] 03:11:19 Restarting: C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\src\routes\mp.ts has been modified
+Error: listen EADDRINUSE: address already in use :::3003
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Function.listen (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\node_modules\express\lib\application.js:635:24)
+    at Object.<anonymous> (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\src\index.ts:62:5)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1706:14)
+    at Module._compile (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\node_modules\source-map-support\source-map-support.js:568:25)
+    at Module.m._compile (C:\Users\GUILHE~1\AppData\Local\Temp\ts-node-dev-hook-3806552340867102.js:69:33)
+    at node:internal/modules/cjs/loader:1839:10
+    at require.extensions..jsx.require.extensions..js (C:\Users\GUILHE~1\AppData\Local\Temp\ts-node-dev-hook-3806552340867102.js:114:20)
+[ERROR] 03:11:20 Error: listen EADDRINUSE: address already in use :::3003
+[INFO] 03:53:26 Restarting: C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\src\routes\mp.ts has been modified
+Error: listen EADDRINUSE: address already in use :::3003
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Function.listen (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\node_modules\express\lib\application.js:635:24)
+    at Object.<anonymous> (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\src\index.ts:62:5)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1706:14)
+    at Module._compile (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\node_modules\source-map-support\source-map-support.js:568:25)
+    at Module.m._compile (C:\Users\GUILHE~1\AppData\Local\Temp\ts-node-dev-hook-3806552340867102.js:69:33)
+    at node:internal/modules/cjs/loader:1839:10
+    at require.extensions..jsx.require.extensions..js (C:\Users\GUILHE~1\AppData\Local\Temp\ts-node-dev-hook-3806552340867102.js:114:20)
+[ERROR] 03:53:26 Error: listen EADDRINUSE: address already in use :::3003
+[INFO] 03:53:38 Restarting: C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\src\routes\mp.ts has been modified
+Error: listen EADDRINUSE: address already in use :::3003
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Function.listen (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\node_modules\express\lib\application.js:635:24)
+    at Object.<anonymous> (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\src\index.ts:62:5)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1706:14)
+    at Module._compile (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\node_modules\source-map-support\source-map-support.js:568:25)
+    at Module.m._compile (C:\Users\GUILHE~1\AppData\Local\Temp\ts-node-dev-hook-3806552340867102.js:69:33)
+    at node:internal/modules/cjs/loader:1839:10
+    at require.extensions..jsx.require.extensions..js (C:\Users\GUILHE~1\AppData\Local\Temp\ts-node-dev-hook-3806552340867102.js:114:20)
+[ERROR] 03:53:39 Error: listen EADDRINUSE: address already in use :::3003
+[INFO] 03:54:02 Restarting: C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\src\routes\mp.ts has been modified
+Error: listen EADDRINUSE: address already in use :::3003
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Function.listen (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\node_modules\express\lib\application.js:635:24)
+    at Object.<anonymous> (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\src\index.ts:62:5)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1706:14)
+    at Module._compile (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\node_modules\source-map-support\source-map-support.js:568:25)
+    at Module.m._compile (C:\Users\GUILHE~1\AppData\Local\Temp\ts-node-dev-hook-3806552340867102.js:69:33)
+    at node:internal/modules/cjs/loader:1839:10
+    at require.extensions..jsx.require.extensions..js (C:\Users\GUILHE~1\AppData\Local\Temp\ts-node-dev-hook-3806552340867102.js:114:20)
+[ERROR] 03:54:03 Error: listen EADDRINUSE: address already in use :::3003
+[INFO] 04:31:37 Restarting: C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\src\routes\mp.ts has been modified
+Error: listen EADDRINUSE: address already in use :::3003
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Function.listen (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\node_modules\express\lib\application.js:635:24)
+    at Object.<anonymous> (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\src\index.ts:62:5)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1706:14)
+    at Module._compile (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\node_modules\source-map-support\source-map-support.js:568:25)
+    at Module.m._compile (C:\Users\GUILHE~1\AppData\Local\Temp\ts-node-dev-hook-3806552340867102.js:69:33)
+    at node:internal/modules/cjs/loader:1839:10
+    at require.extensions..jsx.require.extensions..js (C:\Users\GUILHE~1\AppData\Local\Temp\ts-node-dev-hook-3806552340867102.js:114:20)
+[ERROR] 04:31:38 Error: listen EADDRINUSE: address already in use :::3003
+[INFO] 04:39:39 Restarting: C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\src\routes\doacoes.ts has been modified
+Error: listen EADDRINUSE: address already in use :::3003
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Function.listen (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\node_modules\express\lib\application.js:635:24)
+    at Object.<anonymous> (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\src\index.ts:62:5)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1706:14)
+    at Module._compile (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\node_modules\source-map-support\source-map-support.js:568:25)
+    at Module.m._compile (C:\Users\GUILHE~1\AppData\Local\Temp\ts-node-dev-hook-3806552340867102.js:69:33)
+    at node:internal/modules/cjs/loader:1839:10
+    at require.extensions..jsx.require.extensions..js (C:\Users\GUILHE~1\AppData\Local\Temp\ts-node-dev-hook-3806552340867102.js:114:20)
+[ERROR] 04:39:40 Error: listen EADDRINUSE: address already in use :::3003
+[INFO] 04:42:20 Restarting: C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\src\routes\mp.ts has been modified
+Error: listen EADDRINUSE: address already in use :::3003
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Function.listen (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\node_modules\express\lib\application.js:635:24)
+    at Object.<anonymous> (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\src\index.ts:62:5)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1706:14)
+    at Module._compile (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\node_modules\source-map-support\source-map-support.js:568:25)
+    at Module.m._compile (C:\Users\GUILHE~1\AppData\Local\Temp\ts-node-dev-hook-3806552340867102.js:69:33)
+    at node:internal/modules/cjs/loader:1839:10
+    at require.extensions..jsx.require.extensions..js (C:\Users\GUILHE~1\AppData\Local\Temp\ts-node-dev-hook-3806552340867102.js:114:20)
+[ERROR] 04:42:22 Error: listen EADDRINUSE: address already in use :::3003
+[INFO] 04:46:03 Restarting: C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\src\routes\doacoes.ts has been modified
+Error: listen EADDRINUSE: address already in use :::3003
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Function.listen (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\node_modules\express\lib\application.js:635:24)
+    at Object.<anonymous> (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\src\index.ts:62:5)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1706:14)
+    at Module._compile (C:\Users\Guilhermy Damasceno\Documents\doacoes-mvp\backend\node_modules\source-map-support\source-map-support.js:568:25)
+    at Module.m._compile (C:\Users\GUILHE~1\AppData\Local\Temp\ts-node-dev-hook-3806552340867102.js:69:33)
+    at node:internal/modules/cjs/loader:1839:10
+    at require.extensions..jsx.require.extensions..js (C:\Users\GUILHE~1\AppData\Local\Temp\ts-node-dev-hook-3806552340867102.js:114:20)
+[ERROR] 04:46:04 Error: listen EADDRINUSE: address already in use :::3003

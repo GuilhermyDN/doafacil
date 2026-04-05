@@ -1,0 +1,218 @@
+[
+    {
+        "label": "json",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "json",
+        "description": "json",
+        "detail": "json",
+        "documentation": {}
+    },
+    {
+        "label": "A4",
+        "importPath": "reportlab.lib.pagesizes",
+        "description": "reportlab.lib.pagesizes",
+        "isExtraImport": true,
+        "detail": "reportlab.lib.pagesizes",
+        "documentation": {}
+    },
+    {
+        "label": "SimpleDocTemplate",
+        "importPath": "reportlab.platypus",
+        "description": "reportlab.platypus",
+        "isExtraImport": true,
+        "detail": "reportlab.platypus",
+        "documentation": {}
+    },
+    {
+        "label": "Paragraph",
+        "importPath": "reportlab.platypus",
+        "description": "reportlab.platypus",
+        "isExtraImport": true,
+        "detail": "reportlab.platypus",
+        "documentation": {}
+    },
+    {
+        "label": "Spacer",
+        "importPath": "reportlab.platypus",
+        "description": "reportlab.platypus",
+        "isExtraImport": true,
+        "detail": "reportlab.platypus",
+        "documentation": {}
+    },
+    {
+        "label": "HRFlowable",
+        "importPath": "reportlab.platypus",
+        "description": "reportlab.platypus",
+        "isExtraImport": true,
+        "detail": "reportlab.platypus",
+        "documentation": {}
+    },
+    {
+        "label": "getSampleStyleSheet",
+        "importPath": "reportlab.lib.styles",
+        "description": "reportlab.lib.styles",
+        "isExtraImport": true,
+        "detail": "reportlab.lib.styles",
+        "documentation": {}
+    },
+    {
+        "label": "ParagraphStyle",
+        "importPath": "reportlab.lib.styles",
+        "description": "reportlab.lib.styles",
+        "isExtraImport": true,
+        "detail": "reportlab.lib.styles",
+        "documentation": {}
+    },
+    {
+        "label": "colors",
+        "importPath": "reportlab.lib",
+        "description": "reportlab.lib",
+        "isExtraImport": true,
+        "detail": "reportlab.lib",
+        "documentation": {}
+    },
+    {
+        "label": "cm",
+        "importPath": "reportlab.lib.units",
+        "description": "reportlab.lib.units",
+        "isExtraImport": true,
+        "detail": "reportlab.lib.units",
+        "documentation": {}
+    },
+    {
+        "label": "_Known",
+        "kind": 6,
+        "importPath": "node_modules.flatted.python.flatted",
+        "description": "node_modules.flatted.python.flatted",
+        "peekOfCode": "class _Known:\n    def __init__(self):\n        self.key = []\n        self.value = []\nclass _String:\n    def __init__(self, value):\n        self.value = value\ndef _array_keys(value):\n    for i in range(len(value)):\n        yield i",
+        "detail": "node_modules.flatted.python.flatted",
+        "documentation": {}
+    },
+    {
+        "label": "_String",
+        "kind": 6,
+        "importPath": "node_modules.flatted.python.flatted",
+        "description": "node_modules.flatted.python.flatted",
+        "peekOfCode": "class _String:\n    def __init__(self, value):\n        self.value = value\ndef _array_keys(value):\n    for i in range(len(value)):\n        yield i\ndef _object_keys(value):\n    for key in value:\n        yield key\ndef _is_array(value):",
+        "detail": "node_modules.flatted.python.flatted",
+        "documentation": {}
+    },
+    {
+        "label": "parse",
+        "kind": 2,
+        "importPath": "node_modules.flatted.python.flatted",
+        "description": "node_modules.flatted.python.flatted",
+        "peekOfCode": "def parse(value, *args, **kwargs):\n    json = _json.loads(value, *args, **kwargs)\n    wrapped = []\n    for value in json:\n        wrapped.append(_wrap(value))\n    input = []\n    for value in wrapped:\n        if isinstance(value, _String):\n            input.append(value.value)\n        else:",
+        "detail": "node_modules.flatted.python.flatted",
+        "documentation": {}
+    },
+    {
+        "label": "stringify",
+        "kind": 2,
+        "importPath": "node_modules.flatted.python.flatted",
+        "description": "node_modules.flatted.python.flatted",
+        "peekOfCode": "def stringify(value, *args, **kwargs):\n    known = _Known()\n    input = []\n    output = []\n    i = int(_index(known, input, value))\n    while i < len(input):\n        output.append(_transform(known, input, input[i]))\n        i += 1\n    return _json.dumps(output, *args, **kwargs)",
+        "detail": "node_modules.flatted.python.flatted",
+        "documentation": {}
+    },
+    {
+        "label": "output",
+        "kind": 5,
+        "importPath": "gerar_pdf",
+        "description": "gerar_pdf",
+        "peekOfCode": "output = r\"C:\\Users\\Guilhermy Damasceno\\Documents\\doacoes-mvp\\INSTRUCOES-CLIENTE.pdf\"\ndoc = SimpleDocTemplate(output, pagesize=A4,\n    leftMargin=2.5*cm, rightMargin=2.5*cm,\n    topMargin=2.5*cm, bottomMargin=2.5*cm)\nstyles = getSampleStyleSheet()\ntitle_style = ParagraphStyle('Title2', parent=styles['Title'],\n    fontSize=20, textColor=colors.HexColor('#000DFF'), spaceAfter=6)\nh1_style = ParagraphStyle('H1', parent=styles['Heading1'],\n    fontSize=13, textColor=colors.HexColor('#FF4E00'), spaceAfter=4, spaceBefore=14)\nh2_style = ParagraphStyle('H2', parent=styles['Heading2'],",
+        "detail": "gerar_pdf",
+        "documentation": {}
+    },
+    {
+        "label": "doc",
+        "kind": 5,
+        "importPath": "gerar_pdf",
+        "description": "gerar_pdf",
+        "peekOfCode": "doc = SimpleDocTemplate(output, pagesize=A4,\n    leftMargin=2.5*cm, rightMargin=2.5*cm,\n    topMargin=2.5*cm, bottomMargin=2.5*cm)\nstyles = getSampleStyleSheet()\ntitle_style = ParagraphStyle('Title2', parent=styles['Title'],\n    fontSize=20, textColor=colors.HexColor('#000DFF'), spaceAfter=6)\nh1_style = ParagraphStyle('H1', parent=styles['Heading1'],\n    fontSize=13, textColor=colors.HexColor('#FF4E00'), spaceAfter=4, spaceBefore=14)\nh2_style = ParagraphStyle('H2', parent=styles['Heading2'],\n    fontSize=11, textColor=colors.black, spaceAfter=4, spaceBefore=10)",
+        "detail": "gerar_pdf",
+        "documentation": {}
+    },
+    {
+        "label": "styles",
+        "kind": 5,
+        "importPath": "gerar_pdf",
+        "description": "gerar_pdf",
+        "peekOfCode": "styles = getSampleStyleSheet()\ntitle_style = ParagraphStyle('Title2', parent=styles['Title'],\n    fontSize=20, textColor=colors.HexColor('#000DFF'), spaceAfter=6)\nh1_style = ParagraphStyle('H1', parent=styles['Heading1'],\n    fontSize=13, textColor=colors.HexColor('#FF4E00'), spaceAfter=4, spaceBefore=14)\nh2_style = ParagraphStyle('H2', parent=styles['Heading2'],\n    fontSize=11, textColor=colors.black, spaceAfter=4, spaceBefore=10)\nbody_style = ParagraphStyle('Body2', parent=styles['Normal'],\n    fontSize=10, leading=16, spaceAfter=4)\nnote_style = ParagraphStyle('Note', parent=styles['Normal'],",
+        "detail": "gerar_pdf",
+        "documentation": {}
+    },
+    {
+        "label": "title_style",
+        "kind": 5,
+        "importPath": "gerar_pdf",
+        "description": "gerar_pdf",
+        "peekOfCode": "title_style = ParagraphStyle('Title2', parent=styles['Title'],\n    fontSize=20, textColor=colors.HexColor('#000DFF'), spaceAfter=6)\nh1_style = ParagraphStyle('H1', parent=styles['Heading1'],\n    fontSize=13, textColor=colors.HexColor('#FF4E00'), spaceAfter=4, spaceBefore=14)\nh2_style = ParagraphStyle('H2', parent=styles['Heading2'],\n    fontSize=11, textColor=colors.black, spaceAfter=4, spaceBefore=10)\nbody_style = ParagraphStyle('Body2', parent=styles['Normal'],\n    fontSize=10, leading=16, spaceAfter=4)\nnote_style = ParagraphStyle('Note', parent=styles['Normal'],\n    fontSize=9, leading=14, textColor=colors.HexColor('#555555'))",
+        "detail": "gerar_pdf",
+        "documentation": {}
+    },
+    {
+        "label": "h1_style",
+        "kind": 5,
+        "importPath": "gerar_pdf",
+        "description": "gerar_pdf",
+        "peekOfCode": "h1_style = ParagraphStyle('H1', parent=styles['Heading1'],\n    fontSize=13, textColor=colors.HexColor('#FF4E00'), spaceAfter=4, spaceBefore=14)\nh2_style = ParagraphStyle('H2', parent=styles['Heading2'],\n    fontSize=11, textColor=colors.black, spaceAfter=4, spaceBefore=10)\nbody_style = ParagraphStyle('Body2', parent=styles['Normal'],\n    fontSize=10, leading=16, spaceAfter=4)\nnote_style = ParagraphStyle('Note', parent=styles['Normal'],\n    fontSize=9, leading=14, textColor=colors.HexColor('#555555'))\nlink_style = ParagraphStyle('Link', parent=styles['Normal'],\n    fontSize=10, leading=14, textColor=colors.HexColor('#000DFF'))",
+        "detail": "gerar_pdf",
+        "documentation": {}
+    },
+    {
+        "label": "h2_style",
+        "kind": 5,
+        "importPath": "gerar_pdf",
+        "description": "gerar_pdf",
+        "peekOfCode": "h2_style = ParagraphStyle('H2', parent=styles['Heading2'],\n    fontSize=11, textColor=colors.black, spaceAfter=4, spaceBefore=10)\nbody_style = ParagraphStyle('Body2', parent=styles['Normal'],\n    fontSize=10, leading=16, spaceAfter=4)\nnote_style = ParagraphStyle('Note', parent=styles['Normal'],\n    fontSize=9, leading=14, textColor=colors.HexColor('#555555'))\nlink_style = ParagraphStyle('Link', parent=styles['Normal'],\n    fontSize=10, leading=14, textColor=colors.HexColor('#000DFF'))\nwarn_style = ParagraphStyle('Warn', parent=styles['Normal'],\n    fontSize=10, leading=16, textColor=colors.HexColor('#cc0000'))",
+        "detail": "gerar_pdf",
+        "documentation": {}
+    },
+    {
+        "label": "body_style",
+        "kind": 5,
+        "importPath": "gerar_pdf",
+        "description": "gerar_pdf",
+        "peekOfCode": "body_style = ParagraphStyle('Body2', parent=styles['Normal'],\n    fontSize=10, leading=16, spaceAfter=4)\nnote_style = ParagraphStyle('Note', parent=styles['Normal'],\n    fontSize=9, leading=14, textColor=colors.HexColor('#555555'))\nlink_style = ParagraphStyle('Link', parent=styles['Normal'],\n    fontSize=10, leading=14, textColor=colors.HexColor('#000DFF'))\nwarn_style = ParagraphStyle('Warn', parent=styles['Normal'],\n    fontSize=10, leading=16, textColor=colors.HexColor('#cc0000'))\nstory = []\nstory.append(Paragraph(\"Instruções para Integração\", title_style))",
+        "detail": "gerar_pdf",
+        "documentation": {}
+    },
+    {
+        "label": "note_style",
+        "kind": 5,
+        "importPath": "gerar_pdf",
+        "description": "gerar_pdf",
+        "peekOfCode": "note_style = ParagraphStyle('Note', parent=styles['Normal'],\n    fontSize=9, leading=14, textColor=colors.HexColor('#555555'))\nlink_style = ParagraphStyle('Link', parent=styles['Normal'],\n    fontSize=10, leading=14, textColor=colors.HexColor('#000DFF'))\nwarn_style = ParagraphStyle('Warn', parent=styles['Normal'],\n    fontSize=10, leading=16, textColor=colors.HexColor('#cc0000'))\nstory = []\nstory.append(Paragraph(\"Instruções para Integração\", title_style))\nstory.append(Paragraph(\"Humanity Bearers\", ParagraphStyle('Sub', parent=styles['Normal'],\n    fontSize=13, textColor=colors.HexColor('#FF4E00'), spaceAfter=16)))",
+        "detail": "gerar_pdf",
+        "documentation": {}
+    },
+    {
+        "label": "link_style",
+        "kind": 5,
+        "importPath": "gerar_pdf",
+        "description": "gerar_pdf",
+        "peekOfCode": "link_style = ParagraphStyle('Link', parent=styles['Normal'],\n    fontSize=10, leading=14, textColor=colors.HexColor('#000DFF'))\nwarn_style = ParagraphStyle('Warn', parent=styles['Normal'],\n    fontSize=10, leading=16, textColor=colors.HexColor('#cc0000'))\nstory = []\nstory.append(Paragraph(\"Instruções para Integração\", title_style))\nstory.append(Paragraph(\"Humanity Bearers\", ParagraphStyle('Sub', parent=styles['Normal'],\n    fontSize=13, textColor=colors.HexColor('#FF4E00'), spaceAfter=16)))\nstory.append(HRFlowable(width=\"100%\", thickness=2, color=colors.HexColor('#000DFF')))\nstory.append(Spacer(1, 16))",
+        "detail": "gerar_pdf",
+        "documentation": {}
+    },
+    {
+        "label": "warn_style",
+        "kind": 5,
+        "importPath": "gerar_pdf",
+        "description": "gerar_pdf",
+        "peekOfCode": "warn_style = ParagraphStyle('Warn', parent=styles['Normal'],\n    fontSize=10, leading=16, textColor=colors.HexColor('#cc0000'))\nstory = []\nstory.append(Paragraph(\"Instruções para Integração\", title_style))\nstory.append(Paragraph(\"Humanity Bearers\", ParagraphStyle('Sub', parent=styles['Normal'],\n    fontSize=13, textColor=colors.HexColor('#FF4E00'), spaceAfter=16)))\nstory.append(HRFlowable(width=\"100%\", thickness=2, color=colors.HexColor('#000DFF')))\nstory.append(Spacer(1, 16))\n# PARTE 1\nstory.append(Paragraph(\"PARTE 1 — Servidor VPS (obrigatório)\", h1_style))",
+        "detail": "gerar_pdf",
+        "documentation": {}
+    },
+    {
+        "label": "story",
+        "kind": 5,
+        "importPath": "gerar_pdf",
+        "description": "gerar_pdf",
+        "peekOfCode": "story = []\nstory.append(Paragraph(\"Instruções para Integração\", title_style))\nstory.append(Paragraph(\"Humanity Bearers\", ParagraphStyle('Sub', parent=styles['Normal'],\n    fontSize=13, textColor=colors.HexColor('#FF4E00'), spaceAfter=16)))\nstory.append(HRFlowable(width=\"100%\", thickness=2, color=colors.HexColor('#000DFF')))\nstory.append(Spacer(1, 16))\n# PARTE 1\nstory.append(Paragraph(\"PARTE 1 — Servidor VPS (obrigatório)\", h1_style))\nstory.append(Paragraph(\n    \"Para hospedar o sistema Humanity Bearers com estabilidade 24/7, contrate um servidor VPS pelo link abaixo:\",",
+        "detail": "gerar_pdf",
+        "documentation": {}
+    }
+]

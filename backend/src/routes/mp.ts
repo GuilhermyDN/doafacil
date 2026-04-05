@@ -1,0 +1,397 @@
+import { Router, Request, Response } from 'express'
+import { prisma } from '../lib/prisma'
+import { calcularNivel, verificarMissoesAutomaticas } from '../lib/helpers'
+import crypto from 'crypto'
+import { MercadoPagoConfig, Preference, Payment } from 'mercadopago'
+
+// POST /api/mp/pix — gera QR Code Pix direto sem redirecionamento
+
+// Cliente da plataforma (token da conta principal)
+const mpClient = new MercadoPagoConfig({
+  accessToken: process.env.MP_ACCESS_TOKEN || '',
+})
+
+const router = Router()
+
+// GET /api/mp/connect-info?token=xxx
+// Retorna nome da instituição e a URL de autorização do MP
+router.get('/connect-info', async (req: Request, res: Response) => {
+  const { token } = req.query as { token?: string }
+  if (!token) { res.status(400).json({ error: 'Token ausente' }); return }
+
+  const inst = await prisma.instituicao.findUnique({ where: { mpConnectToken: token } })
+  if (!inst) { res.status(404).json({ error: 'Link inválido ou expirado' }); return }
+
+  const clientId = process.env.MP_CLIENT_ID
+  const redirectUri = process.env.MP_REDIRECT_URI
+  if (!clientId || !redirectUri) {
+    res.status(500).json({ error: 'Credenciais do Mercado Pago não configuradas no servidor' })
+    return
+  }
+
+  const authUrl =
+    `https://auth.mercadopago.com.br/authorization` +
+    `?client_id=${clientId}` +
+    `&response_type=code` +
+    `&platform_id=mp` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&state=${token}`
+
+  res.json({ instituicaoNome: inst.nome, instituicaoEmoji: inst.emoji, authUrl, jaConectado: !!inst.mercadoPagoToken })
+})
+
+// GET /api/mp/callback?code=xxx&state=token
+// Callback do OAuth do Mercado Pago
+router.get('/callback', async (req: Request, res: Response) => {
+  const { code, state, error, error_description } = req.query as { code?: string; state?: string; error?: string; error_description?: string }
+  const frontendUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'
+
+  console.log('🔁 MP callback recebido:', JSON.stringify(req.query))
+
+  if (error) {
+    console.error('❌ MP retornou erro OAuth:', error, error_description)
+    res.redirect(`${frontendUrl}/conectar-mp?erro=mp-nao-autorizado&detalhe=${encodeURIComponent(error)}`)
+    return
+  }
+
+  if (!code || !state) {
+    console.error('❌ code ou state ausentes:', { code, state })
+    res.redirect(`${frontendUrl}/conectar-mp?erro=parametros-invalidos`)
+    return
+  }
+
+  const inst = await prisma.instituicao.findUnique({ where: { mpConnectToken: state } })
+  if (!inst) {
+    res.redirect(`${frontendUrl}/conectar-mp?erro=link-invalido`)
+    return
+  }
+
+  try {
+    const tokenRes = await fetch('https://api.mercadopago.com/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_secret: process.env.MP_CLIENT_SECRET,
+        client_id: process.env.MP_CLIENT_ID,
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: process.env.MP_REDIRECT_URI,
+      }),
+    })
+
+    if (!tokenRes.ok) {
+      const err = await tokenRes.text()
+      console.error('MP token error:', err)
+      res.redirect(`${frontendUrl}/conectar-mp?erro=falha-autorizacao`)
+      return
+    }
+
+    const data = await tokenRes.json() as { access_token: string; user_id: number }
+
+    await prisma.instituicao.update({
+      where: { id: inst.id },
+      data: {
+        mercadoPagoToken: data.access_token,
+        mpAccountId: String(data.user_id),
+        mpConnectToken: null, // invalida o token após uso
+      },
+    })
+
+    res.redirect(`${frontendUrl}/conectar-mp?sucesso=1&inst=${encodeURIComponent(inst.nome)}`)
+  } catch (err) {
+    console.error('MP callback error:', err)
+    res.redirect(`${frontendUrl}/conectar-mp?erro=erro-interno`)
+  }
+})
+
+// POST /api/mp/pix — gera QR Code Pix direto (sem login, sem redirecionamento)
+router.post('/pix', async (req: Request, res: Response) => {
+  const { doacaoId } = req.body
+  if (!doacaoId) { res.status(400).json({ error: 'doacaoId obrigatório' }); return }
+
+  try {
+    const doacao = await prisma.doacao.findUnique({
+      where: { id: Number(doacaoId) },
+      include: { instituicao: true },
+    })
+    if (!doacao) { res.status(404).json({ error: 'Doação não encontrada' }); return }
+    if (doacao.pago) { res.status(400).json({ error: 'Doação já paga' }); return }
+
+    const inst = doacao.instituicao
+    if (!inst.mercadoPagoToken) {
+      res.status(400).json({ error: 'Esta instituição ainda não configurou o recebimento de pagamentos. Entre em contato com o administrador.' }); return
+    }
+    const clienteInst = new MercadoPagoConfig({ accessToken: inst.mercadoPagoToken })
+    const paymentClient = new Payment(clienteInst)
+
+    const payment = await paymentClient.create({
+      body: {
+        transaction_amount: doacao.valorTotal,
+        description: `Doação — ${inst.nome}`,
+        payment_method_id: 'pix',
+        payer: {
+          email: doacao.doadorEmail || 'doador@humanitybearers.com.br',
+          first_name: doacao.doadorNome || 'Doador',
+        },
+        external_reference: String(doacao.id),
+        notification_url: `${process.env.BACKEND_URL || 'http://localhost:3003'}/api/mp/webhook`,
+      },
+    })
+
+    const pix = payment.point_of_interaction?.transaction_data
+    if (!pix?.qr_code) {
+      res.status(500).json({ error: 'MP não retornou QR Code Pix' }); return
+    }
+
+    // Salva o ID do pagamento MP na doação
+    await prisma.doacao.update({
+      where: { id: doacao.id },
+      data: { mpPaymentId: String(payment.id) },
+    })
+
+    res.json({
+      pixCopiaECola: pix.qr_code,
+      qrCodeBase64: pix.qr_code_base64 ? `data:image/png;base64,${pix.qr_code_base64}` : null,
+      valorTotal: doacao.valorTotal,
+      expiracao: payment.date_of_expiration,
+    })
+  } catch (err: any) {
+    console.error('MP pix error:', err?.cause || err?.message || err)
+    res.status(500).json({ error: err?.message || 'Erro ao gerar Pix' })
+  }
+})
+
+// POST /api/mp/cartao-token — processa pagamento com cartão via token (Bricks)
+router.post('/cartao-token', async (req: Request, res: Response) => {
+  const { doacaoId, token, installments, paymentMethodId, issuerId, payerEmail, payerIdentification } = req.body
+  if (!doacaoId || !token) { res.status(400).json({ error: 'doacaoId e token obrigatórios' }); return }
+
+  try {
+    const doacao = await prisma.doacao.findUnique({
+      where: { id: Number(doacaoId) },
+      include: { instituicao: true },
+    })
+    if (!doacao) { res.status(404).json({ error: 'Doação não encontrada' }); return }
+    if (doacao.pago) { res.status(400).json({ error: 'Doação já paga' }); return }
+
+    const inst = doacao.instituicao
+    if (!inst.mercadoPagoToken) {
+      res.status(400).json({ error: 'Esta instituição ainda não configurou o recebimento de pagamentos. Entre em contato com o administrador.' }); return
+    }
+    const clienteInst = new MercadoPagoConfig({ accessToken: inst.mercadoPagoToken })
+    const paymentClient = new Payment(clienteInst)
+
+    const payment = await paymentClient.create({
+      body: {
+        transaction_amount: doacao.valorTotal,
+        token,
+        description: `Doação — ${inst.nome}`,
+        installments: installments || 1,
+        payment_method_id: paymentMethodId,
+        issuer_id: issuerId,
+        payer: {
+          email: payerEmail || doacao.doadorEmail || 'doador@humanitybearers.com.br',
+          identification: payerIdentification,
+        },
+        external_reference: String(doacao.id),
+        notification_url: `${process.env.BACKEND_URL || 'http://localhost:3003'}/api/mp/webhook`,
+      },
+    })
+
+    if (payment.status === 'approved') {
+      await prisma.doacao.update({
+        where: { id: doacao.id },
+        data: { pago: true, dataPagamento: new Date(), mpPaymentId: String(payment.id) },
+      })
+    }
+
+    res.json({ status: payment.status, paymentId: payment.id })
+  } catch (err: any) {
+    console.error('MP cartao-token error:', err?.cause || err?.message || err)
+    res.status(500).json({ error: err?.message || 'Erro ao processar cartão' })
+  }
+})
+
+// POST /api/mp/cartao — cria preferência Checkout Pro apenas para cartão
+router.post('/cartao', async (req: Request, res: Response) => {
+  const { doacaoId } = req.body
+  if (!doacaoId) { res.status(400).json({ error: 'doacaoId obrigatório' }); return }
+
+  try {
+    const doacao = await prisma.doacao.findUnique({
+      where: { id: Number(doacaoId) },
+      include: { instituicao: true },
+    })
+    if (!doacao) { res.status(404).json({ error: 'Doação não encontrada' }); return }
+    if (doacao.pago) { res.status(400).json({ error: 'Doação já paga' }); return }
+
+    const inst = doacao.instituicao
+    if (!inst.mercadoPagoToken) {
+      res.status(400).json({ error: 'Esta instituição ainda não configurou o recebimento de pagamentos. Entre em contato com o administrador.' }); return
+    }
+    const frontendUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'
+    const clienteInst = new MercadoPagoConfig({ accessToken: inst.mercadoPagoToken })
+    const prefClient = new Preference(clienteInst)
+
+    const pref = await prefClient.create({
+      body: {
+        items: [{
+          id: String(doacao.id),
+          title: `Doação — ${inst.nome}`,
+          description: `${doacao.quantidade}x ${inst.tipo}`,
+          category_id: 'services',
+          unit_price: doacao.valorTotal,
+          quantity: doacao.quantidade,
+          currency_id: 'BRL',
+        }],
+        payer: {
+          name: doacao.doadorNome || 'Doador',
+          email: doacao.doadorEmail || 'doador@humanitybearers.com.br',
+        },
+        payment_methods: {
+          excluded_payment_types: [{ id: 'ticket' }, { id: 'bank_transfer' }, { id: 'atm' }],
+          installments: 1,
+        },
+        back_urls: {
+          success: `${frontendUrl}/doacao?status=sucesso&id=${doacao.id}`,
+          failure: `${frontendUrl}/doacao?status=falha&id=${doacao.id}`,
+          pending: `${frontendUrl}/doacao?status=pendente&id=${doacao.id}`,
+        },
+        auto_return: 'approved',
+        external_reference: String(doacao.id),
+        notification_url: `${process.env.BACKEND_URL || 'http://localhost:3003'}/api/mp/webhook`,
+        statement_descriptor: 'HUMANITY BEARERS',
+      },
+    })
+
+    res.json({ init_point: pref.init_point })
+  } catch (err: any) {
+    console.error('MP cartao error:', err?.cause || err?.message || err)
+    res.status(500).json({ error: err?.message || 'Erro ao criar pagamento com cartão' })
+  }
+})
+
+// POST /api/mp/preferencia — cria preferência Checkout Pro para uma doação
+router.post('/preferencia', async (req: Request, res: Response) => {
+  const { doacaoId } = req.body
+  if (!doacaoId) { res.status(400).json({ error: 'doacaoId obrigatório' }); return }
+
+  try {
+    const doacao = await prisma.doacao.findUnique({
+      where: { id: Number(doacaoId) },
+      include: { instituicao: true },
+    })
+    if (!doacao) { res.status(404).json({ error: 'Doação não encontrada' }); return }
+    if (doacao.pago) { res.status(400).json({ error: 'Doação já paga' }); return }
+
+    const inst = doacao.instituicao
+    if (!inst.mercadoPagoToken) {
+      res.status(400).json({ error: 'Esta instituição ainda não configurou o recebimento de pagamentos. Entre em contato com o administrador.' }); return
+    }
+    const frontendUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'
+    const clienteInst = new MercadoPagoConfig({ accessToken: inst.mercadoPagoToken })
+    const prefClient = new Preference(clienteInst)
+
+    const preferenceData: any = {
+      items: [{
+        id: String(doacao.id),
+        title: `Doação — ${inst.nome}`,
+        description: `${doacao.quantidade}x ${inst.tipo}`,
+        unit_price: doacao.valorTotal,
+        quantity: 1,
+        currency_id: 'BRL',
+      }],
+      payer: doacao.doadorEmail ? {
+        name: doacao.doadorNome,
+        email: doacao.doadorEmail,
+      } : { email: 'doador@humanitybearers.com.br' },
+      back_urls: {
+        success: `${frontendUrl}/doacao?status=sucesso&id=${doacao.id}`,
+        failure: `${frontendUrl}/doacao?status=falha&id=${doacao.id}`,
+        pending: `${frontendUrl}/doacao?status=pendente&id=${doacao.id}`,
+      },
+      auto_return: 'approved',
+      external_reference: String(doacao.id),
+      notification_url: `${process.env.BACKEND_URL || 'http://localhost:3001'}/api/mp/webhook`,
+      statement_descriptor: 'HUMANITY BEARERS',
+    }
+
+    // Se usa token da instituição E a plataforma tem token → aplica marketplace_fee (18%)
+    if (inst.mercadoPagoToken && process.env.MP_ACCESS_TOKEN) {
+      preferenceData.marketplace_fee = Number((doacao.valorTotal * 0.18).toFixed(2))
+    }
+
+    const pref = await prefClient.create({ body: preferenceData })
+
+    res.json({
+      preferenceId: pref.id,
+      init_point: pref.init_point,           // produção
+      sandbox_init_point: pref.sandbox_init_point, // testes
+    })
+  } catch (err: any) {
+    console.error('MP preferência error:', err)
+    res.status(500).json({ error: err?.message || 'Erro ao criar preferência MP' })
+  }
+})
+
+// POST /api/mp/webhook — notificações automáticas do Mercado Pago
+router.post('/webhook', async (req: Request, res: Response) => {
+  res.sendStatus(200) // MP exige resposta imediata
+
+  try {
+    const { type, data } = req.body
+    if (type !== 'payment' || !data?.id) return
+
+    // Consulta o pagamento na API do MP
+    const paymentClient = new Payment(mpClient)
+    const payment = await paymentClient.get({ id: data.id })
+
+    if (payment.status !== 'approved') return
+
+    const doacaoId = Number(payment.external_reference)
+    if (!doacaoId || isNaN(doacaoId)) return
+
+    const doacao = await prisma.doacao.findUnique({ where: { id: doacaoId } })
+    if (!doacao || doacao.pago) return
+
+    // Confirma a doação automaticamente
+    await prisma.doacao.update({
+      where: { id: doacaoId },
+      data: { pago: true, dataPagamento: new Date(), mpPaymentId: String(data.id) },
+    })
+
+    if (doacao.doadorId) {
+      const doadorAtualizado = await prisma.doador.update({
+        where: { id: doacao.doadorId },
+        data: {
+          totalDoado: { increment: doacao.valorTotal },
+          pontos: { increment: Math.round(doacao.valorTotal * 10) },
+        },
+      })
+      const { nivel, badge } = calcularNivel(doadorAtualizado.pontos)
+      await prisma.doador.update({ where: { id: doacao.doadorId }, data: { nivel, badge } })
+      await verificarMissoesAutomaticas(doacao.doadorId)
+    }
+
+    console.log(`✅ Doação #${doacaoId} confirmada via webhook MP`)
+  } catch (err) {
+    console.error('MP webhook error:', err)
+  }
+})
+
+// POST /api/mp/gerar-link/:instId  (protegido — chamado pelo admin)
+router.post('/gerar-link/:instId', async (req: Request, res: Response) => {
+  const id = parseInt(req.params.instId)
+  const inst = await prisma.instituicao.findUnique({ where: { id } })
+  if (!inst) { res.status(404).json({ error: 'Instituição não encontrada' }); return }
+
+  const token = crypto.randomBytes(24).toString('hex')
+  await prisma.instituicao.update({ where: { id }, data: { mpSetupToken: token } })
+
+  const origin = req.headers.origin || req.headers.referer?.replace(/\/$/, '').split('/').slice(0, 3).join('/') || process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'
+  const link = `${origin}/configurar-mp?token=${token}`
+
+  res.json({ link, token })
+})
+
+export default router

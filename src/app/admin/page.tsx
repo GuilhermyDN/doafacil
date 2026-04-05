@@ -36,12 +36,15 @@ const C = {
   sidebar: "#000000",
 };
 
-const NIVEL_COLOR: Record<string, { cor: string; bg: string; glow: string }> = {
-  bronze:   { cor: "#cd7f32", bg: "#fdf2e8", glow: "#cd7f3255" },
-  prata:    { cor: "#9ea3b0", bg: "#f0f1f4", glow: "#9ea3b055" },
-  ouro:     { cor: "#FF4E00", bg: "#fff0eb", glow: "#FF4E0055" },
-  diamante: { cor: "#000DFF", bg: "#e0e4ff", glow: "#000DFF55" },
-  lenda:    { cor: "#FF4E00", bg: "#fff0eb", glow: "#FF4E0055" },
+const NIVEL_COLOR: Record<string, { cor: string; bg: string; glow: string; emoji: string; nome: string }> = {
+  nice:     { cor: "#9ca3af", bg: "#f5f5f5",  glow: "#9ca3af55", emoji: "🩶", nome: "NICE"     },
+  cool:     { cor: "#7dd3fc", bg: "#e0f2fe",  glow: "#7dd3fc55", emoji: "🩵", nome: "COOL"     },
+  tough:    { cor: "#9ca3af", bg: "#f3f4f6",  glow: "#9ca3af55", emoji: "🤍", nome: "TOUGH"    },
+  ruler:    { cor: "#22c55e", bg: "#f0fdf4",  glow: "#22c55e55", emoji: "💚", nome: "RULER"    },
+  fstar:    { cor: "#e05c1a", bg: "#fff0eb",  glow: "#e05c1a55", emoji: "🔥", nome: "F★★"     },
+  topnotch: { cor: "#4f9ef8", bg: "#eff6ff",  glow: "#4f9ef855", emoji: "💠", nome: "TOP-NOTCH"},
+  goat:     { cor: "#d4a017", bg: "#fef9ec",  glow: "#d4a01755", emoji: "🐐", nome: "G.O.A.T" },
+  killer:   { cor: "#0f0f0f", bg: "#f0f0f0",  glow: "#0f0f0f55", emoji: "👑", nome: "KILLER"  },
 };
 
 // ── SVG ICON ────────────────────────────────────────────────────────────────
@@ -195,7 +198,7 @@ function DonutChart({ data }: { data: { label: string; value: number; color: str
 }
 
 function RankingCard({ doador, posicao }: { doador: Doador; posicao: number }) {
-  const nivel = NIVEL_COLOR[doador.nivel];
+  const nivel = NIVEL_COLOR[doador.nivel] ?? NIVEL_COLOR['nice'];
   const isPodium = posicao <= 3;
   const podiumEmoji = ["🥇", "🥈", "🥉"][posicao - 1] ?? "";
   return (
@@ -238,18 +241,18 @@ function RankingCard({ doador, posicao }: { doador: Doador; posicao: number }) {
   );
 }
 
-type Tab = "dashboard" | "ranking" | "qrcodes" | "homenagens" | "missao" | "gastos" | "prestacao" | "instituicoes" | "config";
+type Tab = "dashboard" | "ranking" | "homenagens" | "missao" | "prestacao" | "instituicoes" | "config" | "pedidos" | "tags";
 
 const TABS: { id: Tab; label: string; icon: string; emoji?: string }[] = [
   { id: "dashboard",   label: "Dashboard",       icon: Icons.church },
   { id: "ranking",     label: "Ranking",          icon: Icons.trophy, emoji: "🐻" },
-  { id: "qrcodes",     label: "QR Codes",         icon: Icons.qr },
+  { id: "tags",        label: "Tags",             icon: Icons.qr },
   { id: "homenagens",  label: "Homenagens",       icon: Icons.heart },
   { id: "missao",      label: "Missão",           icon: Icons.game },
-  { id: "gastos",      label: "Gastos",           icon: Icons.receipt },
   { id: "prestacao",   label: "Prestação",        icon: Icons.wallet },
   { id: "instituicoes",label: "Instituições",     icon: Icons.users },
   { id: "config",      label: "Configurações",    icon: Icons.settings },
+  { id: "pedidos",     label: "Pedidos Patch",    icon: Icons.receipt, emoji: "🎖️" },
 ];
 
 // ── LOGIN FORM ────────────────────────────────────────────────────────────────
@@ -305,6 +308,7 @@ export default function AdminPage() {
   const [doacoes, setDoacoes]           = useState<Doacao[]>([]);
   const [ranking, setRanking]           = useState<Doador[]>([]);
   const [missoes, setMissoes]           = useState<Missao[]>([]);
+  const [doadoresMissoes, setDoadoresMissoes] = useState<any[]>([]);
   const [eventos, setEventos]           = useState<Evento[]>([]);
   const [qrEventos, setQrEventos]       = useState<QREvento[]>([]);
   const [resumo, setResumo]             = useState<DashboardResumo | null>(null);
@@ -334,11 +338,40 @@ export default function AdminPage() {
   const [prestInstId, setPrestInstId]   = useState<number | null>(null);
   const [prestGastos, setPrestGastos]   = useState<import("@/lib/data").Gasto[]>([]);
   const [prestLoading, setPrestLoading] = useState(false);
-  // config tab
-  const [configInsts, setConfigInsts]   = useState<import("@/lib/data").Instituicao[]>([]);
-  const [configTokens, setConfigTokens] = useState<Record<number, string>>({});
-  const [configSaving, setConfigSaving] = useState<Record<number, boolean>>({});
-  const [configSaved, setConfigSaved]   = useState<Record<number, boolean>>({});
+  // config tab — configs globais do site
+  const [siteConfig, setSiteConfig]   = useState<Record<string, string>>({});
+  const [configSaving, setConfigSaving] = useState(false);
+  const [configSaved, setConfigSaved]   = useState(false);
+  // voluntários DONOR
+  const [voluntarios, setVoluntarios]         = useState<any[]>([]);
+  const [buscarVoluntario, setBuscarVoluntario] = useState('');
+  const [resultadosBusca, setResultadosBusca]  = useState<any[]>([]);
+  const [buscandoVol, setBuscandoVol]          = useState(false);
+  const [servicoVol, setServicoVol]            = useState('');
+  const [salvandoVol, setSalvandoVol]          = useState<Record<number, boolean>>({});
+  // pedidos de patch
+  const [pedidos, setPedidos]               = useState<any[]>([]);
+  const [pedidosLoading, setPedidosLoading] = useState(false);
+  const [pedidosSaving, setPedidosSaving]   = useState<Record<number, boolean>>({});
+  // tags GS-HB
+  const [tags, setTags]                     = useState<any[]>([]);
+  const [tagsLoading, setTagsLoading]       = useState(false);
+  const [tagsFiltroCampanha, setTagsFiltroCampanha] = useState('');
+  const [tagsFiltroStatus, setTagsFiltroStatus]     = useState('');
+  const [gerarQtd, setGerarQtd]             = useState('10');
+  const [gerarCampanha, setGerarCampanha]   = useState('D01');
+  const [gerarAno, setGerarAno]             = useState('25');
+  const [gerandoTags, setGerandoTags]       = useState(false);
+  const [tagsGeradas, setTagsGeradas]       = useState<{ primeira: string; ultima: string; geradas: number } | null>(null);
+  const [tagQrAberto, setTagQrAberto]       = useState<string | null>(null); // serial do QR aberto
+  // missões — doador selecionado para ver progresso
+  const [selectedDoadorIdMissao, setSelectedDoadorIdMissao] = useState<number | null>(null);
+  // missões — form criação/edição
+  const missaoFormBlank = { emoji: "🎯", titulo: "", descricao: "", pontos: "100" };
+  const [missaoForm, setMissaoForm] = useState(missaoFormBlank);
+  const [missaoFormOpen, setMissaoFormOpen] = useState(false);
+  const [missaoEditId, setMissaoEditId] = useState<number | null>(null);
+  const [missaoSaving, setMissaoSaving] = useState(false);
 
   useEffect(() => {
     setAutenticado(isLoggedIn());
@@ -364,12 +397,13 @@ export default function AdminPage() {
 
   // carregar instituições para aba gastos
   useEffect(() => {
-    if (!autenticado || tab !== "gastos") return;
+    if (!autenticado) return;
     getInstituicoes().then(insts => {
       setGastosInsts(insts);
       if (insts.length > 0 && !gastosInstId) setGastosInstId(insts[0].id);
     });
-  }, [autenticado, tab]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autenticado]);
 
   // carregar instituições para aba instituicoes
   useEffect(() => {
@@ -392,15 +426,15 @@ export default function AdminPage() {
     getGastos(prestInstId).then(setPrestGastos).finally(() => setPrestLoading(false));
   }, [prestInstId]);
 
-  // carregar instituições para aba config
+  // carregar configs globais do site
   useEffect(() => {
     if (!autenticado || tab !== "config") return;
-    getInstituicoes().then(insts => {
-      setConfigInsts(insts);
-      const tokens: Record<number, string> = {};
-      insts.forEach(i => { tokens[i.id] = i.mercadoPagoToken ?? ""; });
-      setConfigTokens(tokens);
-    });
+    const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+    const token = localStorage.getItem('token');
+    fetch(`${API}/api/admin/config`, { headers: { 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' } })
+      .then(r => r.json())
+      .then(d => setSiteConfig(d))
+      .catch(() => {});
   }, [autenticado, tab]);
 
   useEffect(() => {
@@ -408,6 +442,55 @@ export default function AdminPage() {
     setGastosLoading(true);
     getGastos(gastosInstId).then(setGastosLista).finally(() => setGastosLoading(false));
   }, [gastosInstId]);
+
+  // carregar voluntários
+  useEffect(() => {
+    if (!autenticado || tab !== "ranking") return;
+    const API2 = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+    const token = localStorage.getItem('token');
+    fetch(`${API2}/api/admin/ranking/voluntarios`, { headers: { 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' } })
+      .then(r => r.json()).then(d => { if (Array.isArray(d)) setVoluntarios(d) }).catch(() => {});
+  }, [autenticado, tab]);
+
+  // carregar pedidos de patch
+  useEffect(() => {
+    if (!autenticado || tab !== "pedidos") return;
+    const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+    const token = localStorage.getItem('token');
+    setPedidosLoading(true);
+    fetch(`${API}/api/pedidos`, { headers: { 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' } })
+      .then(r => r.json()).then(d => { if (Array.isArray(d)) setPedidos(d) }).catch(() => {})
+      .finally(() => setPedidosLoading(false));
+  }, [autenticado, tab]);
+
+  // carregar doadores com missões (lazy — só quando aba missao é aberta)
+  useEffect(() => {
+    if (!autenticado || tab !== "missao") return;
+    const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+    const token = localStorage.getItem('token');
+    setDoadoresMissoes([]);
+    fetch(`${API}/api/admin/missoes/doadores`, { headers: { 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' } })
+      .then(r => r.json())
+      .then(d => {
+        console.log('[missoes/doadores]', d);
+        if (Array.isArray(d)) setDoadoresMissoes(d);
+      })
+      .catch(e => console.error('[missoes/doadores] erro:', e));
+  }, [autenticado, tab]);
+
+  // carregar tags
+  useEffect(() => {
+    if (!autenticado || tab !== "tags") return;
+    const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+    const token = localStorage.getItem('token');
+    setTagsLoading(true);
+    const params = new URLSearchParams();
+    if (tagsFiltroCampanha) params.set('campanha', tagsFiltroCampanha);
+    if (tagsFiltroStatus) params.set('status', tagsFiltroStatus);
+    fetch(`${API}/api/tags?${params}`, { headers: { 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' } })
+      .then(r => r.json()).then(d => { if (Array.isArray(d)) setTags(d) }).catch(() => {})
+      .finally(() => setTagsLoading(false));
+  }, [autenticado, tab, tagsFiltroCampanha, tagsFiltroStatus]);
 
   if (!autenticado) return <LoginForm onLogin={() => setAutenticado(true)} />;
 
@@ -576,9 +659,9 @@ export default function AdminPage() {
         </div>
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {(Object.entries(NIVEL_COLOR) as [string, { cor: string; bg: string; glow: string }][]).map(([nivel, { cor, bg }]) => (
-          <span key={nivel} style={{ background: bg, color: cor, fontSize: 11, fontWeight: 600, padding: "4px 12px", borderRadius: 99, border: `1px solid ${cor}33`, textTransform: "capitalize" }}>
-            {nivel === "lenda" ? "🏆 " : nivel === "diamante" ? "💎 " : nivel === "ouro" ? "⭐ " : nivel === "prata" ? "🥈 " : "🥉 "}{nivel}
+        {(Object.entries(NIVEL_COLOR) as [string, { cor: string; bg: string; glow: string; emoji: string; nome: string }][]).map(([nivel, { cor, bg, emoji, nome }]) => (
+          <span key={nivel} style={{ background: bg, color: cor, fontSize: 11, fontWeight: 600, padding: "4px 12px", borderRadius: 99, border: `1px solid ${cor}33` }}>
+            {emoji} {nome}
           </span>
         ))}
       </div>
@@ -586,9 +669,114 @@ export default function AdminPage() {
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {ranking.map((doador, i) => <RankingCard key={doador.id} doador={doador} posicao={i + 1} />)}
       </div>
+      {/* ── VOLUNTÁRIOS DONOR ── */}
+      {(() => {
+        const API2 = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+        const tok  = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+
+        async function buscarDoador() {
+          if (!buscarVoluntario.trim()) return;
+          setBuscandoVol(true);
+          try {
+            const r = await fetch(`${API2}/api/missoes/buscar?q=${encodeURIComponent(buscarVoluntario.trim())}`, { headers: { 'ngrok-skip-browser-warning': 'true' } });
+            const d = await r.json();
+            setResultadosBusca(Array.isArray(d) ? d : []);
+          } catch { setResultadosBusca([]); } finally { setBuscandoVol(false); }
+        }
+
+        async function designarVoluntario(doadorId: number, ativo: boolean) {
+          setSalvandoVol(s => ({ ...s, [doadorId]: true }));
+          try {
+            await fetch(`${API2}/api/admin/ranking/${doadorId}/voluntario`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tok}`, 'ngrok-skip-browser-warning': 'true' },
+              body: JSON.stringify({ isVoluntario: ativo, servicoVoluntario: ativo ? servicoVol : null }),
+            });
+            // recarregar lista
+            const r2 = await fetch(`${API2}/api/admin/ranking/voluntarios`, { headers: { 'Authorization': `Bearer ${tok}`, 'ngrok-skip-browser-warning': 'true' } });
+            setVoluntarios(await r2.json());
+            setResultadosBusca([]);
+            setBuscarVoluntario('');
+            setServicoVol('');
+          } catch { alert('Erro.'); } finally { setSalvandoVol(s => ({ ...s, [doadorId]: false })); }
+        }
+
+        return (
+          <div style={{ background: 'linear-gradient(135deg,#4a1a7a,#6b2fa0)', borderRadius: 18, padding: '20px 24px', border: '1px solid rgba(168,85,247,0.3)' }}>
+            <p style={{ fontSize: 11, color: '#c084fc', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>Insígnia Especial</p>
+            <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: '#fff', margin: '0 0 6px' }}>🎖️ Voluntários DONOR</h3>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 16 }}>O DONOR é concedido pelo admin a quem colabora com serviço voluntário — não por doações financeiras.</p>
+
+            {/* lista atual */}
+            {voluntarios.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                {voluntarios.map((v: any) => (
+                  <div key={v.id} style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 22 }}>{v.avatar}</span>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', margin: 0 }}>{v.nome}</p>
+                      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', margin: 0 }}>{v.servicoVoluntario || 'Voluntário'} · {v.email}</p>
+                    </div>
+                    <button
+                      onClick={() => designarVoluntario(v.id, false)}
+                      disabled={salvandoVol[v.id]}
+                      style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 8, padding: '5px 10px', fontSize: 11, color: '#fca5a5', cursor: 'pointer' }}>
+                      Remover
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {voluntarios.length === 0 && <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 16 }}>Nenhum voluntário designado ainda.</p>}
+
+            {/* adicionar voluntário */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 14 }}>
+              <p style={{ fontSize: 11, color: '#c084fc', fontWeight: 700, marginBottom: 8 }}>+ Designar novo voluntário</p>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <input
+                  value={buscarVoluntario}
+                  onChange={e => setBuscarVoluntario(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && buscarDoador()}
+                  placeholder="Buscar por nome, email ou telefone..."
+                  style={{ flex: 1, border: '1.5px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '9px 13px', fontSize: 13, background: 'rgba(255,255,255,0.08)', color: '#fff', outline: 'none' }}
+                />
+                <button onClick={buscarDoador} disabled={buscandoVol}
+                  style={{ background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                  {buscandoVol ? '...' : 'Buscar'}
+                </button>
+              </div>
+              <input
+                value={servicoVol}
+                onChange={e => setServicoVol(e.target.value)}
+                placeholder="Descreva o serviço voluntário (ex: apoio audiovisual)"
+                style={{ width: '100%', border: '1.5px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '9px 13px', fontSize: 13, background: 'rgba(255,255,255,0.08)', color: '#fff', outline: 'none', boxSizing: 'border-box', marginBottom: resultadosBusca.length > 0 ? 10 : 0 }}
+              />
+              {resultadosBusca.map((d: any) => (
+                <div key={d.id} style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+                  <span style={{ fontSize: 20 }}>{d.avatar}</span>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: '#fff', margin: 0 }}>{d.nome}</p>
+                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', margin: 0 }}>{d.email} · {d.totalDoacoes} doações</p>
+                  </div>
+                  <button
+                    onClick={() => designarVoluntario(d.id, true)}
+                    disabled={salvandoVol[d.id]}
+                    style={{ background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                    {salvandoVol[d.id] ? '...' : 'Designar DONOR'}
+                  </button>
+                </div>
+              ))}
+              {resultadosBusca.length === 0 && buscarVoluntario && !buscandoVol && (
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 6 }}>Nenhum doador encontrado.</p>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       <div style={{ background: C.goldL, borderRadius: 16, padding: "16px 20px", border: `1px solid ${C.gold}28` }}>
         <p style={{ fontSize: 13, fontWeight: 600, color: C.amber, marginBottom: 8 }}>📋 Como funciona a pontuação?</p>
-        {["R$ 1 doado = 10 pontos base", "Missões concluídas garantem pontos bônus", "Lenda (2000+ pts) · Diamante (1500+) · Ouro (1000+) · Prata (500+) · Bronze (0+)", "Top 3 recebem homenagem especial no culto!"].map((r, i) => (
+        {["R$ 1 doado = 10 pontos base", "Missões concluídas garantem pontos bônus", "Níveis por doações: NICE (20+) · COOL (50+) · TOUGH (100+) · RULER (200+) · F★★ (500+) · TOP-NOTCH (1000+) · G.O.A.T (2000+) · KILLER (5000+)", "Top 3 recebem homenagem especial no culto!"].map((r, i) => (
           <p key={i} style={{ fontSize: 12, color: C.amber, lineHeight: 1.5 }}>• {r}</p>
         ))}
       </div>
@@ -874,9 +1062,79 @@ export default function AdminPage() {
 
   // ── MISSÃO ───────────────────────────────────────────────────────────────
   const renderMissao = () => {
-    const totalPontos = 0; // progresso individual — sem doadorId selecionado
-    const maxPontos   = missoes.reduce((s: number, m: Missao) => s + m.pontos, 0);
-    const pct = Math.round((totalPontos / maxPontos) * 100);
+    const API2 = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+
+    const toggleDestaque = async (missao: Missao & { destaque?: boolean; periodoDestaque?: string }, periodo: string) => {
+      const jaAtivo = (missao as any).destaque && (missao as any).periodoDestaque === periodo;
+      await fetch(`${API2}/api/admin/missoes/${missao.id}/destaque`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ destaque: !jaAtivo, periodoDestaque: periodo }),
+      });
+      getMissoes().then(setMissoes).catch(() => {});
+    };
+
+    const abrirEditar = (missao: Missao) => {
+      setMissaoForm({ emoji: missao.emoji, titulo: missao.titulo, descricao: missao.descricao, pontos: String(missao.pontos) });
+      setMissaoEditId(missao.id);
+      setMissaoFormOpen(true);
+    };
+
+    const fecharForm = () => {
+      setMissaoFormOpen(false);
+      setMissaoEditId(null);
+      setMissaoForm(missaoFormBlank);
+    };
+
+    const salvarMissao = async () => {
+      if (!missaoForm.titulo.trim() || !missaoForm.descricao.trim() || !missaoForm.pontos) return;
+      setMissaoSaving(true);
+      try {
+        const body = {
+          titulo: missaoForm.titulo.trim(),
+          descricao: missaoForm.descricao.trim(),
+          pontos: Number(missaoForm.pontos),
+          emoji: missaoForm.emoji,
+          tipo: 'CUSTOM',
+        };
+        if (missaoEditId !== null) {
+          await fetch(`${API2}/api/admin/missoes/${missaoEditId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(body),
+          });
+        } else {
+          await fetch(`${API2}/api/admin/missoes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(body),
+          });
+        }
+        await getMissoes().then(setMissoes);
+        fecharForm();
+      } catch { alert('Erro ao salvar missão.'); }
+      finally { setMissaoSaving(false); }
+    };
+
+    const desativarMissao = async (id: number) => {
+      if (!confirm('Desativar essa missão? Ela não aparecerá mais para os doadores.')) return;
+      await fetch(`${API2}/api/admin/missoes/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      getMissoes().then(setMissoes).catch(() => {});
+    };
+
+    const EMOJIS_SUGERIDOS = ['🎯','🏆','❤️','🤝','🌟','🚀','💪','🎁','🔥','👏','🌈','🦁','🐻','✅','🎖️','🙏','🌍','💡'];
+
+    const maxPontos = missoes.reduce((s: number, m: Missao) => s + m.pontos, 0);
+    const selectedDoador = selectedDoadorIdMissao !== null ? doadoresMissoes.find((d: any) => d.id === selectedDoadorIdMissao) : null;
+    const totalPontos = selectedDoador
+      ? (selectedDoador.missoesCompletas ?? []).reduce((s: number, m: any) => s + (m.pontos ?? 0), 0)
+      : 0;
+    const pct = maxPontos > 0 ? Math.round((totalPontos / maxPontos) * 100) : 0;
+
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <div style={{ background: "linear-gradient(135deg, #0e0e0e, #1a1a1a)", borderRadius: 22, padding: "28px", position: "relative", overflow: "hidden", border: "1px solid rgba(255,255,255,0.07)", boxShadow: "0 8px 32px rgba(0,0,0,0.3)" }}>
@@ -886,7 +1144,10 @@ export default function AdminPage() {
             <div style={{ flex: 1, minWidth: 200, position: "relative", zIndex: 1 }}>
               <p style={{ fontSize: 10, color: C.orange, letterSpacing: 3, textTransform: "uppercase", fontWeight: 700, marginBottom: 6 }}>🎮 GAME MODE</p>
               <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: "clamp(20px,3.5vw,30px)", fontWeight: 700, color: "#fff", margin: "0 0 6px" }}>Missão do Ursinho</h2>
-              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>Complete todas as missões e suba no ranking!</p>
+              {selectedDoador
+                ? <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>Progresso de <span style={{ color: C.orange, fontWeight: 700 }}>{selectedDoador.nome}</span></p>
+                : <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>Clique em um doador abaixo para ver seu progresso</p>
+              }
               <div style={{ marginTop: 18 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                   <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Progresso das Missões</p>
@@ -895,26 +1156,137 @@ export default function AdminPage() {
                 <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 99, height: 10, overflow: "hidden" }}>
                   <div style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${C.orange}, ${C.gold})`, height: "100%", borderRadius: 99, transition: "width 0.8s" }} />
                 </div>
-                <p style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 4 }}>{pct}% completo</p>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+                  <p style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>{pct}% completo</p>
+                  {selectedDoador && (
+                    <button onClick={() => setSelectedDoadorIdMissao(null)}
+                      style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>
+                      ✕ limpar seleção
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 12 }}>
-          {missoes.map((missao: Missao) => (
-            <div key={missao.id} style={{ background: C.white, borderRadius: 16, border: `1px solid ${C.border}`, padding: "16px 18px", boxShadow: "0 1px 6px rgba(28,26,22,0.04)", display: "flex", gap: 14, alignItems: "flex-start" }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: C.stone, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
-                {missao.emoji}
+        {/* ── FORMULÁRIO NOVA / EDITAR MISSÃO ── */}
+        <div style={{ background: C.white, borderRadius: 18, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+          <div style={{ padding: "16px 20px", borderBottom: missaoFormOpen ? `1px solid ${C.border}` : "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <p style={{ fontSize: 14, fontWeight: 700, color: C.ink }}>
+              {missaoFormOpen ? (missaoEditId ? "✏️ Editar missão" : "➕ Nova missão") : "🎮 Missões personalizadas"}
+            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              {missaoFormOpen && (
+                <button onClick={fecharForm}
+                  style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: C.offWhite, color: C.muted, cursor: "pointer", fontWeight: 600 }}>
+                  Cancelar
+                </button>
+              )}
+              <button onClick={() => { if (missaoFormOpen && !missaoEditId) fecharForm(); else { setMissaoEditId(null); setMissaoForm(missaoFormBlank); setMissaoFormOpen(true); } }}
+                style={{ fontSize: 12, padding: "6px 16px", borderRadius: 8, border: "none", background: missaoFormOpen && !missaoEditId ? C.muted : C.black, color: C.white, cursor: "pointer", fontWeight: 700 }}>
+                {missaoFormOpen && !missaoEditId ? "✕ Fechar" : "+ Nova missão"}
+              </button>
+            </div>
+          </div>
+          {missaoFormOpen && (
+            <div style={{ padding: "20px" }}>
+              {/* emoji picker */}
+              <p style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Emoji</p>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+                {EMOJIS_SUGERIDOS.map(e => (
+                  <button key={e} onClick={() => setMissaoForm(f => ({ ...f, emoji: e }))}
+                    style={{ width: 36, height: 36, fontSize: 20, borderRadius: 8, border: `2px solid ${missaoForm.emoji === e ? C.orange : C.border}`, background: missaoForm.emoji === e ? C.orangeL : C.offWhite, cursor: "pointer" }}>
+                    {e}
+                  </button>
+                ))}
+                <input value={missaoForm.emoji} onChange={e => setMissaoForm(f => ({ ...f, emoji: e.target.value }))}
+                  maxLength={2} placeholder="✍️"
+                  style={{ width: 36, height: 36, fontSize: 18, textAlign: "center", border: `1px solid ${C.border}`, borderRadius: 8, outline: "none" }} />
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, flexWrap: "wrap" }}>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: C.ink }}>{missao.titulo}</p>
-                  <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 10px", borderRadius: 99, background: C.goldL, color: C.amber }}>+{missao.pontos} pts</span>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 10, marginBottom: 10 }}>
+                <input placeholder="Título da missão *" value={missaoForm.titulo}
+                  onChange={e => setMissaoForm(f => ({ ...f, titulo: e.target.value }))}
+                  style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 13, outline: "none" }} />
+                <div style={{ position: "relative" }}>
+                  <input type="number" min="10" max="9999" placeholder="Pontos *" value={missaoForm.pontos}
+                    onChange={e => setMissaoForm(f => ({ ...f, pontos: e.target.value }))}
+                    style={{ width: "100%", border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                  <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: C.muted, pointerEvents: "none" }}>pts</span>
                 </div>
-                <p style={{ fontSize: 12, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>{missao.descricao}</p>
+              </div>
+              <textarea placeholder="Descrição da missão *" value={missaoForm.descricao}
+                onChange={e => setMissaoForm(f => ({ ...f, descricao: e.target.value }))}
+                rows={2}
+                style={{ width: "100%", border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 13, outline: "none", resize: "vertical", boxSizing: "border-box", marginBottom: 14, fontFamily: "inherit" }} />
+              {/* preview */}
+              {missaoForm.titulo && (
+                <div style={{ background: C.stone, borderRadius: 12, padding: "12px 14px", display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 14 }}>
+                  <span style={{ fontSize: 24 }}>{missaoForm.emoji}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{missaoForm.titulo}</p>
+                      <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 10px", borderRadius: 99, background: C.goldL, color: C.amber }}>+{missaoForm.pontos || 0} pts</span>
+                    </div>
+                    {missaoForm.descricao && <p style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{missaoForm.descricao}</p>}
+                  </div>
+                </div>
+              )}
+              <button onClick={salvarMissao}
+                disabled={missaoSaving || !missaoForm.titulo.trim() || !missaoForm.descricao.trim() || !missaoForm.pontos}
+                style={{ background: C.black, color: C.white, border: "none", borderRadius: 10, padding: "11px 28px", fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: (!missaoForm.titulo.trim() || !missaoForm.descricao.trim() || !missaoForm.pontos) ? 0.4 : 1 }}>
+                {missaoSaving ? "Salvando..." : missaoEditId ? "Salvar alterações" : "Criar missão"}
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 12 }}>
+          {missoes.map((missao: Missao) => {
+            const m = missao as any;
+            const isSemana = m.destaque && m.periodoDestaque === 'semana';
+            const isMes = m.destaque && m.periodoDestaque === 'mes';
+            return (
+            <div key={missao.id} style={{ background: C.white, borderRadius: 16, border: `1px solid ${(isSemana || isMes) ? C.orange : C.border}`, padding: "16px 18px", boxShadow: (isSemana || isMes) ? `0 2px 12px ${C.orange}22` : "0 1px 6px rgba(28,26,22,0.04)", display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: C.stone, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
+                  {missao.emoji}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, flexWrap: "wrap" }}>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: C.ink }}>{missao.titulo}</p>
+                    <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 10px", borderRadius: 99, background: C.goldL, color: C.amber }}>+{missao.pontos} pts</span>
+                  </div>
+                  <p style={{ fontSize: 12, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>{missao.descricao}</p>
+                  {(m.totalCompletas ?? 0) > 0 && (
+                    <p style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>✅ {m.totalCompletas} conclusões</p>
+                  )}
+                </div>
+              </div>
+              {/* destaque buttons */}
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={() => toggleDestaque(missao as any, 'semana')}
+                  style={{ flex: 1, fontSize: 11, fontWeight: 600, padding: "5px 8px", borderRadius: 8, cursor: "pointer", border: `1.5px solid ${isSemana ? C.orange : C.border}`, background: isSemana ? C.orangeL : C.offWhite, color: isSemana ? C.orange : C.muted, transition: "all 0.15s" }}>
+                  📌 {isSemana ? '✓ Semana' : 'Destaque Semana'}
+                </button>
+                <button onClick={() => toggleDestaque(missao as any, 'mes')}
+                  style={{ flex: 1, fontSize: 11, fontWeight: 600, padding: "5px 8px", borderRadius: 8, cursor: "pointer", border: `1.5px solid ${isMes ? C.orange : C.border}`, background: isMes ? C.orangeL : C.offWhite, color: isMes ? C.orange : C.muted, transition: "all 0.15s" }}>
+                  📌 {isMes ? '✓ Mês' : 'Destaque Mês'}
+                </button>
+              </div>
+              {/* editar / desativar */}
+              <div style={{ display: "flex", gap: 6, borderTop: `1px solid ${C.border}`, paddingTop: 10, marginTop: 2 }}>
+                <button onClick={() => abrirEditar(missao)}
+                  style={{ flex: 1, fontSize: 11, fontWeight: 600, padding: "5px 8px", borderRadius: 8, cursor: "pointer", border: `1px solid ${C.border}`, background: C.offWhite, color: C.ink }}>
+                  ✏️ Editar
+                </button>
+                <button onClick={() => desativarMissao(missao.id)}
+                  style={{ fontSize: 11, fontWeight: 600, padding: "5px 10px", borderRadius: 8, cursor: "pointer", border: "1px solid #fecaca", background: "#fff5f5", color: "#ef4444" }}>
+                  🗑
+                </button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
         <div style={{ background: "linear-gradient(135deg, #0e0e0e, #1a1a1a)", borderRadius: 18, padding: "20px 24px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", border: "1px solid rgba(255,255,255,0.07)" }}>
           <div style={{ fontSize: 36 }}>🐻</div>
@@ -925,6 +1297,56 @@ export default function AdminPage() {
           <div style={{ background: C.orange, color: "white", fontSize: 13, fontWeight: 700, padding: "10px 20px", borderRadius: 12, cursor: "pointer", whiteSpace: "nowrap" }}>
             +400 pts · Missão Galera
           </div>
+        </div>
+
+        {/* tabela de doadores com missões */}
+        <div style={{ background: C.white, borderRadius: 18, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+          {(() => {
+            const comMissoes = doadoresMissoes.filter((d: any) => d.missoesCompletas?.length > 0);
+            return (<>
+          <div style={{ padding: "18px 22px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <p style={{ fontSize: 15, fontWeight: 700, color: C.ink }}>👥 Doadores com Missões</p>
+            <span style={{ fontSize: 12, color: C.muted }}>{comMissoes.length} doadores</span>
+          </div>
+          {comMissoes.length === 0
+            ? <p style={{ textAlign: "center", color: C.muted, padding: "32px 0", fontSize: 13 }}>Nenhum doador com missões concluídas ainda.</p>
+            : <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: C.stone }}>
+                    <th style={{ padding: "10px 16px", textAlign: "left", fontWeight: 600, color: C.muted, fontSize: 11 }}>NOME</th>
+                    <th style={{ padding: "10px 16px", textAlign: "left", fontWeight: 600, color: C.muted, fontSize: 11 }}>NÚMERO</th>
+                    <th style={{ padding: "10px 16px", textAlign: "center", fontWeight: 600, color: C.muted, fontSize: 11 }}>NÍVEL</th>
+                    <th style={{ padding: "10px 16px", textAlign: "center", fontWeight: 600, color: C.muted, fontSize: 11 }}>PONTOS</th>
+                    <th style={{ padding: "10px 16px", textAlign: "left", fontWeight: 600, color: C.muted, fontSize: 11 }}>MISSÕES</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {comMissoes.map((d: any) => {
+                    const isSelected = selectedDoadorIdMissao === d.id;
+                    return (
+                    <tr key={d.id} onClick={() => setSelectedDoadorIdMissao(isSelected ? null : d.id)}
+                      style={{ borderTop: `1px solid ${C.border}`, cursor: "pointer", background: isSelected ? C.orangeL : "transparent", transition: "background 0.15s" }}>
+                      <td style={{ padding: "12px 16px", fontWeight: 700, color: isSelected ? C.orange : C.ink }}>{d.nome}{isSelected && <span style={{ marginLeft: 6, fontSize: 10, color: C.orange }}>◀ selecionado</span>}</td>
+                      <td style={{ padding: "12px 16px", color: C.muted, fontFamily: "monospace", fontSize: 12 }}>#{d.numero}</td>
+                      <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                        <span style={{ fontSize: 12, padding: "3px 10px", borderRadius: 99, background: C.stone, textTransform: "capitalize", fontWeight: 600 }}>{d.nivel}</span>
+                      </td>
+                      <td style={{ padding: "12px 16px", textAlign: "center", fontWeight: 700, color: C.amber }}>{d.pontos}</td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                          {d.missoesCompletas.map((m: any, i: number) => (
+                            <span key={i} title={m.titulo} style={{ fontSize: 18 }}>{m.emoji}</span>
+                          ))}
+                          {d.missoesCompletas.length === 0 && <span style={{ color: C.muted, fontSize: 12 }}>Nenhuma</span>}
+                        </div>
+                      </td>
+                    </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+          }
+          </>); })()}
         </div>
       </div>
     );
@@ -1369,83 +1791,376 @@ export default function AdminPage() {
 
   // ── CONFIGURAÇÕES ────────────────────────────────────────────────────────
   const renderConfig = () => {
-    const handleSalvarToken = async (instId: number) => {
-      setConfigSaving(s => ({ ...s, [instId]: true }));
+    const API2 = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+
+    const handleSalvar = async () => {
+      setConfigSaving(true);
       try {
-        await putInstituicao(instId, { mercadoPagoToken: configTokens[instId] || null });
-        setConfigSaved(s => ({ ...s, [instId]: true }));
-        setTimeout(() => setConfigSaved(s => ({ ...s, [instId]: false })), 2000);
-      } catch { alert("Erro ao salvar token."); }
-      finally { setConfigSaving(s => ({ ...s, [instId]: false })); }
+        await fetch(`${API2}/api/admin/config`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'ngrok-skip-browser-warning': 'true' },
+          body: JSON.stringify(siteConfig),
+        });
+        setConfigSaved(true);
+        setTimeout(() => setConfigSaved(false), 2500);
+      } catch { alert('Erro ao salvar.'); }
+      finally { setConfigSaving(false); }
     };
+
+    const field = (label: string, key: string, placeholder: string, type: 'text' | 'password' | 'email' | 'tel' = 'text') => (
+      <div key={key}>
+        <p style={{ fontSize: 11, color: C.muted, marginBottom: 5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</p>
+        <input
+          type={type}
+          placeholder={placeholder}
+          value={siteConfig[key] ?? ''}
+          onChange={e => setSiteConfig(c => ({ ...c, [key]: e.target.value }))}
+          style={{ width: '100%', border: `1.5px solid ${C.border}`, borderRadius: 10, padding: '10px 14px', fontSize: 13, outline: 'none', fontFamily: type === 'password' ? 'monospace' : 'inherit', boxSizing: 'border-box', background: C.white }}
+        />
+      </div>
+    );
 
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         {/* header */}
-        <div style={{ background: C.black, borderRadius: 18, padding: "20px 24px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ background: C.black, borderRadius: 18, padding: "20px 24px", display: "flex", alignItems: "center", gap: 16 }}>
           <div style={{ width: 48, height: 48, background: "rgba(255,255,255,0.08)", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Icon d={Icons.settings} size={22} color={C.gold} />
           </div>
           <div>
-            <p style={{ fontSize: 11, color: C.gold, letterSpacing: 3, textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>Integrações</p>
-            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: C.white, margin: 0 }}>Contas Mercado Pago</h2>
-            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 4 }}>Cada instituição recebe diretamente no seu access token</p>
+            <p style={{ fontSize: 11, color: C.gold, letterSpacing: 3, textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>Painel</p>
+            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: C.white, margin: 0 }}>Configurações do Site</h2>
           </div>
         </div>
 
-        {/* aviso */}
-        <div style={{ background: C.amberL, borderRadius: 14, padding: "14px 18px", border: `1px solid ${C.amber}28`, display: "flex", gap: 10 }}>
-          <span style={{ fontSize: 18, flexShrink: 0 }}>🔐</span>
-          <div>
-            <p style={{ fontSize: 13, fontWeight: 600, color: C.amber, marginBottom: 4 }}>Como obter o Access Token</p>
-            <p style={{ fontSize: 12, color: C.amber, lineHeight: 1.7 }}>
-              Acesse <strong>mercadopago.com.br → Seu negócio → Credenciais</strong> e copie o <em>Access Token de Produção</em>.
-              Cada instituição deve ter sua própria conta Mercado Pago cadastrada aqui para receber automaticamente.
-            </p>
-          </div>
+        {/* Dados gerais */}
+        <div style={{ background: C.white, borderRadius: 16, border: `1px solid ${C.border}`, padding: "20px 22px", display: "flex", flexDirection: "column", gap: 14 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: C.ink, margin: 0 }}>🏢 Dados da organização</p>
+          {field('Nome da organização', 'nomeOrganizacao', 'Humanity Bearers')}
+          {field('Email de contato', 'emailContato', 'contato@exemplo.com', 'email')}
+          {field('WhatsApp', 'whatsapp', '(11) 99999-9999', 'tel')}
+          {field('Chave Pix (admin)', 'pixChaveAdmin', 'CPF, email, telefone ou chave aleatória')}
         </div>
 
-        {/* cards de cada instituição */}
-        {configInsts.map(inst => {
-          const saved = configSaved[inst.id];
-          const saving = configSaving[inst.id];
-          const token = configTokens[inst.id] ?? "";
-          const hasToken = token.length > 0;
-          return (
-            <div key={inst.id} style={{ background: C.white, borderRadius: 16, border: `1px solid ${C.border}`, padding: "20px 22px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 11, background: C.stone, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>
-                  {inst.emoji}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: C.ink }}>{inst.nome}</p>
-                  <p style={{ fontSize: 11, color: C.muted }}>{inst.tipo} · Pix: {inst.pixKey}</p>
-                </div>
-                {hasToken
-                  ? <span style={{ fontSize: 11, background: C.greenL, color: C.green, padding: "3px 10px", borderRadius: 99, fontWeight: 600 }}>✓ Configurado</span>
-                  : <span style={{ fontSize: 11, background: C.amberL, color: C.amber, padding: "3px 10px", borderRadius: 99, fontWeight: 600 }}>Pendente</span>
-                }
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input
-                  type="password"
-                  placeholder="APP_USR-xxxx... (Access Token de Produção)"
-                  value={token}
-                  onChange={e => setConfigTokens(t => ({ ...t, [inst.id]: e.target.value }))}
-                  style={{ flex: 1, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 13, outline: "none", fontFamily: "monospace" }}
-                />
-                <button
-                  onClick={() => handleSalvarToken(inst.id)}
-                  disabled={saving}
-                  style={{ background: saved ? C.green : C.black, color: C.white, border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", whiteSpace: "nowrap", transition: "background 0.2s" }}>
-                  {saving ? "..." : saved ? "✓ Salvo" : "Salvar"}
-                </button>
-              </div>
+        {/* Mercado Pago */}
+        <div style={{ background: C.white, borderRadius: 16, border: `1px solid ${C.border}`, padding: "20px 22px", display: "flex", flexDirection: "column", gap: 14 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: C.ink, margin: 0 }}>💳 Mercado Pago</p>
+          <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>Encontre em <strong>mercadopago.com.br/developers</strong> → sua conta → Credenciais de produção.</p>
+          {field('Access Token', 'mpAccessToken', 'APP_USR-xxxx...', 'password')}
+          {field('Public Key', 'mpPublicKey', 'APP_USR-xxxx...')}
+          <div style={{ marginTop: 4 }}>
+            <p style={{ fontSize: 11, color: C.muted, marginBottom: 8, fontWeight: 600 }}>🎬 TUTORIAL EM VÍDEO</p>
+            <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: 10, overflow: 'hidden', border: `1px solid ${C.border}` }}>
+              <iframe
+                src="https://www.youtube.com/embed/lGuGNXmCAf8"
+                title="Como obter credenciais no Mercado Pago"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+              />
             </div>
-          );
-        })}
-        {configInsts.length === 0 && (
-          <p style={{ textAlign: "center", color: C.muted, padding: "40px 0" }}>Carregando instituições...</p>
+          </div>
+        </div>
+
+        {/* Botão salvar */}
+        <button
+          onClick={handleSalvar}
+          disabled={configSaving}
+          style={{ background: configSaved ? '#22c55e' : C.black, color: C.white, border: 'none', borderRadius: 12, padding: '13px', fontSize: 14, fontWeight: 700, cursor: configSaving ? 'not-allowed' : 'pointer', transition: 'background 0.2s' }}>
+          {configSaving ? 'Salvando...' : configSaved ? '✓ Salvo!' : 'Salvar configurações'}
+        </button>
+      </div>
+    );
+  };
+
+  // ── PEDIDOS DE PATCH ─────────────────────────────────────────────────────
+  const renderPedidos = () => {
+    const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+    const statusOpcoes = ['pendente', 'produzindo', 'enviado', 'entregue'];
+    const statusCor: Record<string, { bg: string; cor: string }> = {
+      pendente:   { bg: '#fff7ed', cor: '#f59e0b' },
+      produzindo: { bg: '#eff6ff', cor: '#3b82f6' },
+      enviado:    { bg: '#f0fdf4', cor: '#22c55e' },
+      entregue:   { bg: '#f3f4f6', cor: '#6b7280' },
+    };
+    async function atualizarStatus(id: number, status: string) {
+      const token = localStorage.getItem('token');
+      setPedidosSaving(s => ({ ...s, [id]: true }));
+      try {
+        await fetch(`${API}/api/pedidos/${id}/status`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' },
+          body: JSON.stringify({ status }),
+        });
+        setPedidos(ps => ps.map(p => p.id === id ? { ...p, status } : p));
+      } catch { alert('Erro ao atualizar status') }
+      finally { setPedidosSaving(s => ({ ...s, [id]: false })) }
+    }
+    const total = pedidos.length;
+    const pendentes = pedidos.filter(p => p.status === 'pendente').length;
+    const producao  = pedidos.filter(p => p.status === 'produzindo').length;
+    const enviados  = pedidos.filter(p => p.status === 'enviado').length;
+    const entregues = pedidos.filter(p => p.status === 'entregue').length;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ background: 'linear-gradient(135deg, #1a1a2e, #16213e)', borderRadius: 18, padding: '20px 24px', color: 'white' }}>
+          <p style={{ fontSize: 11, color: '#d4a017', letterSpacing: 3, textTransform: 'uppercase', fontWeight: 600 }}>🎖️ Gestão de Pedidos</p>
+          <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, margin: '4px 0 8px' }}>Patches Físicos</h2>
+          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', margin: 0 }}>Gerencie os pedidos das insígnias desenhadas</p>
+        </div>
+
+        {/* métricas */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
+          {[
+            { label: 'Total', value: total, emoji: '📦', cor: '#111' },
+            { label: 'Pendentes', value: pendentes, emoji: '⏳', cor: '#f59e0b' },
+            { label: 'Produzindo', value: producao, emoji: '🔨', cor: '#3b82f6' },
+            { label: 'Entregues', value: entregues, emoji: '✅', cor: '#22c55e' },
+          ].map(m => (
+            <div key={m.label} style={{ background: '#fff', borderRadius: 14, padding: '14px 12px', textAlign: 'center', border: `1px solid ${C.border}` }}>
+              <div style={{ fontSize: 20 }}>{m.emoji}</div>
+              <p style={{ fontSize: 18, fontWeight: 800, color: m.cor, margin: '4px 0 2px' }}>{m.value}</p>
+              <p style={{ fontSize: 10, color: C.muted, margin: 0 }}>{m.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {pedidosLoading && <p style={{ textAlign: 'center', color: C.muted }}>Carregando pedidos...</p>}
+        {!pedidosLoading && pedidos.length === 0 && (
+          <div style={{ background: C.white, borderRadius: 16, padding: '40px', textAlign: 'center', border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 40, marginBottom: 8 }}>🎖️</div>
+            <p style={{ fontWeight: 600, color: C.ink }}>Nenhum pedido ainda</p>
+            <p style={{ fontSize: 13, color: C.muted }}>Os pedidos aparecerão aqui quando os doadores solicitarem patches</p>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {pedidos.map(p => {
+            const sc = statusCor[p.status] || statusCor.pendente;
+            return (
+              <div key={p.id} style={{ background: C.white, borderRadius: 16, padding: '18px 20px', border: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <p style={{ fontSize: 15, fontWeight: 700, color: C.ink, margin: 0 }}>{p.doadorNome}</p>
+                      <span style={{ fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.cor, padding: '2px 10px', borderRadius: 99 }}>{p.status}</span>
+                    </div>
+                    <p style={{ fontSize: 12, color: C.muted, margin: '2px 0 0' }}>{p.doadorEmail}{p.doadorTel ? ` · ${p.doadorTel}` : ''}</p>
+                    <p style={{ fontSize: 12, color: C.muted, margin: '2px 0 0' }}>📍 {p.endereco}, {p.cidade} — {p.cep}</p>
+                    {p.observacoes && <p style={{ fontSize: 12, color: C.muted, margin: '2px 0 0', fontStyle: 'italic' }}>💬 {p.observacoes}</p>}
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 800, color: '#d4a017', margin: 0 }}>{p.nivel.toUpperCase()}</p>
+                    <p style={{ fontSize: 16, fontWeight: 800, color: C.ink, margin: '2px 0 0' }}>R$ {Number(p.preco).toFixed(2)}</p>
+                    <p style={{ fontSize: 10, color: C.muted, margin: '2px 0 0' }}>#{p.id} · {new Date(p.createdAt).toLocaleDateString('pt-BR')}</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {statusOpcoes.map(s => (
+                    <button key={s} onClick={() => atualizarStatus(p.id, s)} disabled={p.status === s || pedidosSaving[p.id]}
+                      style={{ padding: '6px 14px', borderRadius: 99, border: 'none', fontSize: 11, fontWeight: 600, cursor: p.status === s ? 'default' : 'pointer', background: p.status === s ? sc.bg : '#f3f4f6', color: p.status === s ? sc.cor : C.muted, opacity: pedidosSaving[p.id] ? 0.5 : 1, transition: 'all 0.15s' }}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // ── TAGS ─────────────────────────────────────────────────────────────────
+  const renderTags = () => {
+    const API2 = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+    const handleGerar = async () => {
+      const token = localStorage.getItem('token');
+      setGerandoTags(true);
+      setTagsGeradas(null);
+      try {
+        const res = await fetch(`${API2}/api/tags/gerar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' },
+          body: JSON.stringify({ quantidade: Number(gerarQtd), campanha: gerarCampanha, ano: Number(gerarAno) }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          setTagsGeradas(data);
+          // Recarrega lista
+          const r2 = await fetch(`${API2}/api/tags`, { headers: { 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' } });
+          const d2 = await r2.json();
+          if (Array.isArray(d2)) setTags(d2);
+        }
+      } catch { /* ignore */ }
+      finally { setGerandoTags(false); }
+    };
+
+    const livres = tags.filter(t => !t.vinculada).length;
+    const vinculadas = tags.filter(t => t.vinculada).length;
+
+    return (
+      <div style={{ maxWidth: 820, margin: '0 auto', padding: '0 4px' }}>
+        <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 800, color: C.ink, marginBottom: 4 }}>Tags</h2>
+        <p style={{ fontSize: 13, color: C.muted, marginBottom: 24 }}>Gere e gerencie os seriais no formato <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>GS-HB25-D01-0247-59KJ</span></p>
+
+        {/* Gerar lote */}
+        <div style={{ background: C.white, borderRadius: 16, border: `1px solid ${C.border}`, padding: '20px 24px', marginBottom: 20 }}>
+          <p style={{ fontSize: 14, fontWeight: 700, color: C.ink, marginBottom: 16 }}>Gerar novo lote</p>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div>
+              <p style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>Campanha</p>
+              <input value={gerarCampanha} onChange={e => setGerarCampanha(e.target.value.toUpperCase())}
+                placeholder="D01" maxLength={4}
+                style={{ border: `1.5px solid ${C.border}`, borderRadius: 8, padding: '8px 12px', fontSize: 13, width: 80, fontFamily: 'monospace', fontWeight: 700 }} />
+            </div>
+            <div>
+              <p style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>Ano (2 dígitos)</p>
+              <input value={gerarAno} onChange={e => setGerarAno(e.target.value)} type="number"
+                placeholder="25" maxLength={2}
+                style={{ border: `1.5px solid ${C.border}`, borderRadius: 8, padding: '8px 12px', fontSize: 13, width: 80, fontFamily: 'monospace', fontWeight: 700 }} />
+            </div>
+            <div>
+              <p style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>Quantidade</p>
+              <input value={gerarQtd} onChange={e => setGerarQtd(e.target.value)} type="number"
+                placeholder="10" min={1} max={500}
+                style={{ border: `1.5px solid ${C.border}`, borderRadius: 8, padding: '8px 12px', fontSize: 13, width: 90 }} />
+            </div>
+            <button onClick={handleGerar} disabled={gerandoTags}
+              style={{ padding: '9px 20px', borderRadius: 10, background: C.dark, color: C.gold, border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: gerandoTags ? 0.6 : 1 }}>
+              {gerandoTags ? 'Gerando...' : '+ Gerar'}
+            </button>
+          </div>
+          {tagsGeradas && (
+            <div style={{ marginTop: 14, background: '#e6f7ee', border: '1px solid #00a65033', borderRadius: 10, padding: '10px 14px' }}>
+              <p style={{ fontSize: 13, color: '#00a650', fontWeight: 700 }}>✓ {tagsGeradas.geradas} tags geradas</p>
+              <p style={{ fontSize: 12, color: '#00a650', fontFamily: 'monospace', marginTop: 4 }}>{tagsGeradas.primeira} → {tagsGeradas.ultima}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Resumo */}
+        <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+          {[
+            { label: 'Total', valor: tags.length, cor: C.ink },
+            { label: 'Livres', valor: livres, cor: '#f59e0b' },
+            { label: 'Vinculadas', valor: vinculadas, cor: '#10b981' },
+          ].map(item => (
+            <div key={item.label} style={{ flex: 1, background: C.white, borderRadius: 12, border: `1px solid ${C.border}`, padding: '14px 16px', textAlign: 'center' }}>
+              <p style={{ fontSize: 22, fontWeight: 800, color: item.cor }}>{item.valor}</p>
+              <p style={{ fontSize: 11, color: C.muted }}>{item.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Filtros */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+          <input value={tagsFiltroCampanha} onChange={e => setTagsFiltroCampanha(e.target.value.toUpperCase())}
+            placeholder="Filtrar campanha (ex: D01)"
+            style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: '7px 12px', fontSize: 12, fontFamily: 'monospace', width: 180 }} />
+          <select value={tagsFiltroStatus} onChange={e => setTagsFiltroStatus(e.target.value)}
+            style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: '7px 12px', fontSize: 12 }}>
+            <option value="">Todos os status</option>
+            <option value="livre">Livres</option>
+            <option value="vinculada">Vinculadas</option>
+          </select>
+        </div>
+
+        {/* Lista */}
+        {tagsLoading && <p style={{ textAlign: 'center', color: C.muted, padding: 24 }}>Carregando...</p>}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {tags.map(tag => {
+            const urlDoacao = `${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/doacao?tag=${encodeURIComponent(tag.serial)}`;
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=16&data=${encodeURIComponent(urlDoacao)}`;
+
+            const baixarComSerial = async () => {
+              const canvas = document.createElement('canvas');
+              const padding = 24;
+              const qrSize = 400;
+              const textAreaH = 72;
+              canvas.width = qrSize + padding * 2;
+              canvas.height = qrSize + padding * 2 + textAreaH;
+              const ctx = canvas.getContext('2d')!;
+              // fundo branco
+              ctx.fillStyle = '#ffffff';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              // carrega QR
+              const img = new Image();
+              img.crossOrigin = 'anonymous';
+              img.src = qrUrl;
+              await new Promise(res => { img.onload = res; img.onerror = res; });
+              ctx.drawImage(img, padding, padding, qrSize, qrSize);
+              // serial abaixo
+              ctx.fillStyle = '#111111';
+              ctx.font = 'bold 22px monospace';
+              ctx.textAlign = 'center';
+              ctx.fillText(tag.serial, canvas.width / 2, qrSize + padding + 36);
+              ctx.fillStyle = '#777777';
+              ctx.font = '14px sans-serif';
+              ctx.fillText('SCAN · CONNECT · IMPACT', canvas.width / 2, qrSize + padding + 58);
+              // download
+              const a = document.createElement('a');
+              a.download = `${tag.serial}.png`;
+              a.href = canvas.toDataURL('image/png');
+              a.click();
+            };
+
+            return (
+              <div key={tag.id} style={{
+                background: C.white, borderRadius: 12, border: `1px solid ${tag.vinculada ? '#10b98130' : C.border}`,
+                padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
+              }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <p style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 700, color: C.ink, letterSpacing: 1 }}>{tag.serial}</p>
+                  <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Campanha {tag.campanha} · #{tag.sequencia}</p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {tag.vinculada ? (
+                    <>
+                      <span style={{ background: '#10b98118', color: '#10b981', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 99 }}>Vinculada</span>
+                      {tag.doador && <p style={{ fontSize: 12, color: C.muted }}>{tag.doador.nivel?.toUpperCase()} · {tag.doador.pontos}pts</p>}
+                    </>
+                  ) : (
+                    <span style={{ background: '#f59e0b18', color: '#f59e0b', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 99 }}>Livre</span>
+                  )}
+                  <p style={{ fontSize: 11, color: C.muted }}>{tag.totalScans} scans</p>
+                  <button onClick={() => setTagQrAberto(tagQrAberto === tag.serial ? null : tag.serial)}
+                    style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${C.border}`, background: tagQrAberto === tag.serial ? C.dark : C.white, color: tagQrAberto === tag.serial ? C.gold : C.ink, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                    {tagQrAberto === tag.serial ? '▲ QR' : '▼ QR'}
+                  </button>
+                </div>
+                {/* QR expandido */}
+                {tagQrAberto === tag.serial && (
+                  <div style={{ width: '100%', borderTop: `1px solid ${C.border}`, paddingTop: 16, marginTop: 4, display: 'flex', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                    {/* Preview com serial */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: '#fff', border: `1px solid ${C.border}`, borderRadius: 10, padding: 12 }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={qrUrl} alt={`QR ${tag.serial}`} width={140} height={140} />
+                      <p style={{ fontFamily: 'monospace', fontSize: 10, fontWeight: 700, color: C.ink, letterSpacing: 1 }}>{tag.serial}</p>
+                      <p style={{ fontSize: 9, color: C.muted, letterSpacing: 1 }}>SCAN · CONNECT · IMPACT</p>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: C.ink, marginBottom: 6 }}>Link da doação</p>
+                      <p style={{ fontFamily: 'monospace', fontSize: 11, color: C.muted, wordBreak: 'break-all', marginBottom: 14, lineHeight: 1.5 }}>{urlDoacao}</p>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <button onClick={baixarComSerial}
+                          style={{ padding: '7px 16px', borderRadius: 8, background: C.dark, color: C.gold, border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                          ⬇ Baixar QR com serial
+                        </button>
+                        <button onClick={() => navigator.clipboard.writeText(urlDoacao)}
+                          style={{ padding: '7px 16px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.white, color: C.ink, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                          📋 Copiar link
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        {!tagsLoading && tags.length === 0 && (
+          <p style={{ textAlign: 'center', color: C.muted, padding: '40px 0', fontSize: 13 }}>Nenhuma tag encontrada. Gere um lote acima.</p>
         )}
       </div>
     );
@@ -1503,13 +2218,13 @@ export default function AdminPage() {
 
           {tab === "dashboard"  && renderDashboard()}
           {tab === "ranking"    && renderRanking()}
-          {tab === "qrcodes"    && renderQRCodes()}
           {tab === "homenagens" && renderHomenagens()}
           {tab === "missao"     && renderMissao()}
-          {tab === "gastos"       && renderGastos()}
           {tab === "prestacao"    && renderPrestacao()}
           {tab === "instituicoes" && renderInstituicoes()}
           {tab === "config"       && renderConfig()}
+          {tab === "pedidos"      && renderPedidos()}
+          {tab === "tags"         && renderTags()}
         </main>
       </div>
 
