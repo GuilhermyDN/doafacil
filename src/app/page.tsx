@@ -242,7 +242,7 @@ export default function HomePage() {
                 O <strong style={{ color: C.ink }}>Humanity Bearers</strong> nasceu da necessidade de criar um canal direto, transparente e gamificado entre quem quer ajudar e quem precisa de ajuda. Cada doação é rastreada, reportada e celebrada.
               </p>
               <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                {[["Fundada em","2018"],["Pessoas atendidas","todo mês"],["Cidades","alcançadas"]].map(([l, v], i) => (
+                {[["Fundada em","2026"],["Pessoas atendidas","todo mês"],["Cidades","alcançadas"]].map(([l, v], i) => (
                   <div key={i} style={{ background: C.offWhite, borderRadius: 12, padding: "14px 18px", border: `1px solid ${C.border}` }}>
                     <p style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>{l}</p>
                     <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: C.ink, marginTop: 4 }}>{v}</p>
