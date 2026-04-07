@@ -150,7 +150,7 @@ export default function HomePage() {
           <div className="fade-up">
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,78,0,0.12)", border: "1px solid rgba(255,78,0,0.25)", borderRadius: 99, padding: "5px 14px", marginBottom: 24 }}>
               <div style={{ width: 7, height: 7, borderRadius: "50%", background: C.orange }}/>
-              <span style={{ fontSize: 11, color: C.orange, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>Igreja Missão Humanidade</span>
+              <span style={{ fontSize: 11, color: C.orange, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>Humanity Bearers</span>
             </div>
             <h1 style={{ fontFamily: "'Playfair Display',Georgia,serif", fontSize: "clamp(32px,5vw,62px)", fontWeight: 700, color: C.white, lineHeight: 1.1, marginBottom: 20 }}>
               Juntos,<br />
@@ -236,7 +236,7 @@ export default function HomePage() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 40, alignItems: "center" }}>
             <div>
               <p style={{ fontSize: 16, color: C.muted, lineHeight: 1.9, marginBottom: 20 }}>
-                Somos uma Igreja comprometida com o amor ao próximo. Nossa missão vai além dos cultos — acreditamos que fé sem obras é vazia, e por isso transformamos doações em impacto real na vida de pessoas em situação de vulnerabilidade.
+                Somos uma organização comprometida com o amor ao próximo. Nossa missão vai além das palavras — acreditamos que intenção sem ação é vazia, e por isso transformamos doações em impacto real na vida de pessoas em situação de vulnerabilidade.
               </p>
               <p style={{ fontSize: 16, color: C.muted, lineHeight: 1.9, marginBottom: 28 }}>
                 O <strong style={{ color: C.ink }}>Humanity Bearers</strong> nasceu da necessidade de criar um canal direto, transparente e gamificado entre quem quer ajudar e quem precisa de ajuda. Cada doação é rastreada, reportada e celebrada.
@@ -323,7 +323,7 @@ export default function HomePage() {
           <div style={{ textAlign: "center", marginBottom: 56 }}>
             <span style={{ fontSize: 11, color: C.orange, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase" }}>Parceiros verificados</span>
             <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: "clamp(26px,4vw,42px)", fontWeight: 700, color: C.white, marginTop: 10 }}>Instituições parceiras</h2>
-            <p style={{ fontSize: 15, color: "rgba(255,255,255,0.4)", marginTop: 10, maxWidth: 500, margin: "10px auto 0" }}>Cada instituição é verificada pela liderança da Igreja antes de entrar na plataforma.</p>
+            <p style={{ fontSize: 15, color: "rgba(255,255,255,0.4)", marginTop: 10, maxWidth: 500, margin: "10px auto 0" }}>Cada instituição é verificada pela Humanity Bearers antes de entrar na plataforma.</p>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 18 }}>
             {instituicoes.map((inst) => {
@@ -437,7 +437,7 @@ export default function HomePage() {
               <div style={{ position: "absolute", top: "34%", left: 0, width: 18, height: 2.5, background: C.orange, borderRadius: 2 }}/>
             </div>
             <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 15, fontWeight: 700, color: C.white }}>Humanity Bearers</span>
-            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.2)" }}>— Igreja Missão Humanidade</span>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.2)" }}>— Humanity Bearers</span>
           </div>
           <div style={{ display: "flex", gap: 24 }}>
             {[["Doar","/doacao"],["Missões","/missoes"],["Insígnias","/pedido-patch"],["Meu Progresso","/meu-desempenho"],["Admin","/admin"]].map(([l, h]) => (

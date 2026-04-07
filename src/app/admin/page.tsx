@@ -517,7 +517,7 @@ export default function AdminPage() {
           </div>
           <div>
             <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 15, fontWeight: 700, color: "#fff", lineHeight: 1.1 }}>Humanity Bearers</p>
-            <p style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1.5, textTransform: "uppercase", marginTop: 2 }}>Painel da Igreja</p>
+            <p style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1.5, textTransform: "uppercase", marginTop: 2 }}>Painel Administrativo</p>
           </div>
         </div>
       </div>
@@ -845,7 +845,7 @@ export default function AdminPage() {
       <div style={{ background: C.goldL, borderRadius: 14, padding: "14px 18px", border: `1px solid ${C.gold}28`, display: "flex", gap: 10, alignItems: "flex-start" }}>
         <span style={{ fontSize: 18 }}>💡</span>
         <p style={{ fontSize: 12, color: C.amber, lineHeight: 1.7 }}>
-          <strong>Dica:</strong> Use Ctrl+P para imprimir esta página e distribuir os QR Codes na entrada da igreja. Cada código direciona direto para a chave Pix da instituição!
+          <strong>Dica:</strong> Use Ctrl+P para imprimir esta página e distribuir os QR Codes nos pontos de doação. Cada código direciona direto para a chave Pix da instituição!
         </p>
       </div>
     </div>
@@ -916,7 +916,7 @@ export default function AdminPage() {
             </p>
             <p style={{ fontSize: 13, color: "rgba(245,240,224,0.55)", lineHeight: 1.6 }}>
               Quem mais doou neste mês merece reconhecimento público.
-              Essas conquistas ficam expostas na entrada da igreja — como na lousa da missão! 🙏
+              Essas conquistas ficam expostas publicamente — como na lousa da missão! 🙏
             </p>
             {/* linha giz decorativa */}
             <div style={{ marginTop: 16, height: 2, background: "rgba(245,240,224,0.18)", borderRadius: 1 }}/>
