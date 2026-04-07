@@ -257,7 +257,7 @@ const TABS: { id: Tab; label: string; icon: string; emoji?: string }[] = [
 
 // ── LOGIN FORM ────────────────────────────────────────────────────────────────
 function LoginForm({ onLogin }: { onLogin: () => void }) {
-  const [email, setEmail] = useState("admin@humanitybearers.com");
+  const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro]   = useState("");
   const [loading, setLoading] = useState(false);
