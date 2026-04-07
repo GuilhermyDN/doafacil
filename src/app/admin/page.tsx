@@ -4,7 +4,7 @@ import { type Doador, type Missao, type Doacao } from "@/lib/data";
 import {
   login as apiLogin, logout as apiLogout, isLoggedIn,
   getDoacoes, getRanking, getMissoes, getEventos, getEventoQRCodes,
-  getDashboardResumo, getInstituicoes, getGastos, postGasto, postInstituicao, putInstituicao, gerarLinkMP,
+  getDashboardResumo, getInstituicoes, getGastos, postGasto, postInstituicao, putInstituicao, gerarLinksInstituicao,
   type QREvento, type Evento, type DashboardResumo,
 } from "@/lib/api";
 
@@ -331,8 +331,10 @@ export default function AdminPage() {
   const [instAdminForm, setInstAdminForm] = useState(instFormBlank);
   const [instAdminEditing, setInstAdminEditing] = useState<number | "new" | null>(null);
   const [instAdminSaving, setInstAdminSaving] = useState(false);
-  const [instLinkGerado, setInstLinkGerado]   = useState<Record<number, string>>({});
-  const [instLinkCopiado, setInstLinkCopiado] = useState<Record<number, boolean>>({});
+  const [instLinkGerado, setInstLinkGerado]         = useState<Record<number, string>>({});
+  const [instLinkGastosGerado, setInstLinkGastosGerado] = useState<Record<number, string>>({});
+  const [instLinkCopiado, setInstLinkCopiado]       = useState<Record<number, boolean>>({});
+  const [instLinkGastosCopiado, setInstLinkGastosCopiado] = useState<Record<number, boolean>>({});
   // prestacao tab
   const [prestInsts, setPrestInsts]     = useState<import("@/lib/data").Instituicao[]>([]);
   const [prestInstId, setPrestInstId]   = useState<number | null>(null);
@@ -430,7 +432,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (!autenticado || tab !== "config") return;
     const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('admin_token');
     fetch(`${API}/api/admin/config`, { headers: { 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' } })
       .then(r => r.json())
       .then(d => setSiteConfig(d))
@@ -447,7 +449,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (!autenticado || tab !== "ranking") return;
     const API2 = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('admin_token');
     fetch(`${API2}/api/admin/ranking/voluntarios`, { headers: { 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' } })
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setVoluntarios(d) }).catch(() => {});
   }, [autenticado, tab]);
@@ -456,7 +458,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (!autenticado || tab !== "pedidos") return;
     const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('admin_token');
     setPedidosLoading(true);
     fetch(`${API}/api/pedidos`, { headers: { 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' } })
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setPedidos(d) }).catch(() => {})
@@ -467,7 +469,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (!autenticado || tab !== "missao") return;
     const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('admin_token');
     setDoadoresMissoes([]);
     fetch(`${API}/api/admin/missoes/doadores`, { headers: { 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' } })
       .then(r => r.json())
@@ -482,7 +484,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (!autenticado || tab !== "tags") return;
     const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('admin_token');
     setTagsLoading(true);
     const params = new URLSearchParams();
     if (tagsFiltroCampanha) params.set('campanha', tagsFiltroCampanha);
@@ -672,7 +674,7 @@ export default function AdminPage() {
       {/* ── VOLUNTÁRIOS DONOR ── */}
       {(() => {
         const API2 = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
-        const tok  = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+        const tok  = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : '';
 
         async function buscarDoador() {
           if (!buscarVoluntario.trim()) return;
@@ -1063,7 +1065,7 @@ export default function AdminPage() {
   // ── MISSÃO ───────────────────────────────────────────────────────────────
   const renderMissao = () => {
     const API2 = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : '';
 
     const toggleDestaque = async (missao: Missao & { destaque?: boolean; periodoDestaque?: string }, periodo: string) => {
       const jaAtivo = (missao as any).destaque && (missao as any).periodoDestaque === periodo;
@@ -1503,14 +1505,20 @@ export default function AdminPage() {
     };
     const handleGerarLink = async (inst: import("@/lib/data").Instituicao) => {
       try {
-        const { link } = await gerarLinkMP(inst.id);
-        setInstLinkGerado(m => ({ ...m, [inst.id]: link }));
+        const { linkMp, linkGastos } = await gerarLinksInstituicao(inst.id);
+        setInstLinkGerado(m => ({ ...m, [inst.id]: linkMp }));
+        setInstLinkGastosGerado(m => ({ ...m, [inst.id]: linkGastos }));
       } catch { alert("Erro ao gerar link. Verifique se o backend está rodando."); }
     };
     const handleCopiarLink = (instId: number, link: string) => {
       navigator.clipboard.writeText(link);
       setInstLinkCopiado(m => ({ ...m, [instId]: true }));
       setTimeout(() => setInstLinkCopiado(m => ({ ...m, [instId]: false })), 2000);
+    };
+    const handleCopiarLinkGastos = (instId: number, link: string) => {
+      navigator.clipboard.writeText(link);
+      setInstLinkGastosCopiado(m => ({ ...m, [instId]: true }));
+      setTimeout(() => setInstLinkGastosCopiado(m => ({ ...m, [instId]: false })), 2000);
     };
 
     const renderForm = () => (
@@ -1634,16 +1642,29 @@ export default function AdminPage() {
                   : <span style={{ background: C.greenL, color: C.green, fontSize: 11, fontWeight: 600, padding: "7px 12px", borderRadius: 9 }}>✓ MP vinculado</span>
                 }
               </div>
-              {/* link gerado */}
+              {/* link MP gerado */}
               {instLinkGerado[inst.id] && (
                 <div style={{ width: "100%", background: "#e6f6fd", border: "1px solid #009EE333", borderRadius: 12, padding: "12px 16px", marginTop: 4, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                   <span style={{ fontSize: 16 }}>🔗</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 11, color: "#009EE3", fontWeight: 700, marginBottom: 3 }}>Envie este link para a instituição vincular o Mercado Pago:</p>
+                    <p style={{ fontSize: 11, color: "#009EE3", fontWeight: 700, marginBottom: 3 }}>Link Mercado Pago — envie para a instituição vincular:</p>
                     <p style={{ fontSize: 12, color: "#333", wordBreak: "break-all", fontFamily: "monospace" }}>{instLinkGerado[inst.id]}</p>
                   </div>
                   <button onClick={() => handleCopiarLink(inst.id, instLinkGerado[inst.id])} style={{ background: instLinkCopiado[inst.id] ? C.green : "#009EE3", color: C.white, border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
                     {instLinkCopiado[inst.id] ? "✓ Copiado" : "Copiar"}
+                  </button>
+                </div>
+              )}
+              {/* link gastos gerado */}
+              {instLinkGastosGerado[inst.id] && (
+                <div style={{ width: "100%", background: "#f0fdf4", border: "1px solid #22c55e33", borderRadius: 12, padding: "12px 16px", marginTop: 4, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 16 }}>📊</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 11, color: C.green, fontWeight: 700, marginBottom: 3 }}>Link de Gastos — envie para a instituição registrar despesas:</p>
+                    <p style={{ fontSize: 12, color: "#333", wordBreak: "break-all", fontFamily: "monospace" }}>{instLinkGastosGerado[inst.id]}</p>
+                  </div>
+                  <button onClick={() => handleCopiarLinkGastos(inst.id, instLinkGastosGerado[inst.id])} style={{ background: instLinkGastosCopiado[inst.id] ? C.green : "#22c55e", color: C.white, border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
+                    {instLinkGastosCopiado[inst.id] ? "✓ Copiado" : "Copiar"}
                   </button>
                 </div>
               )}
@@ -1798,7 +1819,7 @@ export default function AdminPage() {
       try {
         await fetch(`${API2}/api/admin/config`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'ngrok-skip-browser-warning': 'true' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('admin_token')}`, 'ngrok-skip-browser-warning': 'true' },
           body: JSON.stringify(siteConfig),
         });
         setConfigSaved(true);
@@ -1884,7 +1905,7 @@ export default function AdminPage() {
       entregue:   { bg: '#f3f4f6', cor: '#6b7280' },
     };
     async function atualizarStatus(id: number, status: string) {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('admin_token');
       setPedidosSaving(s => ({ ...s, [id]: true }));
       try {
         await fetch(`${API}/api/pedidos/${id}/status`, {
@@ -1975,7 +1996,7 @@ export default function AdminPage() {
   const renderTags = () => {
     const API2 = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
     const handleGerar = async () => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('admin_token');
       setGerandoTags(true);
       setTagsGeradas(null);
       try {
@@ -2241,3 +2262,4 @@ export default function AdminPage() {
     </>
   );
 }
+

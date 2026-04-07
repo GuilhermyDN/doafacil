@@ -240,7 +240,7 @@ function TelaPagamento({ inst, tagSerial, autoSerial, onConfirmar, onVoltar }: {
                     {autoSerial}
                   </p>
                   <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", lineHeight: 1.5, marginBottom: 8 }}>
-                    Guarde esse QR Code para acumular pontos, participar das missões e receber prêmios nas próximas doações.
+                    Guarde esse QR Code para acumular pontos, participar das missões.
                   </p>
                   <button onClick={copiarSerial}
                     style={{ fontSize: 11, fontWeight: 600, padding: "5px 12px", borderRadius: 7, border: "1px solid rgba(255,78,0,0.3)", background: serialCopiado ? "rgba(255,78,0,0.15)" : "transparent", color: serialCopiado ? C.orange : "rgba(255,255,255,0.45)", cursor: "pointer", transition: "all 0.2s" }}>

@@ -217,8 +217,8 @@ export async function getMpConnectInfo(token: string) {
   )
 }
 
-export async function gerarLinkMP(instId: number): Promise<{ link: string }> {
-  return apiFetch(`/api/mp/gerar-link/${instId}`, { method: 'POST' })
+export async function gerarLinksInstituicao(instId: number): Promise<{ linkMp: string; linkGastos: string }> {
+  return apiFetch(`/api/admin/instituicoes/${instId}/gerar-links`, { method: 'POST' })
 }
 
 export async function postInstituicao(data: Omit<import('./data').Instituicao, 'id' | 'ativo' | 'mercadoPagoToken'>) {
