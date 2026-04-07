@@ -21,8 +21,13 @@ npm install
 npm run build
 
 echo "♻️  Reiniciando processos..."
-pm2 restart doafacil-backend
-pm2 restart doafacil-frontend
+# Os processos pm2 rodam como usuário 'dev' — reiniciar sem sudo
+if [ "$(whoami)" = "root" ]; then
+  sudo -u dev bash -c "pm2 restart doafacil-backend && pm2 restart doafacil-frontend"
+else
+  pm2 restart doafacil-backend
+  pm2 restart doafacil-frontend
+fi
 
 echo "✅ Redeploy concluído!"
 pm2 list
