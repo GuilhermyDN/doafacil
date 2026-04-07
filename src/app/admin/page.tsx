@@ -778,7 +778,7 @@ export default function AdminPage() {
 
       <div style={{ background: C.goldL, borderRadius: 16, padding: "16px 20px", border: `1px solid ${C.gold}28` }}>
         <p style={{ fontSize: 13, fontWeight: 600, color: C.amber, marginBottom: 8 }}>📋 Como funciona a pontuação?</p>
-        {["R$ 1 doado = 10 pontos base", "Missões concluídas garantem pontos bônus", "Níveis por doações: NICE (20+) · COOL (50+) · TOUGH (100+) · RULER (200+) · F★★ (500+) · TOP-NOTCH (1000+) · G.O.A.T (2000+) · KILLER (5000+)", "Top 3 recebem homenagem especial no culto!"].map((r, i) => (
+        {["R$ 1 doado = 10 pontos base", "Missões concluídas garantem pontos bônus", "Níveis por doações: NICE (20+) · COOL (50+) · TOUGH (100+) · RULER (200+) · F★★ (500+) · TOP-NOTCH (1000+) · G.O.A.T (2000+) · KILLER (5000+)", "Top 3 recebem homenagem especial no ranking público!"].map((r, i) => (
           <p key={i} style={{ fontSize: 12, color: C.amber, lineHeight: 1.5 }}>• {r}</p>
         ))}
       </div>
@@ -794,8 +794,8 @@ export default function AdminPage() {
         </div>
         <div>
           <p style={{ fontSize: 11, color: C.gold, letterSpacing: 3, textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>Entrega de QR</p>
-          <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, margin: 0 }}>Códigos para o Culto</h2>
-          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>Exiba no telão ou imprima para distribuir na entrada</p>
+          <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, margin: 0 }}>Códigos para o Evento</h2>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>Exiba no telão ou imprima para distribuir no evento</p>
         </div>
       </div>
       {qrEventos.length === 0 && !loadingData && (
@@ -888,7 +888,7 @@ export default function AdminPage() {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-        {/* ── LOUSA / HEADER ESTILO PAROQUIAL ── */}
+        {/* ── HEADER HOMENAGENS ── */}
         <div style={{
           background: "#1a2e1a",
           borderRadius: 20,
@@ -916,12 +916,12 @@ export default function AdminPage() {
             </p>
             <p style={{ fontSize: 13, color: "rgba(245,240,224,0.55)", lineHeight: 1.6 }}>
               Quem mais doou neste mês merece reconhecimento público.
-              Essas conquistas ficam expostas publicamente — como na lousa da missão! 🙏
+              Essas conquistas ficam expostas publicamente para todos verem! 🏆
             </p>
             {/* linha giz decorativa */}
             <div style={{ marginTop: 16, height: 2, background: "rgba(245,240,224,0.18)", borderRadius: 1 }}/>
             <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {["Ranking visível aos doadores", "Atualizado a cada culto", "Reconhecimento na lousa"].map((tag, i) => (
+              {["Ranking visível aos doadores", "Atualizado a cada evento", "Reconhecimento público"].map((tag, i) => (
                 <span key={i} style={{ fontSize: 10, color: "rgba(245,240,224,0.5)", border: "1px solid rgba(245,240,224,0.15)", borderRadius: 99, padding: "2px 10px", letterSpacing: 0.5 }}>
                   {tag}
                 </span>
@@ -976,7 +976,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* ── LISTA COMPLETA ESTILO LOUSA ── */}
+        {/* ── LISTA COMPLETA RANKING ── */}
         <div style={{
           background: "#1a2e1a", borderRadius: 18,
           border: "2px solid #2d4a2d",
@@ -1031,12 +1031,12 @@ export default function AdminPage() {
         <div style={{ background: C.white, borderRadius: 18, border: `1px solid ${C.border}`, padding: "22px 24px" }}>
           <p style={{ fontSize: 13, fontWeight: 700, color: C.ink, marginBottom: 4 }}>📜 Prêmios & Plaquinhas</p>
           <p style={{ fontSize: 12, color: C.muted, marginBottom: 18, lineHeight: 1.5 }}>
-            Entregues pessoalmente pelo pastor ao fim do culto — igual às brincadeiras na lousa!
+            Entregues pessoalmente pela equipe ao fim do evento — reconhecimento real para quem faz a diferença!
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(190px,1fr))", gap: 12 }}>
             {[
-              { icon: "🎤", titulo: "Fala no Culto",     desc: "Top 1 compartilha sua motivação", cor: "#FF4E00", quem: "1º lugar" },
-              { icon: "📜", titulo: "Diploma de Papel",  desc: "Certificado impresso na mão pelo pastor", cor: "#cd7f32", quem: "Top 3" },
+              { icon: "🎤", titulo: "Fala no Evento",     desc: "Top 1 compartilha sua motivação", cor: "#FF4E00", quem: "1º lugar" },
+              { icon: "📜", titulo: "Diploma de Papel",  desc: "Certificado impresso pela equipe", cor: "#cd7f32", quem: "Top 3" },
               { icon: "🏅", titulo: "Plaquinha de Honra",desc: "Placa com o nome exposta na entrada", cor: "#000DFF", quem: "Top 5" },
               { icon: "🎁", titulo: "Surpresa Especial", desc: "Presente simbólico, surpresa no fim", cor: "#6600cc", quem: "Sorteio" },
             ].map((item, i) => (
