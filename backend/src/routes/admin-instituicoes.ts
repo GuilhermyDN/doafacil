@@ -57,6 +57,18 @@ router.put('/:id', async (req: Request, res: Response) => {
   }
 })
 
+// DELETE /api/admin/instituicoes/:id
+router.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id)
+    await prisma.instituicao.delete({ where: { id } })
+    res.json({ ok: true })
+  } catch (err: any) {
+    if (err.code === 'P2025') { res.status(404).json({ error: 'Instituição não encontrada' }); return }
+    res.status(500).json({ error: 'Erro interno' })
+  }
+})
+
 // POST /api/admin/instituicoes/:id/gerar-links — gera/regenera tokens de setup e gastos
 router.post('/:id/gerar-links', async (req: Request, res: Response) => {
   try {

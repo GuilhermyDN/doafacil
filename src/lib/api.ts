@@ -235,6 +235,10 @@ export async function putInstituicao(id: number, data: Partial<import('./data').
   })
 }
 
+export async function deleteInstituicao(id: number) {
+  return apiFetch<{ ok: boolean }>(`/api/admin/instituicoes/${id}`, { method: 'DELETE' })
+}
+
 // ── GASTOS ────────────────────────────────────────────────────────────────────
 export async function getGastos(instituicaoId: number) {
   return apiFetch<import('./data').Gasto[]>(`/api/instituicoes/${instituicaoId}/gastos`)

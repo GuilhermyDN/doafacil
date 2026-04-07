@@ -4,7 +4,7 @@ import { type Doador, type Missao, type Doacao } from "@/lib/data";
 import {
   login as apiLogin, logout as apiLogout, isLoggedIn,
   getDoacoes, getRanking, getMissoes, getEventos, getEventoQRCodes,
-  getDashboardResumo, getInstituicoes, getGastos, postGasto, postInstituicao, putInstituicao, gerarLinksInstituicao,
+  getDashboardResumo, getInstituicoes, getGastos, postGasto, postInstituicao, putInstituicao, deleteInstituicao, gerarLinksInstituicao,
   type QREvento, type Evento, type DashboardResumo,
 } from "@/lib/api";
 
@@ -1520,6 +1520,13 @@ export default function AdminPage() {
       setInstLinkGastosCopiado(m => ({ ...m, [instId]: true }));
       setTimeout(() => setInstLinkGastosCopiado(m => ({ ...m, [instId]: false })), 2000);
     };
+    const handleDeletarInstituicao = async (inst: import("@/lib/data").Instituicao) => {
+      if (!confirm(`Tem certeza que deseja apagar "${inst.nome}"? Esta ação não pode ser desfeita.`)) return;
+      try {
+        await deleteInstituicao(inst.id);
+        setInstAdminList(l => l.filter(i => i.id !== inst.id));
+      } catch { alert("Erro ao apagar instituição."); }
+    };
 
     const renderForm = () => (
       <div style={{ background: C.white, borderRadius: 18, border: `2px solid ${C.blue}`, padding: "24px" }}>
@@ -1641,6 +1648,7 @@ export default function AdminPage() {
                   ? <button onClick={() => handleGerarLink(inst)} style={{ background: "#009EE3", color: C.white, border: "none", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>🔗 Gerar link MP</button>
                   : <span style={{ background: C.greenL, color: C.green, fontSize: 11, fontWeight: 600, padding: "7px 12px", borderRadius: 9 }}>✓ MP vinculado</span>
                 }
+                <button onClick={() => handleDeletarInstituicao(inst)} style={{ background: "#fff0f0", color: "#e53e3e", border: "none", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>🗑️ Apagar</button>
               </div>
               {/* link MP gerado */}
               {instLinkGerado[inst.id] && (
