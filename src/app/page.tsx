@@ -444,7 +444,7 @@ export default function HomePage() {
               <a key={l} href={h} style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>{l}</a>
             ))}
           </div>
-          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.15)" }}>© 2026 Humanity Bearers · Feito com ❤️</p>
+          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.15)" }}>© 2026 Humanity Bearers</p>
         </div>
       </footer>
     </>
