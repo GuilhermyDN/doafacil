@@ -244,7 +244,7 @@ function RankingCard({ doador, posicao }: { doador: Doador; posicao: number }) {
 type Tab = "dashboard" | "ranking" | "homenagens" | "missao" | "prestacao" | "instituicoes" | "config" | "pedidos" | "tags";
 
 const TABS: { id: Tab; label: string; icon: string; emoji?: string }[] = [
-  { id: "dashboard",   label: "Dashboard",       icon: Icons.church },
+  { id: "dashboard",   label: "Dashboard",       icon: Icons.church, emoji: "🐻" },
   { id: "ranking",     label: "Ranking",          icon: Icons.trophy, emoji: "🐻" },
   { id: "tags",        label: "Tags",             icon: Icons.qr },
   { id: "homenagens",  label: "Homenagens",       icon: Icons.heart },
