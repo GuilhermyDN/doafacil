@@ -948,10 +948,24 @@ function DoacaoPageInner() {
   // e mostra banner de subida de nível se mudou.
   const finalizarDoacao = async () => {
     if (serialEfetivo) {
-      const depois = await fetchTagSnapshot(serialEfetivo);
+      // Race condition do webhook MP: o polling de status-doacao vê
+      // `pago=true` antes do incremento de pontos do doador terminar.
+      // Fazemos 3 tentativas curtas aguardando os pontos subirem do valor
+      // salvo em snapshotAntes — até 1.5s no total é suficiente.
+      const pontosAntes = snapshotAntes?.pontos ?? 0;
+      let depois: SnapshotTag = null;
+      for (let i = 0; i < 4; i++) {
+        await new Promise(r => setTimeout(r, 400));
+        depois = await fetchTagSnapshot(serialEfetivo);
+        if (depois && depois.pontos > pontosAntes) break;
+      }
+
       const antesNivel = snapshotAntes?.nivel ?? null;
       const depoisNivel = depois?.nivel ?? null;
-      if (depoisNivel && nivelRank(depoisNivel) > nivelRank(antesNivel)) {
+      // Só exibe banner se houve subida REAL de nível. A "primeira vez que
+      // vira nice" (antesNivel === null) não é uma subida — é a criação
+      // do doador. Só contam transições nice→cool, cool→tough etc.
+      if (antesNivel && depoisNivel && nivelRank(depoisNivel) > nivelRank(antesNivel)) {
         setLevelUp({ de: antesNivel, para: depoisNivel, pontos: depois?.pontos ?? 0 });
       } else {
         setLevelUp(null);
