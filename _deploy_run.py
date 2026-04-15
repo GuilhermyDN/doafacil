@@ -9,7 +9,7 @@ PASS = "passworddev08060402!"
 COMMANDS = [
     ("Baixando codigo novo...",     "cd /srv/doafacil && git pull origin master"),
     ("Buildando backend...",        "cd /srv/doafacil/backend && npm run build 2>&1 | tail -5"),
-    ("Aplicando migrations DB...",  "cd /srv/doafacil/backend && npx prisma migrate deploy 2>&1 | tail -5"),
+    ("Regenerando Prisma client...", "cd /srv/doafacil/backend && npx prisma generate 2>&1 | tail -3"),
     ("Reiniciando backend...",      "pm2 restart doafacil-backend"),
     ("Buildando frontend...",       "cd /srv/doafacil && npm run build 2>&1 | tail -8"),
     ("Reiniciando frontend...",     "pm2 restart doafacil-frontend"),
