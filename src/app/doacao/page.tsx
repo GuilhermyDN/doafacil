@@ -405,11 +405,26 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar 
               const data = await res.json();
               if (data.status === "approved") {
                 onSucesso();
+              } else if (data.status === "in_process" || data.status === "pending") {
+                onSucesso(); // débito / 3DS — banco confirmará em breve
               } else {
-                setErro("Pagamento não aprovado. Verifique os dados e tente novamente.");
+                const MSGS: Record<string, string> = {
+                  cc_rejected_insufficient_amount:      "Saldo insuficiente no cartão.",
+                  cc_rejected_bad_filled_security_code: "CVV incorreto. Verifique o código de segurança.",
+                  cc_rejected_bad_filled_date:          "Data de validade incorreta.",
+                  cc_rejected_bad_filled_other:         "Dados do cartão incorretos. Verifique e tente novamente.",
+                  cc_rejected_call_for_authorize:       "Banco bloqueou a transação. Ligue para autorizar e tente novamente.",
+                  cc_rejected_card_disabled:            "Cartão desabilitado para compras online. Verifique com seu banco.",
+                  cc_rejected_duplicated_payment:       "Pagamento duplicado detectado.",
+                  cc_rejected_high_risk:                "Transação recusada por segurança. Tente outro cartão.",
+                  cc_rejected_max_attempts:             "Limite de tentativas atingido. Aguarde alguns minutos.",
+                  rejected_insufficient_data:           "Preencha todos os campos do cartão.",
+                };
+                const detalhe: string = data.statusDetail || "";
+                setErro(MSGS[detalhe] || `Pagamento recusado pelo banco${detalhe ? ` (${detalhe})` : ""}. Verifique os dados ou tente outro cartão.`);
               }
             } catch {
-              setErro("Erro ao processar pagamento.");
+              setErro("Erro ao processar pagamento. Tente novamente.");
             } finally {
               setProcessando(false);
             }

@@ -216,6 +216,8 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
       },
     })
 
+    console.log(`💳 Cartão: status=${payment.status} detail=${(payment as any).status_detail}`)
+
     if (payment.status === 'approved') {
       await prisma.doacao.update({
         where: { id: doacao.id },
@@ -228,7 +230,11 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
       })
     }
 
-    res.json({ status: payment.status, paymentId: payment.id })
+    res.json({
+      status: payment.status,
+      statusDetail: (payment as any).status_detail,
+      paymentId: payment.id,
+    })
   } catch (err: any) {
     console.error('MP cartao-token error:', err?.cause || err?.message || err)
     res.status(500).json({ error: err?.message || 'Erro ao processar cartão' })
