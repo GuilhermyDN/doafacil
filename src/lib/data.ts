@@ -9,6 +9,8 @@ export type Instituicao = {
   pixKey: string;
   ativo?: boolean;
   mercadoPagoToken?: string | null;
+  mpSetupToken?: string | null;
+  gastosToken?: string | null;
 };
 
 export type Doacao = {

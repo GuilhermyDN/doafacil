@@ -1510,12 +1510,21 @@ export default function AdminPage() {
         setInstAdminList(l => l.map(i => i.id === inst.id ? atualizada : i));
       } catch { alert("Erro ao atualizar status."); }
     };
+    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    const getLinkMp     = (inst: import("@/lib/data").Instituicao) => inst.mpSetupToken ? `${baseUrl}/configurar-mp?token=${inst.mpSetupToken}` : null;
+    const getLinkGastos = (inst: import("@/lib/data").Instituicao) => inst.gastosToken  ? `${baseUrl}/gastos-instituicao?token=${inst.gastosToken}` : null;
+
     const handleGerarLink = async (inst: import("@/lib/data").Instituicao) => {
       try {
         const { linkMp, linkGastos } = await gerarLinksInstituicao(inst.id);
-        setInstLinkGerado(m => ({ ...m, [inst.id]: linkMp }));
-        setInstLinkGastosGerado(m => ({ ...m, [inst.id]: linkGastos }));
-      } catch { alert("Erro ao gerar link. Verifique se o backend está rodando."); }
+        // Extrai os novos tokens das URLs e atualiza a lista local
+        const novoMpToken     = new URL(linkMp).searchParams.get("token");
+        const novoGastosToken = new URL(linkGastos).searchParams.get("token");
+        setInstAdminList(l => l.map(i => i.id === inst.id
+          ? { ...i, mpSetupToken: novoMpToken, gastosToken: novoGastosToken }
+          : i
+        ));
+      } catch { alert("Erro ao regenerar links. Verifique se o backend está rodando."); }
     };
     const handleCopiarLink = (instId: number, link: string) => {
       navigator.clipboard.writeText(link);
@@ -1636,55 +1645,72 @@ export default function AdminPage() {
           </div>
         )}
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {instAdminList.map(inst => (
-            <div key={inst.id} style={{ background: C.white, borderRadius: 16, border: `1px solid ${inst.ativo === false ? C.border : inst.cor + "33"}`, padding: "16px 20px", display: "flex", alignItems: "flex-start", gap: 14, flexWrap: "wrap", opacity: inst.ativo === false ? 0.55 : 1 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 13, background: inst.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>{inst.emoji}</div>
-              <div style={{ flex: 1, minWidth: 150 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <p style={{ fontSize: 15, fontWeight: 700, color: C.ink }}>{inst.nome}</p>
-                  {inst.ativo === false && <span style={{ fontSize: 10, background: C.stone, color: C.muted, padding: "2px 8px", borderRadius: 99, fontWeight: 600 }}>Inativa</span>}
-                </div>
-                <p style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{inst.tipo} · R$ {inst.valor}/pessoa · Pix: <span style={{ fontWeight: 600 }}>{inst.pixKey}</span></p>
-              </div>
-              <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
-                <button onClick={() => handleOpenEdit(inst)} style={{ background: C.blueL, color: C.blue, border: "none", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>✏️ Editar</button>
-                <button onClick={() => handleToggleAtivo(inst)} style={{ background: inst.ativo === false ? C.greenL : C.stone, color: inst.ativo === false ? C.green : C.muted, border: "none", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                  {inst.ativo === false ? "✓ Ativar" : "⊘ Desativar"}
-                </button>
-                {!inst.mercadoPagoToken
-                  ? <button onClick={() => handleGerarLink(inst)} style={{ background: "#009EE3", color: C.white, border: "none", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>🔗 Gerar link MP</button>
-                  : <span style={{ background: C.greenL, color: C.green, fontSize: 11, fontWeight: 600, padding: "7px 12px", borderRadius: 9 }}>✓ MP vinculado</span>
-                }
-                <button onClick={() => handleDeletarInstituicao(inst)} style={{ background: "#fff0f0", color: "#e53e3e", border: "none", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>🗑️ Apagar</button>
-              </div>
-              {/* link MP gerado */}
-              {instLinkGerado[inst.id] && (
-                <div style={{ width: "100%", background: "#e6f6fd", border: "1px solid #009EE333", borderRadius: 12, padding: "12px 16px", marginTop: 4, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 16 }}>🔗</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 11, color: "#009EE3", fontWeight: 700, marginBottom: 3 }}>Link Mercado Pago — envie para a instituição vincular:</p>
-                    <p style={{ fontSize: 12, color: "#333", wordBreak: "break-all", fontFamily: "monospace" }}>{instLinkGerado[inst.id]}</p>
+          {instAdminList.map(inst => {
+            const linkMp     = getLinkMp(inst);
+            const linkGastos = getLinkGastos(inst);
+            return (
+            <div key={inst.id} style={{ background: C.white, borderRadius: 16, border: `1px solid ${inst.ativo === false ? C.border : inst.cor + "33"}`, padding: "16px 20px", display: "flex", flexDirection: "column", gap: 12, opacity: inst.ativo === false ? 0.6 : 1 }}>
+              {/* linha principal */}
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
+                <div style={{ width: 48, height: 48, borderRadius: 13, background: inst.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>{inst.emoji}</div>
+                <div style={{ flex: 1, minWidth: 150 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <p style={{ fontSize: 15, fontWeight: 700, color: C.ink }}>{inst.nome}</p>
+                    {inst.ativo === false && <span style={{ fontSize: 10, background: C.stone, color: C.muted, padding: "2px 8px", borderRadius: 99, fontWeight: 600 }}>Inativa</span>}
+                    {inst.mercadoPagoToken && <span style={{ fontSize: 10, background: C.greenL, color: C.green, padding: "2px 8px", borderRadius: 99, fontWeight: 600 }}>✓ MP vinculado</span>}
                   </div>
-                  <button onClick={() => handleCopiarLink(inst.id, instLinkGerado[inst.id])} style={{ background: instLinkCopiado[inst.id] ? C.green : "#009EE3", color: C.white, border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
-                    {instLinkCopiado[inst.id] ? "✓ Copiado" : "Copiar"}
-                  </button>
+                  <p style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{inst.tipo} · R$ {inst.valor}/pessoa · Pix: <span style={{ fontWeight: 600 }}>{inst.pixKey}</span></p>
                 </div>
-              )}
-              {/* link gastos gerado */}
-              {instLinkGastosGerado[inst.id] && (
-                <div style={{ width: "100%", background: "#f0fdf4", border: "1px solid #22c55e33", borderRadius: 12, padding: "12px 16px", marginTop: 4, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 16 }}>📊</span>
+                <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
+                  <button onClick={() => handleOpenEdit(inst)} style={{ background: C.blueL, color: C.blue, border: "none", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>✏️ Editar</button>
+                  <button onClick={() => handleToggleAtivo(inst)} style={{ background: inst.ativo === false ? C.greenL : C.stone, color: inst.ativo === false ? C.green : C.muted, border: "none", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                    {inst.ativo === false ? "✓ Ativar" : "⊘ Desativar"}
+                  </button>
+                  <button onClick={() => handleGerarLink(inst)} style={{ background: "#f0f4ff", color: "#009EE3", border: "1px solid #009EE344", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>🔄 Regenerar links</button>
+                  <button onClick={() => handleDeletarInstituicao(inst)} style={{ background: "#fff0f0", color: "#e53e3e", border: "none", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>🗑️ Apagar</button>
+                </div>
+              </div>
+
+              {/* links — sempre visíveis */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+                {/* link MP */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 13, width: 22, textAlign: "center" }}>🔗</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 11, color: C.green, fontWeight: 700, marginBottom: 3 }}>Link de Gastos — envie para a instituição registrar despesas:</p>
-                    <p style={{ fontSize: 12, color: "#333", wordBreak: "break-all", fontFamily: "monospace" }}>{instLinkGastosGerado[inst.id]}</p>
+                    <p style={{ fontSize: 10, color: "#009EE3", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>
+                      {inst.mercadoPagoToken ? "Link MP (reconectar)" : "Link MP — vincular Mercado Pago"}
+                    </p>
+                    {linkMp
+                      ? <p style={{ fontSize: 11, color: "#444", wordBreak: "break-all", fontFamily: "monospace", background: "#f5fafd", borderRadius: 6, padding: "4px 8px" }}>{linkMp}</p>
+                      : <p style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>Clique em "Regenerar links" para gerar</p>
+                    }
                   </div>
-                  <button onClick={() => handleCopiarLinkGastos(inst.id, instLinkGastosGerado[inst.id])} style={{ background: instLinkGastosCopiado[inst.id] ? C.green : "#22c55e", color: C.white, border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
-                    {instLinkGastosCopiado[inst.id] ? "✓ Copiado" : "Copiar"}
-                  </button>
+                  {linkMp && (
+                    <button onClick={() => handleCopiarLink(inst.id, linkMp)} style={{ background: instLinkCopiado[inst.id] ? C.green : "#009EE3", color: C.white, border: "none", borderRadius: 8, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
+                      {instLinkCopiado[inst.id] ? "✓ Copiado" : "Copiar"}
+                    </button>
+                  )}
                 </div>
-              )}
+                {/* link gastos */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 13, width: 22, textAlign: "center" }}>📊</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 10, color: "#22c55e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>Link de Gastos — registrar despesas</p>
+                    {linkGastos
+                      ? <p style={{ fontSize: 11, color: "#444", wordBreak: "break-all", fontFamily: "monospace", background: "#f5fdf7", borderRadius: 6, padding: "4px 8px" }}>{linkGastos}</p>
+                      : <p style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>Clique em "Regenerar links" para gerar</p>
+                    }
+                  </div>
+                  {linkGastos && (
+                    <button onClick={() => handleCopiarLinkGastos(inst.id, linkGastos)} style={{ background: instLinkGastosCopiado[inst.id] ? C.green : "#22c55e", color: C.white, border: "none", borderRadius: 8, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
+                      {instLinkGastosCopiado[inst.id] ? "✓ Copiado" : "Copiar"}
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
