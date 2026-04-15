@@ -232,9 +232,9 @@ router.post('/pix', async (req: Request, res: Response) => {
   }
 })
 
-// POST /api/mp/cartao-token — Checkout Transparente com 3DS
+// POST /api/mp/cartao-token — Checkout Transparente
 router.post('/cartao-token', async (req: Request, res: Response) => {
-  const { doacaoId, token, installments, paymentMethodId, issuerId, payerEmail, payerIdentification } = req.body
+  const { doacaoId, token, installments, paymentMethodId, issuerId, bin, payerEmail, payerIdentification, cardholderName } = req.body
   if (!doacaoId || !token) { res.status(400).json({ error: 'doacaoId e token obrigatórios' }); return }
 
   try {
@@ -245,13 +245,47 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
     if (!doacao) { res.status(404).json({ error: 'Doação não encontrada' }); return }
     if (doacao.pago) { res.status(400).json({ error: 'Doação já paga' }); return }
 
-    // Nome do doador — separa em first/last se possível. Só envia se for real
-    // (ignora fallback "Doador" para não ativar flag do antifraude do MP).
-    const nomeDoador = (doacao.doadorNome || '').trim()
-    const nomeEhReal = nomeDoador && nomeDoador.toLowerCase() !== 'doador'
-    const partesNome = nomeEhReal ? nomeDoador.split(/\s+/) : []
-    const firstName = partesNome[0] || undefined
-    const lastName = partesNome.length > 1 ? partesNome.slice(1).join(' ') : undefined
+    // Email — obrigatório. Sem fallback fraco: o antifraude do MP bloqueia
+    // pagamentos que chegam com o mesmo email genérico repetidas vezes.
+    const email = (payerEmail || doacao.doadorEmail || '').trim()
+    if (!email || !email.includes('@')) {
+      res.status(400).json({ error: 'É necessário informar um e-mail válido antes de pagar com cartão.' }); return
+    }
+
+    // Nome — usa o da doação ou o nome digitado no cartão como fallback.
+    // Nunca enviamos "Doador" / "Anônimo" pois o MP flag'a como padrão de fraude.
+    const nomeBruto = (doacao.doadorNome || cardholderName || '').trim()
+    const nomeEhReal = nomeBruto.length > 0
+      && nomeBruto.toLowerCase() !== 'doador'
+      && nomeBruto.toLowerCase() !== 'anônimo'
+      && nomeBruto.toLowerCase() !== 'anonimo'
+    if (!nomeEhReal) {
+      res.status(400).json({ error: 'É necessário informar seu nome antes de pagar com cartão.' }); return
+    }
+    const partesNome = nomeBruto.split(/\s+/)
+    const firstName = partesNome[0]
+    const lastName = partesNome.length > 1 ? partesNome.slice(1).join(' ') : firstName
+
+    const inst = doacao.instituicao
+    if (!inst.mercadoPagoToken) {
+      res.status(400).json({ error: 'Esta instituição ainda não configurou o recebimento de pagamentos.' }); return
+    }
+
+    // Resolve issuer_id: se o frontend não conseguiu (SDK falhou),
+    // busca via API do MP usando o BIN do cartão.
+    let finalIssuerId = issuerId
+    if (!finalIssuerId && bin && paymentMethodId) {
+      try {
+        const r = await fetch(
+          `https://api.mercadopago.com/v1/payment_methods/card_issuers?payment_method_id=${encodeURIComponent(paymentMethodId)}&bin=${encodeURIComponent(bin)}`,
+          { headers: { Authorization: `Bearer ${inst.mercadoPagoToken}` } }
+        )
+        if (r.ok) {
+          const arr = await r.json() as Array<{ id?: string }>
+          if (Array.isArray(arr) && arr[0]?.id) finalIssuerId = arr[0].id
+        }
+      } catch (e) { console.error('issuer_id lookup failed:', e) }
+    }
 
     const paymentBody: any = {
       transaction_amount: doacao.valorTotal,
@@ -259,10 +293,10 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
       description: `Doação — ${doacao.instituicao.nome}`,
       installments: installments || 1,
       payment_method_id: paymentMethodId,
-      issuer_id: issuerId,
+      issuer_id: finalIssuerId,
       statement_descriptor: 'HUMANITYBEARERS',
       payer: {
-        email: payerEmail || doacao.doadorEmail || 'doador@humanitybearers.com.br',
+        email,
         first_name: firstName,
         last_name: lastName,
         identification: payerIdentification,
@@ -288,15 +322,7 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
       notification_url: `${process.env.NEXT_PUBLIC_URL || process.env.BACKEND_URL || 'http://localhost:3003'}/api/mp/webhook`,
     }
 
-    // Usa o token da INSTITUIÇÃO — a public key usada no frontend bate com este token
-    // (ambos vêm do mesmo OAuth da instituição → não há mismatch)
-    const inst = doacao.instituicao
-    if (!inst.mercadoPagoToken) {
-      res.status(400).json({ error: 'Esta instituição ainda não configurou o recebimento de pagamentos.' }); return
-    }
-    // No modelo marketplace do MP: token criado com public_key da plataforma
-    // é válido para pagar via access_token da instituição (que autorizou via OAuth).
-    console.log(`💳 Cartão iniciando — inst=${inst.id} token_inst=${inst.mercadoPagoToken?.slice(0,20)}... paymentMethodId=${paymentMethodId}`)
+    console.log(`💳 Cartão iniciando — inst=${inst.id} paymentMethodId=${paymentMethodId} issuer_id=${finalIssuerId || '(none)'} email=${email}`)
     const clienteInst = new MercadoPagoConfig({ accessToken: inst.mercadoPagoToken })
     const payment = await new Payment(clienteInst).create({ body: paymentBody })
     console.log(`💳 Cartão (inst ${inst.id}): status=${payment.status} detail=${(payment as any).status_detail} id=${payment.id}`)

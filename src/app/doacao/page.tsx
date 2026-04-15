@@ -174,7 +174,9 @@ function TelaPagamento({ inst, tagSerial, autoSerial, onConfirmar, onVoltar }: {
   const [serialCopiado, setSerialCopiado] = useState(false);
   const { cor, bg } = instColor(inst);
   const total = inst.valor * qtd;
-  const podeConfirmar = anonimo || (nome.trim().length > 0 && email.trim().length > 0 && telefone.trim().length > 0);
+  const podeConfirmarPix = anonimo || (nome.trim().length > 0 && email.trim().length > 0 && telefone.trim().length > 0);
+  // Cartão exige cadastro: o antifraude do MP rejeita pagamentos sem payer.email real.
+  const podeConfirmarCartao = !anonimo && nome.trim().length > 0 && email.trim().length > 0 && telefone.trim().length > 0;
 
   const BASE = typeof window !== "undefined" ? window.location.origin : "https://humanitybearers.com.br";
   const qrUrl = autoSerial ? `${BASE}/doacao?tag=${autoSerial}` : null;
@@ -325,27 +327,28 @@ function TelaPagamento({ inst, tagSerial, autoSerial, onConfirmar, onVoltar }: {
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <button
-              onClick={() => podeConfirmar && onConfirmar(qtd, anonimo ? "Anônimo" : nome.trim(), anonimo ? "" : email.trim(), anonimo ? "" : telefone.trim(), "pix")}
-              disabled={!podeConfirmar}
+              onClick={() => podeConfirmarPix && onConfirmar(qtd, anonimo ? "Anônimo" : nome.trim(), anonimo ? "" : email.trim(), anonimo ? "" : telefone.trim(), "pix")}
+              disabled={!podeConfirmarPix}
               style={{
                 width: "100%", padding: "15px", borderRadius: 14,
-                background: podeConfirmar ? "#32BCAD" : C.border,
+                background: podeConfirmarPix ? "#32BCAD" : C.border,
                 color: C.white, border: "none", fontSize: 14, fontWeight: 700,
-                cursor: podeConfirmar ? "pointer" : "not-allowed",
-                boxShadow: podeConfirmar ? "0 8px 24px #32BCAD44" : "none",
+                cursor: podeConfirmarPix ? "pointer" : "not-allowed",
+                boxShadow: podeConfirmarPix ? "0 8px 24px #32BCAD44" : "none",
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
               }}>
               <span style={{ fontSize: 18 }}>⚡</span> Pagar com Pix · R$ {total.toFixed(2).replace(".", ",")}
             </button>
             <button
-              onClick={() => podeConfirmar && onConfirmar(qtd, anonimo ? "Anônimo" : nome.trim(), anonimo ? "" : email.trim(), anonimo ? "" : telefone.trim(), "cartao")}
-              disabled={!podeConfirmar}
+              onClick={() => podeConfirmarCartao && onConfirmar(qtd, nome.trim(), email.trim(), telefone.trim(), "cartao")}
+              disabled={!podeConfirmarCartao}
+              title={anonimo ? "Para pagar com cartão é necessário preencher nome, e-mail e telefone" : undefined}
               style={{
                 width: "100%", padding: "15px", borderRadius: 14,
-                background: podeConfirmar ? cor : C.border,
+                background: podeConfirmarCartao ? cor : C.border,
                 color: C.white, border: "none", fontSize: 14, fontWeight: 700,
-                cursor: podeConfirmar ? "pointer" : "not-allowed",
-                boxShadow: podeConfirmar ? `0 8px 24px ${cor}44` : "none",
+                cursor: podeConfirmarCartao ? "pointer" : "not-allowed",
+                boxShadow: podeConfirmarCartao ? `0 8px 24px ${cor}44` : "none",
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
               }}>
               <span style={{ fontSize: 18 }}>💳</span> Pagar com Cartão · R$ {total.toFixed(2).replace(".", ",")}
@@ -486,8 +489,10 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar 
           installments: 1,
           paymentMethodId: brand || tokenResult.payment_method_id,
           issuerId,
+          bin,                              // permite backend buscar issuer_id se faltar
           tipoCartao,
           payerIdentification: { type: "CPF", number: cpfNum },
+          cardholderName: nome,             // nome no cartão — usado como fallback se doação foi anônima
         }),
       });
       const data = await res.json();
