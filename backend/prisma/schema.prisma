@@ -49,6 +49,16 @@ model Instituicao {
   emoji             String
   pixKey            String
   ativo             Boolean         @default(true)
+  // Etapas do onboarding (fluxo /configurar-mp?token=X):
+  //  - credenciais presentes       → mercadoPagoToken != null
+  //  - pagamento de teste realizado → setupTestePaymentId != null
+  //  - homologada no painel MP      → homologada = true  (auto-declarada pela
+  //    própria instituição, ou togglada pelo admin)
+  // A listagem pública (/api/instituicoes) só retorna instituições
+  // com ativo=true AND homologada=true. Enquanto não estiver homologada,
+  // nem PIX nem cartão aparecem para doadores.
+  homologada        Boolean         @default(false)
+  setupTestePaymentId String?
   mercadoPagoToken  String?
   mpPublicKey       String?
   mpConnectToken    String?         @unique

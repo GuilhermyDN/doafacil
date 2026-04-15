@@ -185,10 +185,13 @@ function TelaEscolha({ onEscolher }: { onEscolher: (i: Instituicao) => void }) {
 }
 
 // ── TELA PAGAMENTO ────────────────────────────────────────────────────────────
-function TelaPagamento({ inst, tagSerial, autoSerial, onConfirmar, onVoltar }: {
+function TelaPagamento({ inst, tagSerial, autoSerial, setupMode, onConfirmar, onVoltar }: {
   inst: Instituicao;
   tagSerial?: string;    // veio pelo QR code físico
   autoSerial?: string;   // gerado automaticamente ao entrar sem QR
+  // Modo setup: é um pagamento de teste obrigatório antes da homologação.
+  // Força cartão, esconde a opção de anônimo, esconde seletor de quantidade.
+  setupMode?: boolean;
   onConfirmar: (qtd: number, nome: string, email: string, telefone: string, metodo: "pix" | "cartao") => void;
   onVoltar: () => void;
 }) {
@@ -279,26 +282,41 @@ function TelaPagamento({ inst, tagSerial, autoSerial, onConfirmar, onVoltar }: {
             </div>
           )}
 
-          {/* anônimo toggle */}
-          <button
-            onClick={() => { setAnonimo(a => !a); setNome(""); setEmail(""); setTelefone(""); }}
-            style={{
-              width: "100%", marginBottom: 12, padding: "10px 14px", borderRadius: 12,
-              border: `1.5px solid ${anonimo ? cor : C.border}`,
-              background: anonimo ? cor + "12" : C.offWhite,
-              display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
-              transition: "all 0.15s",
-            }}>
-            <div style={{
-              width: 18, height: 18, borderRadius: 4, border: `2px solid ${anonimo ? cor : C.border}`,
-              background: anonimo ? cor : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-            }}>
-              {anonimo && <span style={{ color: C.white, fontSize: 11, fontWeight: 700 }}>✓</span>}
+          {/* Aviso setup mode: deixa claro pra instituição o que é esse pagamento */}
+          {setupMode && (
+            <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "12px 14px", marginBottom: 14 }}>
+              <p style={{ fontSize: 11, color: "#1e40af", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
+                🧪 Pagamento de teste — Homologação
+              </p>
+              <p style={{ fontSize: 12, color: "#1e40af", lineHeight: 1.6 }}>
+                Este pagamento é obrigatório para a homologação do seu Mercado Pago. Mesmo que seja recusado pelo antifraude,
+                o fluxo continua — o importante é que o request chegue na sua conta.
+              </p>
             </div>
-            <span style={{ fontSize: 13, color: anonimo ? cor : C.muted, fontWeight: anonimo ? 600 : 400 }}>
-              Quero doar anonimamente
-            </span>
-          </button>
+          )}
+
+          {/* anônimo toggle — escondido em modo setup (precisa de payer real) */}
+          {!setupMode && (
+            <button
+              onClick={() => { setAnonimo(a => !a); setNome(""); setEmail(""); setTelefone(""); }}
+              style={{
+                width: "100%", marginBottom: 12, padding: "10px 14px", borderRadius: 12,
+                border: `1.5px solid ${anonimo ? cor : C.border}`,
+                background: anonimo ? cor + "12" : C.offWhite,
+                display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
+                transition: "all 0.15s",
+              }}>
+              <div style={{
+                width: 18, height: 18, borderRadius: 4, border: `2px solid ${anonimo ? cor : C.border}`,
+                background: anonimo ? cor : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              }}>
+                {anonimo && <span style={{ color: C.white, fontSize: 11, fontWeight: 700 }}>✓</span>}
+              </div>
+              <span style={{ fontSize: 13, color: anonimo ? cor : C.muted, fontWeight: anonimo ? 600 : 400 }}>
+                Quero doar anonimamente
+              </span>
+            </button>
+          )}
 
           {/* nome e email */}
           {!anonimo && (
@@ -334,16 +352,20 @@ function TelaPagamento({ inst, tagSerial, autoSerial, onConfirmar, onVoltar }: {
           )}
           {anonimo && <div style={{ marginBottom: 22 }} />}
 
-          <p style={{ fontSize: 13, color: C.muted, textAlign: "center", marginBottom: 20 }}>Quantas pessoas você quer ajudar?</p>
+          {!setupMode && (
+            <>
+              <p style={{ fontSize: 13, color: C.muted, textAlign: "center", marginBottom: 20 }}>Quantas pessoas você quer ajudar?</p>
 
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 28, marginBottom: 26 }}>
-            <button onClick={() => setQtd(q => Math.max(1, q - 1))} style={{ width: 46, height: 46, borderRadius: 12, border: `2px solid ${C.border}`, background: C.offWhite, fontSize: 22, cursor: "pointer", color: C.ink, display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
-            <div style={{ textAlign: "center", minWidth: 60 }}>
-              <div style={{ fontSize: 52, fontWeight: 800, color: C.ink, fontFamily: "'Playfair Display', serif", lineHeight: 1 }}>{qtd}</div>
-              <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{qtd === 1 ? "pessoa" : "pessoas"}</div>
-            </div>
-            <button onClick={() => setQtd(q => q + 1)} style={{ width: 46, height: 46, borderRadius: 12, border: `2px solid ${cor}`, background: bg, fontSize: 22, cursor: "pointer", color: cor, display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
-          </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 28, marginBottom: 26 }}>
+                <button onClick={() => setQtd(q => Math.max(1, q - 1))} style={{ width: 46, height: 46, borderRadius: 12, border: `2px solid ${C.border}`, background: C.offWhite, fontSize: 22, cursor: "pointer", color: C.ink, display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
+                <div style={{ textAlign: "center", minWidth: 60 }}>
+                  <div style={{ fontSize: 52, fontWeight: 800, color: C.ink, fontFamily: "'Playfair Display', serif", lineHeight: 1 }}>{qtd}</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{qtd === 1 ? "pessoa" : "pessoas"}</div>
+                </div>
+                <button onClick={() => setQtd(q => q + 1)} style={{ width: 46, height: 46, borderRadius: 12, border: `2px solid ${cor}`, background: bg, fontSize: 22, cursor: "pointer", color: cor, display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
+              </div>
+            </>
+          )}
 
           <div style={{ background: C.black, borderRadius: 14, padding: "16px 20px", marginBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "rgba(255,255,255,0.35)", paddingBottom: 10, borderBottom: "1px solid rgba(255,255,255,0.08)", marginBottom: 10 }}>
@@ -361,19 +383,21 @@ function TelaPagamento({ inst, tagSerial, autoSerial, onConfirmar, onVoltar }: {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <button
-              onClick={() => podeConfirmarPix && onConfirmar(qtd, anonimo ? "Anônimo" : nome.trim(), anonimo ? "" : email.trim(), anonimo ? "" : telefone.trim(), "pix")}
-              disabled={!podeConfirmarPix}
-              style={{
-                width: "100%", padding: "15px", borderRadius: 14,
-                background: podeConfirmarPix ? "#32BCAD" : C.border,
-                color: C.white, border: "none", fontSize: 14, fontWeight: 700,
-                cursor: podeConfirmarPix ? "pointer" : "not-allowed",
-                boxShadow: podeConfirmarPix ? "0 8px 24px #32BCAD44" : "none",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              }}>
-              <span style={{ fontSize: 18 }}>⚡</span> Pagar com Pix · R$ {total.toFixed(2).replace(".", ",")}
-            </button>
+            {!setupMode && (
+              <button
+                onClick={() => podeConfirmarPix && onConfirmar(qtd, anonimo ? "Anônimo" : nome.trim(), anonimo ? "" : email.trim(), anonimo ? "" : telefone.trim(), "pix")}
+                disabled={!podeConfirmarPix}
+                style={{
+                  width: "100%", padding: "15px", borderRadius: 14,
+                  background: podeConfirmarPix ? "#32BCAD" : C.border,
+                  color: C.white, border: "none", fontSize: 14, fontWeight: 700,
+                  cursor: podeConfirmarPix ? "pointer" : "not-allowed",
+                  boxShadow: podeConfirmarPix ? "0 8px 24px #32BCAD44" : "none",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                }}>
+                <span style={{ fontSize: 18 }}>⚡</span> Pagar com Pix · R$ {total.toFixed(2).replace(".", ",")}
+              </button>
+            )}
             <button
               onClick={() => podeConfirmarCartao && onConfirmar(qtd, nome.trim(), email.trim(), telefone.trim(), "cartao")}
               disabled={!podeConfirmarCartao}
@@ -396,9 +420,13 @@ function TelaPagamento({ inst, tagSerial, autoSerial, onConfirmar, onVoltar }: {
 }
 
 // ── TELA CARTÃO — CHECKOUT TRANSPARENTE + 3DS ────────────────────────────────
-function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar }: {
+function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, setupMode, onSucesso, onVoltar }: {
   inst: Instituicao; qtd: number; doacaoId: number; valorTotal: number;
-  onSucesso: () => void; onVoltar: () => void;
+  setupMode?: boolean;
+  // Em modo setup, onSucesso recebe o paymentId do MP e é chamado em
+  // qualquer desfecho final (aprovado, em análise ou recusado) — o que
+  // importa no setup é o request ter chegado na conta MP da instituição.
+  onSucesso: (paymentId?: number | string) => void; onVoltar: () => void;
 }) {
   const { cor } = instColor(inst);
   const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003";
@@ -533,7 +561,7 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro ao processar pagamento.");
 
-      if (data.status === "approved") { onSucesso(); return; }
+      if (data.status === "approved") { onSucesso(data.paymentId); return; }
 
       if (data.statusDetail === "pending_challenge" && data.threeDsInfo) {
         setChallenge(data.threeDsInfo); return;
@@ -543,7 +571,15 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar 
       // análise manual. Não é recusa: o webhook vai confirmar ou recusar
       // depois. Mostramos uma tela de "em análise" em vez de erro.
       if (data.status === "in_process" || data.statusDetail === "pending_review_manual" || data.statusDetail === "pending_contingency") {
-        onSucesso(); // reaproveita a tela final; TelaConfirmado fica como "registrado, aguardando confirmação"
+        onSucesso(data.paymentId); // reaproveita a tela final; TelaConfirmado fica como "registrado, aguardando confirmação"
+        return;
+      }
+
+      // Modo SETUP: qualquer desfecho final (inclusive recusado) conclui o
+      // fluxo. O importante é o POST /v1/payments ter chegado na conta MP
+      // da instituição — é isso que destrava o checklist de homologação.
+      if (setupMode) {
+        onSucesso(data.paymentId);
         return;
       }
 
@@ -898,8 +934,16 @@ function DoacaoPageInner() {
   const idMpStr   = params.get("id");
   const tagSerial = params.get("tag") || undefined;  // serial da tag GS-HB25-... (via QR)
 
+  // Modo SETUP: a instituição, durante /configurar-mp?token=X passo 2,
+  // é levada aqui com setup=1&inst=ID&token=X pra fazer o pagamento teste
+  // obrigatório antes da homologação do MP. Pula a tela de escolha e
+  // volta pro passo 3 do setup depois que o pagamento é concluído.
+  const setupMode     = params.get("setup") === "1";
+  const setupInstStr  = params.get("inst");
+  const setupToken    = params.get("token") || undefined;
+
   const [etapa, setEtapa]         = useState<Etapa>(
-    statusMp === "sucesso" || statusMp === "pendente" ? "confirmado" : "escolha"
+    statusMp === "sucesso" || statusMp === "pendente" ? "confirmado" : setupMode ? "pagamento" : "escolha"
   );
   const [escolhida, setEscolhida] = useState<Instituicao | null>(null);
   const [qtd, setQtd]             = useState(1);
@@ -925,6 +969,22 @@ function DoacaoPageInner() {
       .catch(() => {}); // falha silenciosa — serial é opcional
   }, [etapa, tagSerial, autoSerial]);
 
+  // Modo SETUP: carrega a instituição pelo ID vindo da URL e pula direto
+  // pra tela de pagamento (sem passar pela escolha).
+  useEffect(() => {
+    if (!setupMode || !setupInstStr || escolhida) return;
+    const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003";
+    fetch(`${API}/api/instituicoes/${setupInstStr}`, { headers: { "ngrok-skip-browser-warning": "true" } })
+      .then(r => r.json())
+      .then(d => {
+        if (d && d.id) {
+          setEscolhida(d);
+          setEtapa("pagamento");
+        }
+      })
+      .catch(() => setErro("Não foi possível carregar a instituição do setup."));
+  }, [setupMode, setupInstStr, escolhida]);
+
   // serial efetivo: o do QR tem prioridade, senão usa o auto-gerado
   const serialEfetivo = tagSerial || autoSerial;
 
@@ -946,7 +1006,21 @@ function DoacaoPageInner() {
   // Chamado quando o pagamento é confirmado (polling PIX ou sucesso do cartão).
   // Compara o snapshot salvo em handleConfirmar com o estado atual da tag
   // e mostra banner de subida de nível se mudou.
-  const finalizarDoacao = async () => {
+  const finalizarDoacao = async (paymentId?: number | string) => {
+    // Modo setup: registra o teste e volta pro passo 3 da homologação
+    if (setupMode && setupToken) {
+      const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003";
+      try {
+        await fetch(`${API}/api/portal/mp-setup/registrar-teste`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+          body: JSON.stringify({ token: setupToken, paymentId: paymentId ?? null }),
+        });
+      } catch {}
+      window.location.href = `/configurar-mp?token=${encodeURIComponent(setupToken)}&etapa=3`;
+      return;
+    }
+
     if (serialEfetivo) {
       // Race condition do webhook MP: o polling de status-doacao vê
       // `pago=true` antes do incremento de pontos do doador terminar.
@@ -1025,7 +1099,7 @@ function DoacaoPageInner() {
   };
 
   if (etapa === "cartaobrick" && escolhida && cartaoDoacaoId)
-    return <TelaCartaoBrick inst={escolhida} qtd={qtd} doacaoId={cartaoDoacaoId} valorTotal={cartaoValor} onSucesso={finalizarDoacao} onVoltar={() => setEtapa("pagamento")} />;
+    return <TelaCartaoBrick inst={escolhida} qtd={qtd} doacaoId={cartaoDoacaoId} valorTotal={cartaoValor} setupMode={setupMode} onSucesso={finalizarDoacao} onVoltar={() => setEtapa("pagamento")} />;
 
   if (etapa === "pixqr" && escolhida && pixMpData && pixData)
     return <TelaPixQrCode inst={escolhida} qtd={qtd} doacaoId={pixData.doacaoId} pixData={pixMpData} onPago={finalizarDoacao} onNova={resetar} />;
@@ -1072,7 +1146,7 @@ function DoacaoPageInner() {
             <p style={{ color: "#fff", fontSize: 14 }}>Gerando pagamento...</p>
           </div>
         )}
-        <TelaPagamento inst={escolhida} tagSerial={tagSerial} autoSerial={autoSerial} onConfirmar={handleConfirmar} onVoltar={() => setEtapa("escolha")} />
+        <TelaPagamento inst={escolhida} tagSerial={tagSerial} autoSerial={autoSerial} setupMode={setupMode} onConfirmar={handleConfirmar} onVoltar={() => setEtapa("escolha")} />
       </>
     );
 

@@ -3,20 +3,32 @@ import { prisma } from '../lib/prisma'
 
 const router = Router()
 
-// GET /api/portal/mp-setup?token= — valida token e retorna dados da instituição
+// GET /api/portal/mp-setup?token= — valida token e retorna estado do onboarding
 router.get('/mp-setup', async (req: Request, res: Response) => {
   const { token } = req.query
   if (!token) { res.status(400).json({ error: 'Token obrigatório' }); return }
   const inst = await prisma.instituicao.findUnique({
     where: { mpSetupToken: String(token) },
-    select: { id: true, nome: true, emoji: true, mercadoPagoToken: true, mpPublicKey: true },
+    select: {
+      id: true,
+      nome: true,
+      emoji: true,
+      valor: true,
+      mercadoPagoToken: true,
+      mpPublicKey: true,
+      setupTestePaymentId: true,
+      homologada: true,
+    },
   })
   if (!inst) { res.status(404).json({ error: 'Link inválido ou expirado' }); return }
   res.json({
     id: inst.id,
     nome: inst.nome,
     emoji: inst.emoji,
-    configurado: !!(inst.mercadoPagoToken && inst.mpPublicKey),
+    valor: inst.valor,
+    credenciaisOk: !!(inst.mercadoPagoToken && inst.mpPublicKey),
+    testeFeito: !!inst.setupTestePaymentId,
+    homologada: inst.homologada,
   })
 })
 
@@ -35,7 +47,42 @@ router.post('/mp-setup', async (req: Request, res: Response) => {
     where: { id: inst.id },
     data: { mercadoPagoToken: accessToken, mpPublicKey: publicKey },
   })
-  res.json({ ok: true, mensagem: 'Credenciais salvas com sucesso! Sua instituição já pode receber doações.' })
+  res.json({ ok: true, mensagem: 'Credenciais salvas com sucesso!' })
+})
+
+// POST /api/portal/mp-setup/registrar-teste — marca que o pagamento de
+// teste foi feito. Chamado pelo frontend após a tela de doação retornar
+// com sucesso (status approved / in_process / rejected — qualquer um
+// conta; o importante é o request ter chegado no MP).
+router.post('/mp-setup/registrar-teste', async (req: Request, res: Response) => {
+  const { token, paymentId } = req.body
+  if (!token) { res.status(400).json({ error: 'Token obrigatório' }); return }
+  const inst = await prisma.instituicao.findUnique({ where: { mpSetupToken: String(token) } })
+  if (!inst) { res.status(404).json({ error: 'Link inválido ou expirado' }); return }
+  await prisma.instituicao.update({
+    where: { id: inst.id },
+    data: { setupTestePaymentId: paymentId ? String(paymentId) : 'registrado' },
+  })
+  res.json({ ok: true })
+})
+
+// POST /api/portal/mp-setup/ativar — a instituição declara que completou
+// a homologação no painel developers do MP e pede pra ser ativada.
+// A partir daqui, inst.homologada = true e a instituição passa a aparecer
+// na listagem pública /api/instituicoes.
+router.post('/mp-setup/ativar', async (req: Request, res: Response) => {
+  const { token } = req.body
+  if (!token) { res.status(400).json({ error: 'Token obrigatório' }); return }
+  const inst = await prisma.instituicao.findUnique({ where: { mpSetupToken: String(token) } })
+  if (!inst) { res.status(404).json({ error: 'Link inválido ou expirado' }); return }
+  if (!inst.mercadoPagoToken || !inst.mpPublicKey) {
+    res.status(400).json({ error: 'Credenciais do Mercado Pago ainda não foram salvas.' }); return
+  }
+  await prisma.instituicao.update({
+    where: { id: inst.id },
+    data: { homologada: true },
+  })
+  res.json({ ok: true, mensagem: 'Instituição ativada! Agora ela aparece na página pública de doações.' })
 })
 
 // GET /api/portal/gastos?token= — valida token e retorna gastos da instituição

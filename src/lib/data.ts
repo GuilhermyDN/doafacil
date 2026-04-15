@@ -8,7 +8,10 @@ export type Instituicao = {
   emoji: string;
   pixKey: string;
   ativo?: boolean;
+  homologada?: boolean;
+  setupTestePaymentId?: string | null;
   mercadoPagoToken?: string | null;
+  mpPublicKey?: string | null;
   mpSetupToken?: string | null;
   gastosToken?: string | null;
 };

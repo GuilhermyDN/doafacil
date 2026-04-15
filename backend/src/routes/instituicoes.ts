@@ -3,10 +3,14 @@ import { prisma } from '../lib/prisma'
 
 const router = Router()
 
-// GET /api/instituicoes
+// GET /api/instituicoes — só retorna instituições que completaram todo
+// o onboarding (ativo=true E homologada=true). Instituições em setup não
+// aparecem para doadores — nem PIX, nem cartão.
 router.get('/', async (_req: Request, res: Response) => {
   try {
-    const instituicoes = await prisma.instituicao.findMany({ where: { ativo: true } })
+    const instituicoes = await prisma.instituicao.findMany({
+      where: { ativo: true, homologada: true },
+    })
     res.json(instituicoes)
   } catch {
     res.status(500).json({ error: 'Erro interno' })

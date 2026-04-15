@@ -4,7 +4,7 @@ import { type Doador, type Missao, type Doacao } from "@/lib/data";
 import {
   login as apiLogin, logout as apiLogout, isLoggedIn,
   getDoacoes, getRanking, getMissoes, getEventos, getEventoQRCodes,
-  getDashboardResumo, getInstituicoes, getGastos, postGasto, postInstituicao, putInstituicao, deleteInstituicao, gerarLinksInstituicao,
+  getDashboardResumo, getAdminInstituicoes, getGastos, postGasto, postInstituicao, putInstituicao, deleteInstituicao, gerarLinksInstituicao,
   type QREvento, type Evento, type DashboardResumo,
 } from "@/lib/api";
 
@@ -408,7 +408,7 @@ export default function AdminPage() {
   // carregar instituições para aba gastos
   useEffect(() => {
     if (!autenticado) return;
-    getInstituicoes().then(insts => {
+    getAdminInstituicoes().then(insts => {
       setGastosInsts(insts);
       if (insts.length > 0 && !gastosInstId) setGastosInstId(insts[0].id);
     });
@@ -418,7 +418,7 @@ export default function AdminPage() {
   // carregar instituições para aba instituicoes
   useEffect(() => {
     if (!autenticado || tab !== "instituicoes") return;
-    getInstituicoes().then(setInstAdminList);
+    getAdminInstituicoes().then(setInstAdminList);
   }, [autenticado, tab]);
 
   // scroll ao formulário de edição quando abre
@@ -431,7 +431,7 @@ export default function AdminPage() {
   // carregar instituições para aba prestação
   useEffect(() => {
     if (!autenticado || tab !== "prestacao") return;
-    getInstituicoes().then(insts => {
+    getAdminInstituicoes().then(insts => {
       setPrestInsts(insts);
       if (insts.length > 0 && !prestInstId) setPrestInstId(insts[0].id);
     });
@@ -1537,6 +1537,12 @@ export default function AdminPage() {
         setInstAdminList(l => l.map(i => i.id === inst.id ? atualizada : i));
       } catch { alert("Erro ao atualizar status."); }
     };
+    const handleToggleHomologada = async (inst: import("@/lib/data").Instituicao) => {
+      try {
+        const atualizada = await putInstituicao(inst.id, { homologada: !inst.homologada });
+        setInstAdminList(l => l.map(i => i.id === inst.id ? atualizada : i));
+      } catch { alert("Erro ao atualizar homologação."); }
+    };
     const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
     const getLinkMp     = (inst: import("@/lib/data").Instituicao) => inst.mpSetupToken ? `${baseUrl}/configurar-mp?token=${inst.mpSetupToken}` : null;
     const getLinkGastos = (inst: import("@/lib/data").Instituicao) => inst.gastosToken  ? `${baseUrl}/gastos-instituicao?token=${inst.gastosToken}` : null;
@@ -1685,6 +1691,10 @@ export default function AdminPage() {
                     <p style={{ fontSize: 15, fontWeight: 700, color: C.ink }}>{inst.nome}</p>
                     {inst.ativo === false && <span style={{ fontSize: 10, background: C.stone, color: C.muted, padding: "2px 8px", borderRadius: 99, fontWeight: 600 }}>Inativa</span>}
                     {inst.mercadoPagoToken && <span style={{ fontSize: 10, background: C.greenL, color: C.green, padding: "2px 8px", borderRadius: 99, fontWeight: 600 }}>✓ MP vinculado</span>}
+                    {inst.homologada
+                      ? <span style={{ fontSize: 10, background: "#e6f7ee", color: "#00a650", padding: "2px 8px", borderRadius: 99, fontWeight: 600 }}>✓ Homologada</span>
+                      : <span style={{ fontSize: 10, background: "#fff4e5", color: "#e67e00", padding: "2px 8px", borderRadius: 99, fontWeight: 600 }}>⏳ Pendente homologação</span>
+                    }
                   </div>
                   <p style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{inst.tipo} · R$ {inst.valor}/pessoa · Pix: <span style={{ fontWeight: 600 }}>{inst.pixKey}</span></p>
                 </div>
@@ -1692,6 +1702,11 @@ export default function AdminPage() {
                   <button onClick={() => handleOpenEdit(inst)} style={{ background: C.blueL, color: C.blue, border: "none", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>✏️ Editar</button>
                   <button onClick={() => handleToggleAtivo(inst)} style={{ background: inst.ativo === false ? C.greenL : C.stone, color: inst.ativo === false ? C.green : C.muted, border: "none", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                     {inst.ativo === false ? "✓ Ativar" : "⊘ Desativar"}
+                  </button>
+                  <button onClick={() => handleToggleHomologada(inst)}
+                    title="Marca/desmarca homologada manualmente. Instituições não homologadas não aparecem no site público."
+                    style={{ background: inst.homologada ? "#fff4e5" : "#e6f7ee", color: inst.homologada ? "#e67e00" : "#00a650", border: "none", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                    {inst.homologada ? "⏳ Des-homologar" : "✓ Homologar"}
                   </button>
                   <button onClick={() => handleGerarLink(inst)} style={{ background: "#f0f4ff", color: "#009EE3", border: "1px solid #009EE344", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>🔄 Regenerar links</button>
                   <button onClick={() => handleDeletarInstituicao(inst)} style={{ background: "#fff0f0", color: "#e53e3e", border: "none", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>🗑️ Apagar</button>

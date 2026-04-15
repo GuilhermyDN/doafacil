@@ -6,6 +6,20 @@ import crypto from 'crypto'
 const router = Router()
 router.use(authMiddleware)
 
+// GET /api/admin/instituicoes — lista TODAS as instituições (inclusive não
+// homologadas e inativas). A listagem pública em /api/instituicoes filtra
+// por homologada=true, então o admin precisa de um endpoint dedicado.
+router.get('/', async (_req: Request, res: Response) => {
+  try {
+    const instituicoes = await prisma.instituicao.findMany({
+      orderBy: { id: 'asc' },
+    })
+    res.json(instituicoes)
+  } catch {
+    res.status(500).json({ error: 'Erro interno' })
+  }
+})
+
 // POST /api/admin/instituicoes
 router.post('/', async (req: Request, res: Response) => {
   try {
@@ -30,7 +44,7 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id)
-    const { nome, tipo, valor, pixKey, emoji, cor, bg, ativo, mercadoPagoToken, mpPublicKey } = req.body
+    const { nome, tipo, valor, pixKey, emoji, cor, bg, ativo, homologada, mercadoPagoToken, mpPublicKey } = req.body
 
     const inst = await prisma.instituicao.update({
       where: { id },
@@ -43,6 +57,7 @@ router.put('/:id', async (req: Request, res: Response) => {
         ...(cor !== undefined && { cor }),
         ...(bg !== undefined && { bg }),
         ...(ativo !== undefined && { ativo: Boolean(ativo) }),
+        ...(homologada !== undefined && { homologada: Boolean(homologada) }),
         ...(mercadoPagoToken !== undefined && { mercadoPagoToken: mercadoPagoToken || null }),
         ...(mpPublicKey !== undefined && { mpPublicKey: mpPublicKey || null }),
       },

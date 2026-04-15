@@ -51,8 +51,15 @@ export function isLoggedIn(): boolean {
 }
 
 // ── INSTITUIÇÕES ──────────────────────────────────────────────────────────────
+// Público: só retorna instituições homologadas e ativas (o que o doador vê)
 export async function getInstituicoes() {
   return apiFetch<import('./data').Instituicao[]>('/api/instituicoes')
+}
+
+// Admin: retorna TODAS (inclusive em setup/não homologadas/inativas).
+// Requer JWT de admin — o backend valida via authMiddleware.
+export async function getAdminInstituicoes() {
+  return apiFetch<import('./data').Instituicao[]>('/api/admin/instituicoes')
 }
 
 export async function getInstituicao(id: number) {
