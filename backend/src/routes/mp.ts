@@ -322,12 +322,18 @@ router.post('/cartao', async (req: Request, res: Response) => {
     if (doacao.pago) { res.status(400).json({ error: 'Doação já paga' }); return }
 
     const inst = doacao.instituicao
-    if (!inst.mercadoPagoToken) {
-      res.status(400).json({ error: 'Esta instituição ainda não configurou o recebimento de pagamentos. Entre em contato com o administrador.' }); return
-    }
     const frontendUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'
-    const clienteInst = new MercadoPagoConfig({ accessToken: inst.mercadoPagoToken })
-    const prefClient = new Preference(clienteInst)
+
+    // Usa o token da PLATAFORMA para o Checkout Pro.
+    // cc_rejected_high_risk ocorre quando a conta da instituição não completou
+    // verificação de identidade no MP para receber cartão.
+    // PIX continua usando o token da instituição (sem essa restrição).
+    const tokenParaCartao = process.env.MP_ACCESS_TOKEN || inst.mercadoPagoToken || ''
+    if (!tokenParaCartao) {
+      res.status(400).json({ error: 'Nenhum token de pagamento configurado.' }); return
+    }
+    const prefClient = new Preference(new MercadoPagoConfig({ accessToken: tokenParaCartao }))
+    console.log(`💳 Checkout Pro usando token da ${process.env.MP_ACCESS_TOKEN ? 'plataforma' : 'instituição'}`)
 
     // Exclui apenas métodos não-cartão (boleto, transferência, etc.)
     // Não restringe crédito/débito para não causar erro fatal no checkout MP
