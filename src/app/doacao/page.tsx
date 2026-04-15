@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { type Instituicao } from "@/lib/data";
 import { getInstituicoes, postDoacao, criarPixMp, type PostDoacaoResponse, type MpPixResponse } from "@/lib/api";
@@ -357,142 +357,39 @@ function TelaPagamento({ inst, tagSerial, autoSerial, onConfirmar, onVoltar }: {
   );
 }
 
-// ── TELA CARTÃO — CHECKOUT TRANSPARENTE ──────────────────────────────────────
-function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar }: {
+// ── TELA CARTÃO — CHECKOUT PRO (redirect seguro ao Mercado Pago) ──────────────
+function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onVoltar }: {
   inst: Instituicao; qtd: number; doacaoId: number; valorTotal: number;
   onSucesso: () => void; onVoltar: () => void;
 }) {
   const { cor } = instColor(inst);
-  const [erro, setErro]             = useState("");
-  const [processando, setProc]      = useState(false);
-  const [pronto, setPronto]         = useState(false);
-  const [tipoCartao, setTipo]       = useState<"credito" | "debito" | null>(null);
+  const [erro, setErro]       = useState("");
+  const [carregando, setLoad] = useState(false);
+  const [tipoCartao, setTipo] = useState<"credito" | "debito" | null>(null);
   const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003";
-  const cfRef = useRef<any>(null);
 
-  useEffect(() => {
-    let dead = false;
-
-    (async () => {
-      // 1. Chave pública da instituição (fallback = plataforma)
-      let pk = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY || "";
-      try {
-        const r = await fetch(`${API}/api/mp/chave-publica?doacaoId=${doacaoId}`, {
-          headers: { "ngrok-skip-browser-warning": "true" },
-        });
-        if (r.ok) { const d = await r.json(); if (d.publicKey) pk = d.publicKey; }
-      } catch {}
-      if (!pk || dead) return;
-
-      // 2. SDK do MP
-      await new Promise<void>((resolve) => {
-        if ((window as any).MercadoPago) { resolve(); return; }
-        const ex = document.querySelector('script[src*="mercadopago"]');
-        if (ex) { ex.addEventListener("load", () => resolve()); return; }
-        const s = document.createElement("script");
-        s.src = "https://sdk.mercadopago.com/js/v2";
-        s.onload = () => resolve();
-        document.head.appendChild(s);
+  const handlePagar = async () => {
+    if (!tipoCartao) return;
+    setLoad(true); setErro("");
+    try {
+      const res = await fetch(`${API}/api/mp/cartao`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+        body: JSON.stringify({ doacaoId, tipoCartao }),
       });
-      if (dead) return;
-
-      // 3. cardForm com iframe: false → inputs normais totalmente estilizáveis
-      const mp = new (window as any).MercadoPago(pk, { locale: "pt-BR" });
-      const cf = mp.cardForm({
-        amount: String(valorTotal),
-        iframe: false,
-        form: {
-          id: "form-cartao-ct",
-          cardholderName:      { id: "ct-nome",    placeholder: "Nome como no cartão" },
-          cardholderEmail:     { id: "ct-email",   placeholder: "seu@email.com" },
-          cardNumber:          { id: "ct-numero",  placeholder: "1234 1234 1234 1234" },
-          expirationDate:      { id: "ct-validade",placeholder: "MM/YY" },
-          securityCode:        { id: "ct-cvv",     placeholder: "CVV" },
-          installments:        { id: "ct-parcelas" },
-          identificationType:  { id: "ct-tipo-doc" },
-          identificationNumber:{ id: "ct-doc",    placeholder: "000.000.000-00" },
-          issuer:              { id: "ct-issuer" },
-        },
-        callbacks: {
-          onFormMounted: (err: any) => {
-            if (dead) return;
-            if (err) setErro("Erro ao carregar formulário.");
-            else setPronto(true);
-          },
-          onSubmit: async (event: any) => {
-            event.preventDefault();
-            if (dead) return;
-            setProc(true); setErro("");
-            try {
-              const d = cf.getCardFormData();
-              const res = await fetch(`${API}/api/mp/cartao-token`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
-                body: JSON.stringify({
-                  doacaoId, token: d.token,
-                  installments: Number(d.installments) || 1,
-                  paymentMethodId: d.paymentMethodId,
-                  issuerId: d.issuerId,
-                  payerEmail: d.cardholderEmail,
-                  payerIdentification: d.identificationNumber
-                    ? { type: d.identificationType, number: d.identificationNumber }
-                    : undefined,
-                }),
-              });
-              const result = await res.json();
-              if (["approved", "in_process", "pending"].includes(result.status)) {
-                onSucesso();
-              } else {
-                const MSGS: Record<string, string> = {
-                  cc_rejected_insufficient_amount:      "Saldo insuficiente.",
-                  cc_rejected_bad_filled_security_code: "CVV incorreto.",
-                  cc_rejected_bad_filled_date:          "Data de validade incorreta.",
-                  cc_rejected_bad_filled_other:         "Dados incorretos. Verifique.",
-                  cc_rejected_call_for_authorize:       "Banco bloqueou. Ligue para autorizar.",
-                  cc_rejected_card_disabled:            "Cartão desabilitado para online.",
-                  cc_rejected_high_risk:                "Recusado por segurança. Tente outro cartão ou pague via PIX.",
-                  cc_rejected_max_attempts:             "Muitas tentativas. Aguarde e tente novamente.",
-                  cc_rejected_duplicated_payment:       "Pagamento duplicado.",
-                };
-                const det = result.statusDetail || "";
-                setErro(MSGS[det] || `Recusado${det ? ` (${det})` : ""}. Verifique os dados.`);
-              }
-            } catch {
-              setErro("Erro ao processar. Tente novamente.");
-            } finally {
-              if (!dead) setProc(false);
-            }
-          },
-          onError: (err: any) => { if (!dead) setErro(err?.message || "Erro no formulário"); },
-          onFetching: () => {},
-        },
-      });
-      if (dead) { try { cf.unmount(); } catch {} return; }
-      cfRef.current = cf;
-    })();
-
-    return () => {
-      dead = true;
-      try { cfRef.current?.unmount?.(); } catch {}
-      cfRef.current = null;
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const lbl: React.CSSProperties = {
-    fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase",
-    letterSpacing: 0.5, marginBottom: 6, display: "block",
-  };
-  const inp: React.CSSProperties = {
-    width: "100%", padding: "11px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`,
-    background: C.offWhite, fontSize: 14, color: C.ink, outline: "none",
-    boxSizing: "border-box", fontFamily: "inherit",
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao criar pagamento");
+      window.location.href = data.init_point;
+    } catch (e: any) {
+      setErro(e.message || "Erro ao redirecionar para o pagamento.");
+      setLoad(false);
+    }
   };
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 20px", position: "relative" }}>
       <PageBg />
-      <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 480, background: C.white, borderRadius: 24, border: `1.5px solid ${C.border}`, boxShadow: "0 40px 100px rgba(0,0,0,0.45)", overflow: "hidden" }}>
+      <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 440, background: C.white, borderRadius: 24, border: `1.5px solid ${C.border}`, boxShadow: "0 40px 100px rgba(0,0,0,0.45)", overflow: "hidden" }}>
 
         {/* Header */}
         <div style={{ background: C.black, padding: "18px 22px", display: "flex", alignItems: "center", gap: 12 }}>
@@ -508,29 +405,40 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar 
         </div>
 
         {/* Body */}
-        <div style={{ padding: "24px 24px 28px" }}>
+        <div style={{ padding: "28px 24px 32px" }}>
 
           {/* Seleção crédito / débito */}
-          <div style={{ marginBottom: 20 }}>
-            <p style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>Tipo do cartão</p>
-            <div style={{ display: "flex", gap: 10 }}>
-              {(["credito", "debito"] as const).map(tipo => {
-                const ativo = tipoCartao === tipo;
-                return (
-                  <button key={tipo} onClick={() => { setTipo(tipo); setErro(""); }}
-                    style={{ flex: 1, padding: "14px 10px", borderRadius: 12, cursor: "pointer",
-                      border: `2px solid ${ativo ? C.blue : C.border}`,
-                      background: ativo ? C.blueL : C.offWhite, transition: "all 0.15s",
-                      display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                    <span style={{ fontSize: 24 }}>{tipo === "credito" ? "💳" : "🏧"}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: ativo ? C.blue : C.ink }}>
-                      {tipo === "credito" ? "Crédito" : "Débito"}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+          <p style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>Tipo do cartão</p>
+          <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
+            {(["credito", "debito"] as const).map(tipo => {
+              const ativo = tipoCartao === tipo;
+              return (
+                <button key={tipo} onClick={() => { setTipo(tipo); setErro(""); }}
+                  style={{ flex: 1, padding: "16px 10px", borderRadius: 14, cursor: "pointer",
+                    border: `2px solid ${ativo ? C.blue : C.border}`,
+                    background: ativo ? C.blueL : C.offWhite, transition: "all 0.15s",
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 28 }}>{tipo === "credito" ? "💳" : "🏧"}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: ativo ? C.blue : C.ink }}>
+                    {tipo === "credito" ? "Crédito" : "Débito"}
+                  </span>
+                </button>
+              );
+            })}
           </div>
+
+          {/* Info quando tipo selecionado */}
+          {tipoCartao && (
+            <div style={{ background: C.offWhite, borderRadius: 14, padding: "16px 18px", marginBottom: 20, display: "flex", gap: 12, alignItems: "flex-start" }}>
+              <span style={{ fontSize: 22, lineHeight: 1 }}>🔒</span>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 600, color: C.ink, marginBottom: 3 }}>Pagamento seguro pelo Mercado Pago</p>
+                <p style={{ fontSize: 12, color: C.muted, lineHeight: 1.5 }}>
+                  Você será redirecionado para a página oficial do Mercado Pago para inserir os dados do seu cartão de {tipoCartao === "credito" ? "crédito" : "débito"} com segurança.
+                </p>
+              </div>
+            </div>
+          )}
 
           {erro && (
             <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "12px 14px", marginBottom: 16, color: "#dc2626", fontSize: 13 }}>
@@ -538,71 +446,25 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar 
             </div>
           )}
 
-          {/* Loader enquanto o SDK não montou */}
-          {!pronto && (
-            <div style={{ textAlign: "center", padding: "24px 0", color: C.muted, fontSize: 14 }}>
-              Carregando formulário...
-            </div>
-          )}
-
-          {/* Formulário — sempre no DOM para o MP registrar os handlers */}
-          <div style={{ display: pronto ? "block" : "none" }}>
-            {!tipoCartao && (
-              <p style={{ textAlign: "center", color: C.muted, fontSize: 13, paddingBottom: 16 }}>
-                Selecione o tipo do cartão acima para continuar.
-              </p>
-            )}
-            <form id="form-cartao-ct">
-              <div style={{ marginBottom: 14 }}>
-                <label style={lbl}>Número do cartão</label>
-                <input id="ct-numero" type="text" placeholder="1234 1234 1234 1234" style={inp} inputMode="numeric" autoComplete="cc-number" />
-              </div>
-              <div style={{ marginBottom: 14, display: "flex", gap: 12 }}>
-                <div style={{ flex: 1 }}>
-                  <label style={lbl}>Validade</label>
-                  <input id="ct-validade" type="text" placeholder="MM/YY" style={inp} autoComplete="cc-exp" />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={lbl}>CVV</label>
-                  <input id="ct-cvv" type="text" placeholder="CVV" style={inp} inputMode="numeric" autoComplete="cc-csc" />
-                </div>
-              </div>
-              <div style={{ marginBottom: 14 }}>
-                <label style={lbl}>Nome no cartão</label>
-                <input id="ct-nome" type="text" placeholder="Como está impresso no cartão" style={inp} autoComplete="cc-name" />
-              </div>
-              <div style={{ marginBottom: 14 }}>
-                <label style={lbl}>CPF do titular</label>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <select id="ct-tipo-doc" style={{ ...inp, width: 90, flex: "none" as const }} />
-                  <input id="ct-doc" type="text" placeholder="000.000.000-00" style={{ ...inp, flex: 1 }} inputMode="numeric" />
-                </div>
-              </div>
-              <div style={{ marginBottom: 18 }}>
-                <label style={lbl}>E-mail</label>
-                <input id="ct-email" type="email" placeholder="seu@email.com" style={inp} autoComplete="email" />
-              </div>
-              {/* Campos ocultos preenchidos automaticamente pelo SDK */}
-              <select id="ct-parcelas" style={{ display: "none" }} />
-              <select id="ct-issuer"   style={{ display: "none" }} />
-
-              <button
-                type="submit"
-                disabled={processando || !tipoCartao}
-                style={{
-                  width: "100%", padding: 14, borderRadius: 12, border: "none", marginTop: 4,
-                  cursor: (processando || !tipoCartao) ? "not-allowed" : "pointer",
-                  background: (processando || !tipoCartao) ? C.muted : C.black,
-                  color: C.white, fontSize: 15, fontWeight: 700,
-                }}
-              >
-                {processando ? "⏳ Processando..." : `💳 Pagar R$ ${valorTotal.toFixed(2).replace(".", ",")}`}
-              </button>
-            </form>
-          </div>
+          <button
+            onClick={handlePagar}
+            disabled={!tipoCartao || carregando}
+            style={{
+              width: "100%", padding: "15px", borderRadius: 12, border: "none",
+              cursor: (!tipoCartao || carregando) ? "not-allowed" : "pointer",
+              background: (!tipoCartao || carregando) ? C.muted : C.black,
+              color: C.white, fontSize: 15, fontWeight: 700,
+            }}
+          >
+            {carregando
+              ? "⏳ Redirecionando..."
+              : tipoCartao
+                ? `Continuar para pagamento →`
+                : "Selecione o tipo do cartão"}
+          </button>
 
           <p style={{ fontSize: 11, color: C.muted, textAlign: "center", marginTop: 16, lineHeight: 1.6 }}>
-            🔒 Dados criptografados pelo Mercado Pago · {qtd} {qtd === 1 ? "pessoa" : "pessoas"} com {inst.tipo}
+            {qtd} {qtd === 1 ? "pessoa" : "pessoas"} com {inst.tipo} via {inst.nome}
           </p>
         </div>
       </div>
@@ -776,7 +638,9 @@ function DoacaoPageInner() {
   const idMpStr   = params.get("id");
   const tagSerial = params.get("tag") || undefined;  // serial da tag GS-HB25-... (via QR)
 
-  const [etapa, setEtapa]         = useState<Etapa>(statusMp === "sucesso" ? "confirmado" : "escolha");
+  const [etapa, setEtapa]         = useState<Etapa>(
+    statusMp === "sucesso" || statusMp === "pendente" ? "confirmado" : "escolha"
+  );
   const [escolhida, setEscolhida] = useState<Instituicao | null>(null);
   const [qtd, setQtd]             = useState(1);
   const [pixData, setPixData]     = useState<PostDoacaoResponse | null>(null);

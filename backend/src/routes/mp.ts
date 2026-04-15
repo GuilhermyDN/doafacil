@@ -308,9 +308,9 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
   }
 })
 
-// POST /api/mp/cartao — cria preferência Checkout Pro apenas para cartão
+// POST /api/mp/cartao — cria preferência Checkout Pro para cartão (redirect)
 router.post('/cartao', async (req: Request, res: Response) => {
-  const { doacaoId } = req.body
+  const { doacaoId, tipoCartao } = req.body
   if (!doacaoId) { res.status(400).json({ error: 'doacaoId obrigatório' }); return }
 
   try {
@@ -329,6 +329,11 @@ router.post('/cartao', async (req: Request, res: Response) => {
     const clienteInst = new MercadoPagoConfig({ accessToken: inst.mercadoPagoToken })
     const prefClient = new Preference(clienteInst)
 
+    // Exclui o tipo oposto ao que o usuário escolheu
+    const excludedTypes: { id: string }[] = [{ id: 'ticket' }, { id: 'bank_transfer' }, { id: 'atm' }]
+    if (tipoCartao === 'credito') excludedTypes.push({ id: 'debit_card' })
+    if (tipoCartao === 'debito')  excludedTypes.push({ id: 'credit_card' })
+
     const pref = await prefClient.create({
       body: {
         items: [{
@@ -345,7 +350,7 @@ router.post('/cartao', async (req: Request, res: Response) => {
           email: doacao.doadorEmail || 'doador@humanitybearers.com.br',
         },
         payment_methods: {
-          excluded_payment_types: [{ id: 'ticket' }, { id: 'bank_transfer' }, { id: 'atm' }],
+          excluded_payment_types: excludedTypes,
           installments: 1,
         },
         back_urls: {
@@ -358,6 +363,12 @@ router.post('/cartao', async (req: Request, res: Response) => {
         notification_url: `${process.env.NEXT_PUBLIC_URL || process.env.BACKEND_URL || 'http://localhost:3003'}/api/mp/webhook`,
         statement_descriptor: 'HUMANITY BEARERS',
       },
+    })
+
+    // Atualiza o método de pagamento na doação
+    await prisma.doacao.update({
+      where: { id: doacao.id },
+      data: { metodoPagamento: 'cartao' },
     })
 
     res.json({ init_point: pref.init_point })
