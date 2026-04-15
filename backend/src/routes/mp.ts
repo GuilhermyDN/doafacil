@@ -267,9 +267,12 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
     if (!inst.mercadoPagoToken) {
       res.status(400).json({ error: 'Esta instituição ainda não configurou o recebimento de pagamentos.' }); return
     }
+    // No modelo marketplace do MP: token criado com public_key da plataforma
+    // é válido para pagar via access_token da instituição (que autorizou via OAuth).
+    console.log(`💳 Cartão 3DS iniciando — inst=${inst.id} token_inst=${inst.mercadoPagoToken?.slice(0,20)}... paymentMethodId=${paymentMethodId}`)
     const clienteInst = new MercadoPagoConfig({ accessToken: inst.mercadoPagoToken })
     const payment = await new Payment(clienteInst).create({ body: paymentBody })
-    console.log(`💳 Cartão 3DS (inst ${inst.id}): status=${payment.status} detail=${(payment as any).status_detail}`)
+    console.log(`💳 Cartão 3DS (inst ${inst.id}): status=${payment.status} detail=${(payment as any).status_detail} id=${payment.id}`)
 
     if (payment.status === 'approved') {
       await prisma.doacao.update({
@@ -291,8 +294,10 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
       threeDsInfo, // { external_resource_url, creq } quando pending_challenge
     })
   } catch (err: any) {
-    console.error('MP cartao-token error:', err?.cause || err?.message || err)
-    res.status(500).json({ error: err?.message || 'Erro ao processar cartão' })
+    const cause = err?.cause || err
+    console.error('MP cartao-token error:', JSON.stringify(cause, null, 2))
+    const msgMp = (cause as any)?.message || err?.message || 'Erro ao processar cartão'
+    res.status(500).json({ error: msgMp })
   }
 })
 
