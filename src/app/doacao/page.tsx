@@ -365,21 +365,26 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar 
   const { cor } = instColor(inst);
   const [erro, setErro] = useState("");
   const [processando, setProcessando] = useState(false);
+  const [tipoCartao, setTipoCartao] = useState<"credito" | "debito" | null>(null);
+  const controllerRef = (typeof window !== "undefined" ? { current: null as any } : { current: null });
   const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
   const PK  = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY || '';
 
   useEffect(() => {
-    if (!PK) return;
-    // Carrega SDK do MP dinamicamente
-    const script = document.createElement("script");
-    script.src = "https://sdk.mercadopago.com/js/v2";
-    script.onload = () => {
+    if (!PK || !tipoCartao) return;
+
+    const tipoMP = tipoCartao === "credito" ? "credit_card" : "debit_card";
+
+    const initBricks = () => {
       const mp = new (window as any).MercadoPago(PK, { locale: "pt-BR" });
-      const bricksBuilder = mp.bricks();
-      bricksBuilder.create("cardPayment", "mp-card-brick", {
+      mp.bricks().create("cardPayment", "mp-card-brick", {
         initialization: { amount: valorTotal },
         customization: {
-          paymentMethods: { minInstallments: 1, maxInstallments: 1 },
+          paymentMethods: {
+            types: { included: [tipoMP] },
+            minInstallments: 1,
+            maxInstallments: tipoCartao === "credito" ? 1 : 1,
+          },
           visual: { style: { theme: "default" } },
         },
         callbacks: {
@@ -406,7 +411,7 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar 
               if (data.status === "approved") {
                 onSucesso();
               } else if (data.status === "in_process" || data.status === "pending") {
-                onSucesso(); // débito / 3DS — banco confirmará em breve
+                onSucesso();
               } else {
                 const MSGS: Record<string, string> = {
                   cc_rejected_insufficient_amount:      "Saldo insuficiente no cartão.",
@@ -421,7 +426,7 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar 
                   rejected_insufficient_data:           "Preencha todos os campos do cartão.",
                 };
                 const detalhe: string = data.statusDetail || "";
-                setErro(MSGS[detalhe] || `Pagamento recusado pelo banco${detalhe ? ` (${detalhe})` : ""}. Verifique os dados ou tente outro cartão.`);
+                setErro(MSGS[detalhe] || `Pagamento recusado${detalhe ? ` (${detalhe})` : ""}. Verifique os dados ou tente outro cartão.`);
               }
             } catch {
               setErro("Erro ao processar pagamento. Tente novamente.");
@@ -430,12 +435,27 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar 
             }
           },
         },
-      });
+      }).then((c: any) => { controllerRef.current = c; });
     };
-    document.head.appendChild(script);
-    return () => { document.head.removeChild(script); };
+
+    if ((window as any).MercadoPago) {
+      initBricks();
+    } else {
+      const existing = document.querySelector('script[src*="mercadopago"]');
+      if (existing) { existing.addEventListener("load", initBricks); return; }
+      const script = document.createElement("script");
+      script.src = "https://sdk.mercadopago.com/js/v2";
+      script.onload = initBricks;
+      document.head.appendChild(script);
+    }
+
+    return () => {
+      try { controllerRef.current?.unmount?.(); } catch {}
+      const el = document.getElementById("mp-card-brick");
+      if (el) el.innerHTML = "";
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [tipoCartao]);
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 20px", position: "relative" }}>
@@ -453,8 +473,33 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar 
           </div>
         </div>
         <div style={{ padding: "24px 24px 28px" }}>
+
+          {/* Seleção crédito / débito */}
+          <div style={{ marginBottom: 20 }}>
+            <p style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>Tipo do cartão</p>
+            <div style={{ display: "flex", gap: 10 }}>
+              {(["credito", "debito"] as const).map(tipo => {
+                const ativo = tipoCartao === tipo;
+                return (
+                  <button key={tipo} onClick={() => { setTipoCartao(tipo); setErro(""); }}
+                    style={{
+                      flex: 1, padding: "14px 10px", borderRadius: 12, cursor: "pointer", border: `2px solid ${ativo ? C.blue : C.border}`,
+                      background: ativo ? C.blueL : C.offWhite, transition: "all 0.15s",
+                      display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+                    }}>
+                    <span style={{ fontSize: 24 }}>{tipo === "credito" ? "💳" : "🏧"}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: ativo ? C.blue : C.ink }}>
+                      {tipo === "credito" ? "Crédito" : "Débito"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {erro && <div style={{ background: "#fff0f0", border: "1px solid #ff444433", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: "#cc0000" }}>{erro}</div>}
           {processando && <div style={{ textAlign: "center", padding: "20px 0", color: C.muted, fontSize: 14 }}>Processando pagamento...</div>}
+          {!tipoCartao && <p style={{ textAlign: "center", color: C.muted, fontSize: 13, padding: "16px 0" }}>Selecione o tipo do cartão para continuar.</p>}
           <div id="mp-card-brick" />
           <p style={{ fontSize: 11, color: C.muted, textAlign: "center", marginTop: 16, lineHeight: 1.6 }}>
             🔒 Dados criptografados pelo Mercado Pago · {qtd} {qtd === 1 ? "pessoa" : "pessoas"} com {inst.tipo}
