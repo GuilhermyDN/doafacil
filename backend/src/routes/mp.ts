@@ -261,9 +261,15 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
       three_d_secure_mode: 'mandatory', // força 3DS: banco SEMPRE envia desafio ao usuário
     }
 
-    // Usa a plataforma para evitar cc_rejected_high_risk de contas não verificadas
-    const payment = await new Payment(mpClient).create({ body: paymentBody })
-    console.log(`💳 Cartão 3DS: status=${payment.status} detail=${(payment as any).status_detail}`)
+    // Usa o token da INSTITUIÇÃO — a public key usada no frontend bate com este token
+    // (ambos vêm do mesmo OAuth da instituição → não há mismatch)
+    const inst = doacao.instituicao
+    if (!inst.mercadoPagoToken) {
+      res.status(400).json({ error: 'Esta instituição ainda não configurou o recebimento de pagamentos.' }); return
+    }
+    const clienteInst = new MercadoPagoConfig({ accessToken: inst.mercadoPagoToken })
+    const payment = await new Payment(clienteInst).create({ body: paymentBody })
+    console.log(`💳 Cartão 3DS (inst ${inst.id}): status=${payment.status} detail=${(payment as any).status_detail}`)
 
     if (payment.status === 'approved') {
       await prisma.doacao.update({

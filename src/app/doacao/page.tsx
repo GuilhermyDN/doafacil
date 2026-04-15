@@ -382,21 +382,31 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar 
   const [polling, setPolling]     = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
-  // Carrega SDK do MP
+  // Carrega SDK do MP com a public key da INSTITUIÇÃO (vem do banco, setada via OAuth)
   useEffect(() => {
-    const publicKey = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY || "";
-    const init = () => {
-      const instance = new (window as any).MercadoPago(publicKey, { locale: "pt-BR" });
-      setMp(instance);
-      setSdkReady(true);
+    const loadSdk = async () => {
+      // Busca a public key correta da instituição (que bate com o mercadoPagoToken dela)
+      let publicKey = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY || "";
+      try {
+        const r = await fetch(`${API}/api/mp/chave-publica?doacaoId=${doacaoId}`, { headers: { "ngrok-skip-browser-warning": "true" } });
+        const d = await r.json();
+        if (d.publicKey) publicKey = d.publicKey;
+      } catch {}
+
+      const init = () => {
+        const instance = new (window as any).MercadoPago(publicKey, { locale: "pt-BR" });
+        setMp(instance);
+        setSdkReady(true);
+      };
+      if ((window as any).MercadoPago) { init(); return; }
+      const s = document.createElement("script");
+      s.src = "https://sdk.mercadopago.com/js/v2";
+      s.async = true;
+      s.onload = init;
+      document.head.appendChild(s);
     };
-    if ((window as any).MercadoPago) { init(); return; }
-    const s = document.createElement("script");
-    s.src = "https://sdk.mercadopago.com/js/v2";
-    s.async = true;
-    s.onload = init;
-    document.head.appendChild(s);
-  }, []);
+    loadSdk();
+  }, [doacaoId, API]);
 
   // Detecta bandeira pelo BIN
   useEffect(() => {
