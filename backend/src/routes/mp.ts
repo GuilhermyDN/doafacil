@@ -418,6 +418,31 @@ router.post('/cartao', async (req: Request, res: Response) => {
     // caso a conta da instituição não tenha um dos subtipos habilitado
     const excludedTypes: { id: string }[] = [{ id: 'ticket' }, { id: 'bank_transfer' }, { id: 'atm' }]
 
+    // Payer enriquecido — o Checkout Pro bloqueia o botão "Pagar" quando
+    // o objeto payer chega com dados insuficientes. Quebramos o nome em
+    // first_name/surname, passamos telefone e (quando houver) CPF.
+    const nomeBruto = (doacao.doadorNome || '').trim()
+    const nomeEhReal = nomeBruto.length > 0
+      && nomeBruto.toLowerCase() !== 'doador'
+      && nomeBruto.toLowerCase() !== 'anônimo'
+      && nomeBruto.toLowerCase() !== 'anonimo'
+    const partesNome = nomeEhReal ? nomeBruto.split(/\s+/) : []
+    const firstName = partesNome[0] || 'Doador'
+    const surname = partesNome.length > 1 ? partesNome.slice(1).join(' ') : 'Solidário'
+
+    // Telefone — separa DDD dos demais dígitos (padrão MP)
+    const telDigits = (doacao.doadorTel || '').replace(/\D/g, '')
+    const phone = telDigits.length >= 10
+      ? { area_code: telDigits.slice(0, 2), number: telDigits.slice(2) }
+      : undefined
+
+    const payerPref: any = {
+      name: firstName,
+      surname,
+      email: (doacao.doadorEmail || '').trim() || 'doador@humanitybearers.com.br',
+    }
+    if (phone) payerPref.phone = phone
+
     const pref = await prefClient.create({
       body: {
         items: [{
@@ -425,14 +450,11 @@ router.post('/cartao', async (req: Request, res: Response) => {
           title: `Doação — ${inst.nome}`,
           description: `${doacao.quantidade}x ${inst.tipo}`,
           category_id: 'services',
-          unit_price: doacao.valorTotal,
-          quantity: doacao.quantidade,
+          unit_price: Number((doacao.valorTotal / (doacao.quantidade || 1)).toFixed(2)),
+          quantity: doacao.quantidade || 1,
           currency_id: 'BRL',
         }],
-        payer: {
-          name: doacao.doadorNome || 'Doador',
-          email: doacao.doadorEmail || 'doador@humanitybearers.com.br',
-        },
+        payer: payerPref,
         payment_methods: {
           excluded_payment_types: excludedTypes,
           installments: 1,
@@ -445,9 +467,10 @@ router.post('/cartao', async (req: Request, res: Response) => {
         auto_return: 'approved',
         external_reference: String(doacao.id),
         notification_url: `${process.env.NEXT_PUBLIC_URL || process.env.BACKEND_URL || 'http://localhost:3003'}/api/mp/webhook`,
-        statement_descriptor: 'HUMANITY BEARERS',
+        statement_descriptor: 'HUMANITYBEARERS',
       },
     })
+    console.log(`💳 Preferência criada — doacao=${doacao.id} pref_id=${pref.id} payer=${firstName} ${surname} <${payerPref.email}>`)
 
     // Atualiza o método de pagamento na doação
     await prisma.doacao.update({
