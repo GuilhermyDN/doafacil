@@ -591,18 +591,6 @@ function TelaConfirmado({ inst, qtd, pixData, viaMp, onNova }: {
               </p>
             </div>
 
-            {/* Pix fallback — só aparece se a instituição não tiver conta MP */}
-            {pixData.pixKey && !viaMp && (
-              <div style={{ background: bg, border: `1px solid ${cor}30`, borderRadius: 14, padding: "14px 16px", marginBottom: 16, textAlign: "left" }}>
-                <p style={{ fontSize: 10, color: cor, fontWeight: 700, marginBottom: 6, letterSpacing: 0.5, textTransform: "uppercase" }}>Chave Pix</p>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                  <span style={{ fontSize: 13, color: C.ink, fontWeight: 500, wordBreak: "break-all" }}>{pixData.pixKey}</span>
-                  <button onClick={copiar} style={{ background: copiado ? cor : C.white, border: `1.5px solid ${copiado ? cor : C.border}`, borderRadius: 8, padding: "5px 12px", fontSize: 11, color: copiado ? C.white : C.muted, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, transition: "all 0.2s" }}>
-                    {copiado ? "Copiado ✓" : "Copiar"}
-                  </button>
-                </div>
-              </div>
-            )}
           </>
         )}
 

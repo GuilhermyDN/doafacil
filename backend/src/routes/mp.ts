@@ -148,10 +148,10 @@ router.post('/pix', async (req: Request, res: Response) => {
       return
     }
 
-    // Salva o ID do pagamento MP na doação
+    // Salva o ID do pagamento MP e o método na doação
     await prisma.doacao.update({
       where: { id: doacao.id },
-      data: { mpPaymentId: String(payment.id) },
+      data: { mpPaymentId: String(payment.id), metodoPagamento: 'pix' },
     })
 
     res.json({
@@ -219,7 +219,12 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
     if (payment.status === 'approved') {
       await prisma.doacao.update({
         where: { id: doacao.id },
-        data: { pago: true, dataPagamento: new Date(), mpPaymentId: String(payment.id) },
+        data: { pago: true, dataPagamento: new Date(), mpPaymentId: String(payment.id), metodoPagamento: 'cartao' },
+      })
+    } else {
+      await prisma.doacao.update({
+        where: { id: doacao.id },
+        data: { mpPaymentId: String(payment.id), metodoPagamento: 'cartao' },
       })
     }
 

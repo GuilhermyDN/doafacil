@@ -72,12 +72,13 @@ model Doacao {
   eventoId      Int?
   quantidade    Int
   valorTotal    Float
-  pago          Boolean   @default(false)
-  cancelado     Boolean   @default(false)
-  dataCriacao   DateTime  @default(now())
-  dataPagamento DateTime?
-  observacao    String?
-  mpPaymentId   String?
+  pago             Boolean   @default(false)
+  cancelado        Boolean   @default(false)
+  metodoPagamento  String?   // "pix" | "cartao"
+  dataCriacao      DateTime  @default(now())
+  dataPagamento    DateTime?
+  observacao       String?
+  mpPaymentId      String?
 
   doador      Doador?     @relation(fields: [doadorId], references: [id])
   tag         Tag?        @relation(fields: [tagId], references: [id])

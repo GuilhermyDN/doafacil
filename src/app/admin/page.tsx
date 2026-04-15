@@ -607,7 +607,7 @@ export default function AdminPage() {
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 560 }}>
             <thead>
               <tr style={{ background: C.cream }}>
-                {["Doador","Instituição","Tipo","Valor","Data","Status"].map(h => (
+                {["Doador","Instituição","Tipo","Valor","Data","Método","Status"].map(h => (
                   <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: 11, color: C.muted, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
@@ -616,6 +616,8 @@ export default function AdminPage() {
               {filtradas.map((d, i) => {
                 const tipo = d.instituicao?.tipo || "";
                 const tc = tipo === "Refeicao" ? { c: C.green, bg: C.greenL } : tipo === "Banho" ? { c: C.blue, bg: C.blueL } : { c: C.amber, bg: C.amberL };
+                const isCartao = d.metodoPagamento === "cartao";
+                const isPix    = d.metodoPagamento === "pix" || (!d.metodoPagamento && d.mpPaymentId);
                 return (
                   <tr key={d.id} style={{ borderTop: `1px solid ${C.stone}`, background: i % 2 === 0 ? C.white : "rgba(250,247,242,0.5)" }}>
                     <td style={{ padding: "12px 16px" }}>
@@ -630,7 +632,24 @@ export default function AdminPage() {
                     <td style={{ padding: "12px 16px" }}><Badge color={tc.c} bg={tc.bg}>{d.instituicao?.tipo || "—"}</Badge></td>
                     <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 14, fontWeight: 700, color: C.green, fontFamily: "'Playfair Display',serif", whiteSpace: "nowrap" }}>R$ {d.valorTotal}</span></td>
                     <td style={{ padding: "12px 16px", fontSize: 13, color: C.muted, whiteSpace: "nowrap" }}>{new Date(d.dataCriacao).toLocaleDateString("pt-BR")}</td>
-                    <td style={{ padding: "12px 16px" }}><div style={{ display: "flex", alignItems: "center", gap: 5 }}>{d.pago ? <><Icon d={Icons.check} size={13} color={C.green} /><Badge color={C.green} bg={C.greenL}>Confirmado</Badge></> : <Badge color={C.amber} bg={C.amberL}>Pendente</Badge>}</div></td>
+                    <td style={{ padding: "12px 16px" }}>
+                      {isCartao
+                        ? <Badge color="#7c3aed" bg="#f3e8ff">💳 Cartão</Badge>
+                        : isPix
+                          ? <Badge color="#0284c7" bg="#e0f2fe">🪙 PIX</Badge>
+                          : <span style={{ fontSize: 12, color: C.muted }}>—</span>
+                      }
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                        {(d as any).cancelado
+                          ? <Badge color="#9ca3af" bg="#f3f4f6">Cancelado</Badge>
+                          : d.pago
+                            ? <><Icon d={Icons.check} size={13} color={C.green} /><Badge color={C.green} bg={C.greenL}>Confirmado</Badge></>
+                            : <Badge color={C.amber} bg={C.amberL}>Pendente</Badge>
+                        }
+                      </div>
+                    </td>
                   </tr>
                 );
               })}

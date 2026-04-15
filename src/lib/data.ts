@@ -23,6 +23,8 @@ export type Doacao = {
   quantidade: number;
   valorTotal: number;
   pago: boolean;
+  cancelado?: boolean;
+  metodoPagamento?: string | null;
   dataCriacao: string;
   dataPagamento?: string;
   observacao?: string;
