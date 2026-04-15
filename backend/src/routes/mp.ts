@@ -134,7 +134,7 @@ router.post('/pix', async (req: Request, res: Response) => {
           first_name: doacao.doadorNome || 'Doador',
         },
         external_reference: String(doacao.id),
-        notification_url: `${process.env.BACKEND_URL || 'http://localhost:3003'}/api/mp/webhook`,
+        notification_url: `${process.env.NEXT_PUBLIC_URL || process.env.BACKEND_URL || 'http://localhost:3003'}/api/mp/webhook`,
       },
     })
 
@@ -194,7 +194,7 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
           identification: payerIdentification,
         },
         external_reference: String(doacao.id),
-        notification_url: `${process.env.BACKEND_URL || 'http://localhost:3003'}/api/mp/webhook`,
+        notification_url: `${process.env.NEXT_PUBLIC_URL || process.env.BACKEND_URL || 'http://localhost:3003'}/api/mp/webhook`,
       },
     })
 
@@ -259,7 +259,7 @@ router.post('/cartao', async (req: Request, res: Response) => {
         },
         auto_return: 'approved',
         external_reference: String(doacao.id),
-        notification_url: `${process.env.BACKEND_URL || 'http://localhost:3003'}/api/mp/webhook`,
+        notification_url: `${process.env.NEXT_PUBLIC_URL || process.env.BACKEND_URL || 'http://localhost:3003'}/api/mp/webhook`,
         statement_descriptor: 'HUMANITY BEARERS',
       },
     })
@@ -312,7 +312,7 @@ router.post('/preferencia', async (req: Request, res: Response) => {
       },
       auto_return: 'approved',
       external_reference: String(doacao.id),
-      notification_url: `${process.env.BACKEND_URL || 'http://localhost:3001'}/api/mp/webhook`,
+      notification_url: `${process.env.NEXT_PUBLIC_URL || process.env.BACKEND_URL || 'http://localhost:3001'}/api/mp/webhook`,
       statement_descriptor: 'HUMANITY BEARERS',
     }
 
