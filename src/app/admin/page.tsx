@@ -259,6 +259,7 @@ const TABS: { id: Tab; label: string; icon: string; emoji?: string }[] = [
 function LoginForm({ onLogin }: { onLogin: () => void }) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [senhaVisivel, setSenhaVisivel] = useState(false);
   const [erro, setErro]   = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -284,9 +285,15 @@ function LoginForm({ onLogin }: { onLogin: () => void }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email"
             style={{ border: `1.5px solid ${C.border}`, borderRadius: 12, padding: "12px 14px", fontSize: 13, outline: "none" }} />
-          <input type="password" value={senha} onChange={e => setSenha(e.target.value)} placeholder="Senha"
-            onKeyDown={e => e.key === "Enter" && handleLogin()}
-            style={{ border: `1.5px solid ${C.border}`, borderRadius: 12, padding: "12px 14px", fontSize: 13, outline: "none" }} />
+          <div style={{ position: "relative" }}>
+            <input type={senhaVisivel ? "text" : "password"} value={senha} onChange={e => setSenha(e.target.value)} placeholder="Senha"
+              onKeyDown={e => e.key === "Enter" && handleLogin()}
+              style={{ border: `1.5px solid ${C.border}`, borderRadius: 12, padding: "12px 44px 12px 14px", fontSize: 13, outline: "none", width: "100%" }} />
+            <button type="button" onClick={() => setSenhaVisivel(v => !v)}
+              style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: 16, color: C.muted, padding: 0, lineHeight: 1 }}>
+              {senhaVisivel ? "🙈" : "👁️"}
+            </button>
+          </div>
           {erro && <p style={{ fontSize: 12, color: C.orange, textAlign: "center" }}>{erro}</p>}
           <button onClick={handleLogin} disabled={loading}
             style={{ background: C.black, color: C.white, border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", marginTop: 4 }}>
