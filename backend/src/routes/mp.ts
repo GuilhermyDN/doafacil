@@ -402,16 +402,23 @@ router.post('/cartao', async (req: Request, res: Response) => {
     const inst = doacao.instituicao
     const frontendUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'
 
-    // Usa o token da PLATAFORMA para o Checkout Pro.
-    // cc_rejected_high_risk ocorre quando a conta da instituição não completou
-    // verificação de identidade no MP para receber cartão.
-    // PIX continua usando o token da instituição (sem essa restrição).
-    const tokenParaCartao = process.env.MP_ACCESS_TOKEN || inst.mercadoPagoToken || ''
-    if (!tokenParaCartao) {
-      res.status(400).json({ error: 'Nenhum token de pagamento configurado.' }); return
+    // Usa SEMPRE o access_token da instituição (colado manualmente no
+    // fluxo /configurar-mp?token=X pelo próprio responsável dela). Assim
+    // o dinheiro cai direto na conta MP da instituição — como o PIX já faz.
+    //
+    // Versão anterior fallava pra process.env.MP_ACCESS_TOKEN (conta da
+    // plataforma) como tentativa de contornar cc_rejected_high_risk — mas
+    // isso (a) fazia o dinheiro cair na conta pessoal do dev, quebrando o
+    // modelo marketplace, e (b) disparava o bloqueio de self-payment do MP
+    // quando o próprio dev tentava testar.
+    if (!inst.mercadoPagoToken) {
+      res.status(400).json({
+        error: 'Esta instituição ainda não configurou as credenciais do Mercado Pago. Peça ao admin para gerar um link de configuração.',
+      })
+      return
     }
-    const prefClient = new Preference(new MercadoPagoConfig({ accessToken: tokenParaCartao }))
-    console.log(`💳 Checkout Pro usando token da ${process.env.MP_ACCESS_TOKEN ? 'plataforma' : 'instituição'}`)
+    const prefClient = new Preference(new MercadoPagoConfig({ accessToken: inst.mercadoPagoToken }))
+    console.log(`💳 Checkout Pro — doacao=${doacao.id} inst=${inst.id} nome="${inst.nome}"`)
 
     // Exclui apenas métodos não-cartão (boleto, transferência, etc.)
     // Não restringe crédito/débito para não causar erro fatal no checkout MP
