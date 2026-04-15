@@ -26,7 +26,9 @@ const PORT = process.env.PORT || 3001
 
 const allowedOrigins = [
   'http://localhost:3000',
+  'http://187.127.8.253',
   process.env.NEXT_PUBLIC_URL,
+  process.env.NEXT_PUBLIC_URL ? process.env.NEXT_PUBLIC_URL.replace('https://', 'https://www.') : '',
   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '',
 ].filter(Boolean) as string[]
 
