@@ -232,7 +232,7 @@ router.post('/pix', async (req: Request, res: Response) => {
   }
 })
 
-// POST /api/mp/cartao-token — processa pagamento com cartão via token (Bricks)
+// POST /api/mp/cartao-token — Checkout Transparente com 3DS
 router.post('/cartao-token', async (req: Request, res: Response) => {
   const { doacaoId, token, installments, paymentMethodId, issuerId, payerEmail, payerIdentification } = req.body
   if (!doacaoId || !token) { res.status(400).json({ error: 'doacaoId e token obrigatórios' }); return }
@@ -245,7 +245,7 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
     if (!doacao) { res.status(404).json({ error: 'Doação não encontrada' }); return }
     if (doacao.pago) { res.status(400).json({ error: 'Doação já paga' }); return }
 
-    const paymentBody = {
+    const paymentBody: any = {
       transaction_amount: doacao.valorTotal,
       token,
       description: `Doação — ${doacao.instituicao.nome}`,
@@ -258,32 +258,12 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
       },
       external_reference: String(doacao.id),
       notification_url: `${process.env.NEXT_PUBLIC_URL || process.env.BACKEND_URL || 'http://localhost:3003'}/api/mp/webhook`,
+      three_d_secure_mode: 'optional', // ativa 3DS: se alto risco → banco envia desafio ao usuário
     }
 
-    // Prefere o token da instituição (combina com a public key usada na tokenização)
-    // Se der erro de credenciais (17 = token/chave não batem), cai no token da plataforma
-    let payment: any
-    const instToken = doacao.instituicao.mercadoPagoToken
-    if (instToken) {
-      try {
-        const instConfig = new MercadoPagoConfig({ accessToken: instToken })
-        payment = await new Payment(instConfig).create({ body: paymentBody })
-        console.log(`💳 Cartão via token da instituição: status=${payment.status}`)
-      } catch (err: any) {
-        const cause = err?.cause?.[0]?.code
-        const isCredError = cause === 17 || cause === 2 || err?.status === 401
-        if (isCredError) {
-          console.log('💳 Token da instituição incompatível (erro', cause, '), usando plataforma')
-          payment = await new Payment(mpClient).create({ body: paymentBody })
-        } else {
-          throw err
-        }
-      }
-    } else {
-      payment = await new Payment(mpClient).create({ body: paymentBody })
-    }
-
-    console.log(`💳 Cartão: status=${payment.status} detail=${(payment as any).status_detail}`)
+    // Usa a plataforma para evitar cc_rejected_high_risk de contas não verificadas
+    const payment = await new Payment(mpClient).create({ body: paymentBody })
+    console.log(`💳 Cartão 3DS: status=${payment.status} detail=${(payment as any).status_detail}`)
 
     if (payment.status === 'approved') {
       await prisma.doacao.update({
@@ -297,14 +277,29 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
       })
     }
 
+    const threeDsInfo = (payment as any).three_ds_info || null
     res.json({
       status: payment.status,
       statusDetail: (payment as any).status_detail,
       paymentId: payment.id,
+      threeDsInfo, // { external_resource_url, creq } quando pending_challenge
     })
   } catch (err: any) {
     console.error('MP cartao-token error:', err?.cause || err?.message || err)
     res.status(500).json({ error: err?.message || 'Erro ao processar cartão' })
+  }
+})
+
+// GET /api/mp/status-doacao?doacaoId=xxx — polling de status para o 3DS
+router.get('/status-doacao', async (req: Request, res: Response) => {
+  const doacaoId = Number(req.query.doacaoId)
+  if (!doacaoId) { res.status(400).json({ error: 'doacaoId obrigatório' }); return }
+  try {
+    const doacao = await prisma.doacao.findUnique({ where: { id: doacaoId }, select: { pago: true, mpPaymentId: true } })
+    if (!doacao) { res.status(404).json({ error: 'Doação não encontrada' }); return }
+    res.json({ pago: doacao.pago, mpPaymentId: doacao.mpPaymentId })
+  } catch {
+    res.status(500).json({ error: 'Erro interno' })
   }
 })
 

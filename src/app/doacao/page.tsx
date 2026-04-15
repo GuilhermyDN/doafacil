@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { type Instituicao } from "@/lib/data";
 import { getInstituicoes, postDoacao, criarPixMp, type PostDoacaoResponse, type MpPixResponse } from "@/lib/api";
@@ -357,34 +357,170 @@ function TelaPagamento({ inst, tagSerial, autoSerial, onConfirmar, onVoltar }: {
   );
 }
 
-// ── TELA CARTÃO — CHECKOUT PRO (redirect seguro ao Mercado Pago) ──────────────
-function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onVoltar }: {
+// ── TELA CARTÃO — CHECKOUT TRANSPARENTE + 3DS ────────────────────────────────
+function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar }: {
   inst: Instituicao; qtd: number; doacaoId: number; valorTotal: number;
   onSucesso: () => void; onVoltar: () => void;
 }) {
   const { cor } = instColor(inst);
-  const [erro, setErro]       = useState("");
-  const [carregando, setLoad] = useState(false);
-  const [tipoCartao, setTipo] = useState<"credito" | "debito" | null>(null);
   const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003";
 
+  const [tipoCartao, setTipo]   = useState<"credito" | "debito" | null>(null);
+  const [numero, setNumero]     = useState("");
+  const [nome, setNome]         = useState("");
+  const [validade, setValidade] = useState("");
+  const [cvv, setCvv]           = useState("");
+  const [brand, setBrand]       = useState<string | null>(null);
+  const [loading, setLoading]   = useState(false);
+  const [sdkReady, setSdkReady] = useState(false);
+  const [mp, setMp]             = useState<any>(null);
+  const [erro, setErro]         = useState("");
+
+  // 3DS
+  const [challenge, setChallenge] = useState<{ external_resource_url: string; creq: string } | null>(null);
+  const [polling, setPolling]     = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Carrega SDK do MP
+  useEffect(() => {
+    const publicKey = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY || "";
+    const init = () => {
+      const instance = new (window as any).MercadoPago(publicKey, { locale: "pt-BR" });
+      setMp(instance);
+      setSdkReady(true);
+    };
+    if ((window as any).MercadoPago) { init(); return; }
+    const s = document.createElement("script");
+    s.src = "https://sdk.mercadopago.com/js/v2";
+    s.async = true;
+    s.onload = init;
+    document.head.appendChild(s);
+  }, []);
+
+  // Detecta bandeira pelo BIN
+  useEffect(() => {
+    const bin = numero.replace(/\s/g, "").slice(0, 6);
+    if (bin.length < 6 || !mp) { setBrand(null); return; }
+    mp.getPaymentMethods({ bin })
+      .then((r: any) => setBrand(r?.results?.[0]?.id || null))
+      .catch(() => setBrand(null));
+  }, [numero, mp]);
+
+  // Submete o form 3DS assim que ele aparece
+  useEffect(() => {
+    if (challenge && formRef.current) { formRef.current.submit(); }
+  }, [challenge]);
+
+  // Polling de status durante 3DS
+  useEffect(() => {
+    if (!challenge) return;
+    setPolling(true);
+    const iv = setInterval(async () => {
+      try {
+        const r = await fetch(`${API}/api/mp/status-doacao?doacaoId=${doacaoId}`, { headers: { "ngrok-skip-browser-warning": "true" } });
+        const d = await r.json();
+        if (d.pago) { clearInterval(iv); setPolling(false); onSucesso(); }
+      } catch {}
+    }, 3000);
+    const tout = setTimeout(() => {
+      clearInterval(iv); setPolling(false); setChallenge(null);
+      setErro("Tempo esgotado. Tente novamente.");
+    }, 5 * 60 * 1000);
+    return () => { clearInterval(iv); clearTimeout(tout); };
+  }, [challenge, doacaoId, onSucesso, API]);
+
+  const fmtNumero = (v: string) =>
+    v.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
+  const fmtValidade = (v: string) =>
+    v.replace(/\D/g, "").slice(0, 4).replace(/^(\d{2})(\d)/, "$1/$2");
+
   const handlePagar = async () => {
-    if (!tipoCartao) return;
-    setLoad(true); setErro("");
+    if (!tipoCartao || !numero || !nome || !validade || !cvv || !sdkReady || loading) return;
+    setLoading(true); setErro("");
     try {
-      const res = await fetch(`${API}/api/mp/cartao`, {
+      const partes = validade.split("/");
+      const month = partes[0]?.padStart(2, "0") || "";
+      const year  = (partes[1]?.length === 2 ? "20" : "") + (partes[1] || "");
+
+      const tokenResult = await mp.createCardToken({
+        cardNumber: numero.replace(/\s/g, ""),
+        cardholderName: nome,
+        cardExpirationMonth: month,
+        cardExpirationYear: year,
+        securityCode: cvv,
+      });
+      if (!tokenResult?.id) throw new Error("Erro ao processar dados do cartão.");
+
+      const bin = numero.replace(/\s/g, "").slice(0, 6);
+      let issuerId: string | undefined;
+      try {
+        const issuers = await mp.getIssuers({ paymentMethodId: brand || tokenResult.payment_method_id, bin });
+        issuerId = issuers?.[0]?.id;
+      } catch {}
+
+      const res = await fetch(`${API}/api/mp/cartao-token`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
-        body: JSON.stringify({ doacaoId, tipoCartao }),
+        body: JSON.stringify({
+          doacaoId,
+          token: tokenResult.id,
+          installments: 1,
+          paymentMethodId: brand || tokenResult.payment_method_id,
+          issuerId,
+          tipoCartao,
+        }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Erro ao criar pagamento");
-      window.location.href = data.init_point;
+      if (!res.ok) throw new Error(data.error || "Erro ao processar pagamento.");
+
+      if (data.status === "approved") { onSucesso(); return; }
+
+      if (data.statusDetail === "pending_challenge" && data.threeDsInfo) {
+        setChallenge(data.threeDsInfo); return;
+      }
+
+      const MSGS: Record<string, string> = {
+        cc_rejected_high_risk:              "Transação recusada por segurança. Tente outro cartão ou pague via Pix.",
+        cc_rejected_bad_filled_security_code:"Código de segurança (CVV) incorreto.",
+        cc_rejected_bad_filled_date:        "Data de vencimento inválida.",
+        cc_rejected_bad_filled_card_number: "Número do cartão inválido.",
+        cc_rejected_insufficient_amount:    "Saldo insuficiente.",
+        cc_rejected_call_for_authorize:     "Ligue para o banco para autorizar a transação.",
+        cc_rejected_card_disabled:          "Cartão desabilitado. Contate o banco.",
+      };
+      setErro(MSGS[data.statusDetail] || `Pagamento recusado (${data.statusDetail || data.status}). Tente outro cartão.`);
     } catch (e: any) {
-      setErro(e.message || "Erro ao redirecionar para o pagamento.");
-      setLoad(false);
+      setErro(e.message || "Erro ao processar cartão.");
+    } finally {
+      setLoading(false);
     }
   };
+
+  // ── Tela de desafio 3DS ────────────────────────────────────────────────────
+  if (challenge) return (
+    <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", position: "relative" }}>
+      <PageBg />
+      <div style={{ position: "relative", zIndex: 1, background: C.white, borderRadius: 24, padding: "28px 24px", width: "100%", maxWidth: 480, boxShadow: "0 40px 100px rgba(0,0,0,0.5)" }}>
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
+          <div style={{ fontSize: 40, marginBottom: 10 }}>🔐</div>
+          <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, color: C.ink, margin: "0 0 8px" }}>Confirme com seu banco</h3>
+          <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.6 }}>Seu banco está pedindo uma confirmação de segurança. Autorize pelo app ou insira o código enviado.</p>
+        </div>
+        <iframe name="mp-3ds-frame" title="Autenticação 3DS" style={{ width: "100%", height: 420, border: `1px solid ${C.border}`, borderRadius: 14, display: "block" }} />
+        <form ref={formRef} action={challenge.external_resource_url} method="post" target="mp-3ds-frame" style={{ display: "none" }}>
+          <input type="hidden" name="creq" value={challenge.creq} />
+        </form>
+        {polling && <p style={{ textAlign: "center", fontSize: 12, color: C.muted, marginTop: 14 }}>⏳ Aguardando confirmação do banco...</p>}
+        <button onClick={() => { setChallenge(null); setErro(""); }} style={{ width: "100%", marginTop: 14, padding: "12px", background: "none", border: `1px solid ${C.border}`, borderRadius: 12, color: C.muted, cursor: "pointer", fontSize: 13 }}>
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+
+  // ── Formulário de cartão ───────────────────────────────────────────────────
+  const inp: React.CSSProperties = { width: "100%", padding: "13px 14px", border: `1.5px solid ${C.border}`, borderRadius: 11, fontSize: 15, color: C.ink, outline: "none", background: C.white, boxSizing: "border-box" };
+  const lbl: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 };
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 20px", position: "relative" }}>
@@ -404,21 +540,20 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onVoltar }: {
           </div>
         </div>
 
-        {/* Body */}
-        <div style={{ padding: "28px 24px 32px" }}>
+        <div style={{ padding: "24px 24px 28px" }}>
 
-          {/* Seleção crédito / débito */}
-          <p style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>Tipo do cartão</p>
-          <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
+          {/* Crédito / Débito */}
+          <p style={lbl}>Tipo do cartão</p>
+          <div style={{ display: "flex", gap: 10, marginBottom: 22 }}>
             {(["credito", "debito"] as const).map(tipo => {
               const ativo = tipoCartao === tipo;
               return (
                 <button key={tipo} onClick={() => { setTipo(tipo); setErro(""); }}
-                  style={{ flex: 1, padding: "16px 10px", borderRadius: 14, cursor: "pointer",
+                  style={{ flex: 1, padding: "14px 10px", borderRadius: 12, cursor: "pointer",
                     border: `2px solid ${ativo ? C.blue : C.border}`,
                     background: ativo ? C.blueL : C.offWhite, transition: "all 0.15s",
-                    display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 28 }}>{tipo === "credito" ? "💳" : "🏧"}</span>
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+                  <span style={{ fontSize: 24 }}>{tipo === "credito" ? "💳" : "🏧"}</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: ativo ? C.blue : C.ink }}>
                     {tipo === "credito" ? "Crédito" : "Débito"}
                   </span>
@@ -427,18 +562,41 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onVoltar }: {
             })}
           </div>
 
-          {/* Info quando tipo selecionado */}
-          {tipoCartao && (
-            <div style={{ background: C.offWhite, borderRadius: 14, padding: "16px 18px", marginBottom: 20, display: "flex", gap: 12, alignItems: "flex-start" }}>
-              <span style={{ fontSize: 22, lineHeight: 1 }}>🔒</span>
-              <div>
-                <p style={{ fontSize: 13, fontWeight: 600, color: C.ink, marginBottom: 3 }}>Pagamento seguro pelo Mercado Pago</p>
-                <p style={{ fontSize: 12, color: C.muted, lineHeight: 1.5 }}>
-                  Você será redirecionado para a página oficial do Mercado Pago para inserir os dados do seu cartão de {tipoCartao === "credito" ? "crédito" : "débito"} com segurança.
-                </p>
+          {tipoCartao && (<>
+            {/* Número do cartão */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={lbl}>Número do cartão {brand && <span style={{ fontSize: 10, background: C.blueL, color: C.blue, padding: "2px 8px", borderRadius: 6, marginLeft: 6, fontWeight: 700, letterSpacing: 1 }}>{brand.toUpperCase()}</span>}</label>
+              <input style={inp} placeholder="0000 0000 0000 0000" inputMode="numeric" value={numero}
+                onChange={e => setNumero(fmtNumero(e.target.value))} maxLength={19} />
+            </div>
+
+            {/* Nome no cartão */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={lbl}>Nome igual no cartão</label>
+              <input style={inp} placeholder="NOME SOBRENOME" value={nome}
+                onChange={e => setNome(e.target.value.toUpperCase())} />
+            </div>
+
+            {/* Validade + CVV */}
+            <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+              <div style={{ flex: 1 }}>
+                <label style={lbl}>Validade</label>
+                <input style={inp} placeholder="MM/AA" inputMode="numeric" value={validade}
+                  onChange={e => setValidade(fmtValidade(e.target.value))} maxLength={5} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={lbl}>CVV</label>
+                <input style={inp} placeholder="123" inputMode="numeric" value={cvv}
+                  onChange={e => setCvv(e.target.value.replace(/\D/g, "").slice(0, 4))} maxLength={4} type="password" />
               </div>
             </div>
-          )}
+
+            {/* Aviso 3DS */}
+            <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "11px 14px", marginBottom: 18, display: "flex", gap: 10 }}>
+              <span style={{ fontSize: 16 }}>🔐</span>
+              <p style={{ fontSize: 12, color: "#15803d", lineHeight: 1.5 }}>Se seu banco pedir confirmação, um código ou notificação será enviado para você autorizar.</p>
+            </div>
+          </>)}
 
           {erro && (
             <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "12px 14px", marginBottom: 16, color: "#dc2626", fontSize: 13 }}>
@@ -446,25 +604,16 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onVoltar }: {
             </div>
           )}
 
-          <button
-            onClick={handlePagar}
-            disabled={!tipoCartao || carregando}
-            style={{
-              width: "100%", padding: "15px", borderRadius: 12, border: "none",
-              cursor: (!tipoCartao || carregando) ? "not-allowed" : "pointer",
-              background: (!tipoCartao || carregando) ? C.muted : C.black,
-              color: C.white, fontSize: 15, fontWeight: 700,
-            }}
-          >
-            {carregando
-              ? "⏳ Redirecionando..."
-              : tipoCartao
-                ? `Continuar para pagamento →`
-                : "Selecione o tipo do cartão"}
+          <button onClick={handlePagar}
+            disabled={!tipoCartao || !numero || !nome || !validade || !cvv || loading || !sdkReady}
+            style={{ width: "100%", padding: "15px", borderRadius: 12, border: "none",
+              cursor: "pointer", fontSize: 15, fontWeight: 700, color: C.white,
+              background: (!tipoCartao || !numero || !nome || !validade || !cvv || loading || !sdkReady) ? C.muted : C.black }}>
+            {!sdkReady ? "Carregando..." : loading ? "⏳ Processando..." : tipoCartao ? "Pagar agora →" : "Selecione o tipo do cartão"}
           </button>
 
-          <p style={{ fontSize: 11, color: C.muted, textAlign: "center", marginTop: 16, lineHeight: 1.6 }}>
-            {qtd} {qtd === 1 ? "pessoa" : "pessoas"} com {inst.tipo} via {inst.nome}
+          <p style={{ fontSize: 11, color: C.muted, textAlign: "center", marginTop: 14, lineHeight: 1.6 }}>
+            {qtd} {qtd === 1 ? "pessoa" : "pessoas"} · {inst.tipo} via {inst.nome}
           </p>
         </div>
       </div>
