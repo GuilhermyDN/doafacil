@@ -292,7 +292,16 @@ function TelaPagamento({ inst, tagSerial, autoSerial, onConfirmar, onVoltar }: {
               <input
                 placeholder="Telefone *"
                 value={telefone}
-                onChange={e => setTelefone(e.target.value)}
+                inputMode="tel"
+                maxLength={15}
+                onChange={e => {
+                  const d = e.target.value.replace(/\D/g, "").slice(0, 11);
+                  let out = d;
+                  if (d.length > 0) out = "(" + d.slice(0, 2);
+                  if (d.length >= 3) out += ") " + (d.length > 10 ? d.slice(2, 7) : d.slice(2, 6));
+                  if (d.length >= 7) out += "-" + (d.length > 10 ? d.slice(7) : d.slice(6));
+                  setTelefone(out);
+                }}
                 style={{ border: `1.5px solid ${telefone ? cor : C.border}`, borderRadius: 12, padding: "11px 14px", fontSize: 13, color: C.ink, outline: "none", transition: "border 0.15s" }}
               />
             </div>
