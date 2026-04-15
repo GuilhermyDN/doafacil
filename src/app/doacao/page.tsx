@@ -370,6 +370,7 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar 
   const [nome, setNome]         = useState("");
   const [validade, setValidade] = useState("");
   const [cvv, setCvv]           = useState("");
+  const [cpf, setCpf]           = useState("");
   const [brand, setBrand]       = useState<string | null>(null);
   const [loading, setLoading]   = useState(false);
   const [sdkReady, setSdkReady] = useState(false);
@@ -434,13 +435,19 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar 
   const fmtValidade = (v: string) =>
     v.replace(/\D/g, "").slice(0, 4).replace(/^(\d{2})(\d)/, "$1/$2");
 
+  const fmtCpf = (v: string) =>
+    v.replace(/\D/g, "").slice(0, 11).replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, "$1.$2.$3-$4")
+     .replace(/(\d{3})(\d{3})(\d{1,3})$/, "$1.$2.$3")
+     .replace(/(\d{3})(\d{1,3})$/, "$1.$2");
+
   const handlePagar = async () => {
-    if (!tipoCartao || !numero || !nome || !validade || !cvv || !sdkReady || loading) return;
+    if (!tipoCartao || !numero || !nome || !validade || !cvv || !cpf || !sdkReady || loading) return;
     setLoading(true); setErro("");
     try {
       const partes = validade.split("/");
       const month = partes[0]?.padStart(2, "0") || "";
       const year  = (partes[1]?.length === 2 ? "20" : "") + (partes[1] || "");
+      const cpfNum = cpf.replace(/\D/g, "");
 
       const tokenResult = await mp.createCardToken({
         cardNumber: numero.replace(/\s/g, ""),
@@ -448,6 +455,8 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar 
         cardExpirationMonth: month,
         cardExpirationYear: year,
         securityCode: cvv,
+        identificationType: "CPF",
+        identificationNumber: cpfNum,
       });
       if (!tokenResult?.id) throw new Error("Erro ao processar dados do cartão.");
 
@@ -468,6 +477,7 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar 
           paymentMethodId: brand || tokenResult.payment_method_id,
           issuerId,
           tipoCartao,
+          payerIdentification: { type: "CPF", number: cpfNum },
         }),
       });
       const data = await res.json();
@@ -578,7 +588,7 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar 
             </div>
 
             {/* Validade + CVV */}
-            <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+            <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
               <div style={{ flex: 1 }}>
                 <label style={lbl}>Validade</label>
                 <input style={inp} placeholder="MM/AA" inputMode="numeric" value={validade}
@@ -589,6 +599,13 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar 
                 <input style={inp} placeholder="123" inputMode="numeric" value={cvv}
                   onChange={e => setCvv(e.target.value.replace(/\D/g, "").slice(0, 4))} maxLength={4} type="password" />
               </div>
+            </div>
+
+            {/* CPF do titular */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={lbl}>CPF do titular do cartão</label>
+              <input style={inp} placeholder="000.000.000-00" inputMode="numeric" value={cpf}
+                onChange={e => setCpf(fmtCpf(e.target.value))} maxLength={14} />
             </div>
 
             {/* Aviso 3DS */}
@@ -605,10 +622,10 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar 
           )}
 
           <button onClick={handlePagar}
-            disabled={!tipoCartao || !numero || !nome || !validade || !cvv || loading || !sdkReady}
+            disabled={!tipoCartao || !numero || !nome || !validade || !cvv || !cpf || loading || !sdkReady}
             style={{ width: "100%", padding: "15px", borderRadius: 12, border: "none",
               cursor: "pointer", fontSize: 15, fontWeight: 700, color: C.white,
-              background: (!tipoCartao || !numero || !nome || !validade || !cvv || loading || !sdkReady) ? C.muted : C.black }}>
+              background: (!tipoCartao || !numero || !nome || !validade || !cvv || !cpf || loading || !sdkReady) ? C.muted : C.black }}>
             {!sdkReady ? "Carregando..." : loading ? "⏳ Processando..." : tipoCartao ? "Pagar agora →" : "Selecione o tipo do cartão"}
           </button>
 
