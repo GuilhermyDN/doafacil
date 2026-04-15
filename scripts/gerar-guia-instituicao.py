@@ -329,17 +329,23 @@ story.append(callout(
 story.append(PageBreak())
 
 # ═══ PASSO 4 ═══
-for el in step_header(4, "Ativação final"):
+for el in step_header(4, "Ativação automática"):
     story.append(el)
 
 story.append(Paragraph(
     "Assim que receber o email do Mercado Pago confirmando a aprovação da sua aplicação, volte ao link "
     "de configuração do Humanity Bearers (o mesmo link que o admin te enviou) e clique em "
-    "<b>'Já fui aprovada, ativar minha instituição'</b>.",
+    "<b>'Fazer outro pagamento de teste'</b>.",
     st_body,
 ))
 story.append(Paragraph(
-    "Pronto! Sua instituição entra automaticamente no ar:",
+    "Se o pagamento for <b>aprovado</b> dessa vez (e deve ser, agora que o MP homologou sua aplicação), "
+    "sua instituição é ativada <b>automaticamente</b>, na hora, sem você precisar clicar em mais nada. "
+    "A tela vai atualizar sozinha para a confirmação final.",
+    st_body,
+))
+story.append(Paragraph(
+    "Pronto! Sua instituição entra no ar:",
     st_body,
 ))
 story.append(li("Ela aparece na <b>página pública de doações</b> do Humanity Bearers."))

@@ -583,6 +583,29 @@ router.post('/webhook', async (req: Request, res: Response) => {
 
     if (payment.status !== 'approved') return
 
+    // AUTO-HOMOLOGAÇÃO: primeiro payment approved cuja conta recebedora
+    // (collector_id) bate com uma instituição ainda não homologada libera
+    // ela automaticamente. O raciocínio: enquanto a conta da instituição
+    // não for homologada pelo MP, cartão sempre vira cc_rejected_high_risk.
+    // Portanto, se chegou um approved, a homologação no MP já passou.
+    const collectorId = (payment as any).collector_id
+    if (collectorId) {
+      try {
+        const instNaoHomologada = await prisma.instituicao.findFirst({
+          where: { mpAccountId: String(collectorId), homologada: false },
+        })
+        if (instNaoHomologada) {
+          await prisma.instituicao.update({
+            where: { id: instNaoHomologada.id },
+            data: { homologada: true },
+          })
+          console.log(`🎉 Instituição #${instNaoHomologada.id} "${instNaoHomologada.nome}" homologada automaticamente (primeiro payment approved)`)
+        }
+      } catch (err) {
+        console.error('Erro ao auto-homologar instituição:', err)
+      }
+    }
+
     const doacaoId = doacaoPorPagamento?.id || Number(payment.external_reference)
     if (!doacaoId || isNaN(doacaoId)) return
 

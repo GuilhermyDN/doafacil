@@ -43,11 +43,37 @@ router.post('/mp-setup', async (req: Request, res: Response) => {
   }
   const inst = await prisma.instituicao.findUnique({ where: { mpSetupToken: String(token) } })
   if (!inst) { res.status(404).json({ error: 'Link inválido ou expirado' }); return }
+
+  // Valida o access_token e captura o mpAccountId (id do usuário no MP).
+  // Esse id é o que vai casar com o collector_id dos webhooks de payment,
+  // permitindo ao webhook auto-homologar a instituição quando receber o
+  // primeiro payment approved.
+  let mpAccountId: string | null = null
+  try {
+    const r = await fetch('https://api.mercadopago.com/users/me', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    if (!r.ok) {
+      res.status(400).json({ error: 'Access Token inválido ou rejeitado pelo Mercado Pago. Verifique se copiou corretamente da aba "Produção".' })
+      return
+    }
+    const user = await r.json() as { id?: number }
+    if (user?.id) mpAccountId = String(user.id)
+  } catch (err) {
+    console.error('Erro ao validar token no MP:', err)
+    res.status(502).json({ error: 'Não foi possível validar suas credenciais junto ao Mercado Pago. Tente novamente em alguns segundos.' })
+    return
+  }
+
   await prisma.instituicao.update({
     where: { id: inst.id },
-    data: { mercadoPagoToken: accessToken, mpPublicKey: publicKey },
+    data: {
+      mercadoPagoToken: accessToken,
+      mpPublicKey: publicKey,
+      mpAccountId: mpAccountId || undefined,
+    },
   })
-  res.json({ ok: true, mensagem: 'Credenciais salvas com sucesso!' })
+  res.json({ ok: true, mensagem: 'Credenciais salvas e validadas com sucesso!' })
 })
 
 // POST /api/portal/mp-setup/registrar-teste — marca que o pagamento de

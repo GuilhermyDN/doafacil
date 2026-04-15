@@ -33,9 +33,6 @@ function ConfigurarMpInner() {
   const [accessToken, setAccessToken] = useState('')
   const [salvando, setSalvando] = useState(false)
 
-  // Passo 4
-  const [ativando, setAtivando] = useState(false)
-
   const recarregar = () => {
     if (!token) { setErro('Link inválido'); return }
     fetch(`${API}/api/portal/mp-setup?token=${token}`, { headers: H })
@@ -54,6 +51,24 @@ function ConfigurarMpInner() {
   }
 
   useEffect(recarregar, [token]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Polling automático enquanto está no passo 3 — o webhook do MP pode
+  // auto-homologar a instituição a qualquer momento (assim que chegar o
+  // primeiro payment approved). Verificamos a cada 10s.
+  useEffect(() => {
+    if (passo !== 3) return
+    const iv = setInterval(() => {
+      fetch(`${API}/api/portal/mp-setup?token=${token}`, { headers: H })
+        .then(r => r.json())
+        .then((d: Estado | { error: string }) => {
+          if ('error' in d) return
+          setEstado(d)
+          if (d.homologada) setPasso(5)
+        })
+        .catch(() => {})
+    }, 10_000)
+    return () => clearInterval(iv)
+  }, [passo, token])
 
   async function salvarCredenciais() {
     setErro(''); setSalvando(true)
@@ -78,8 +93,11 @@ function ConfigurarMpInner() {
     window.location.href = `/doacao?setup=1&inst=${estado.id}&token=${encodeURIComponent(token)}`
   }
 
-  async function confirmarAtivacao() {
-    setErro(''); setAtivando(true)
+  // Ativação manual como fallback — a instituição pode clicar "já fui
+  // aprovada" se quiser forçar a ativação mesmo antes do webhook detectar.
+  // Útil caso o webhook falhe por algum motivo.
+  async function confirmarAtivacaoManual() {
+    setErro('')
     try {
       const r = await fetch(`${API}/api/portal/mp-setup/ativar`, {
         method: 'POST', headers: H, body: JSON.stringify({ token }),
@@ -88,7 +106,6 @@ function ConfigurarMpInner() {
       if (!r.ok) { setErro(d.error || 'Erro ao ativar'); return }
       recarregar()
     } catch { setErro('Erro ao ativar. Tente novamente.') }
-    finally { setAtivando(false) }
   }
 
   // ── Renderização ──
@@ -200,33 +217,51 @@ function ConfigurarMpInner() {
           </div>
         )}
 
-        {/* ── PASSO 3: HOMOLOGAÇÃO NO PAINEL MP ── */}
+        {/* ── PASSO 3: HOMOLOGAÇÃO NO PAINEL MP (automático) ── */}
         {passo === 3 && (
           <div style={box.card}>
-            <h2 style={h2}>✅ Passo 3 — Solicitar homologação no Mercado Pago</h2>
+            <h2 style={h2}>⏳ Passo 3 — Aguardando homologação do Mercado Pago</h2>
             <p style={sub}>
-              Ótimo, o pagamento de teste já chegou na sua conta ✓ Agora você precisa ir até o painel de developers do
+              O pagamento de teste já chegou na sua conta ✓ Agora você precisa ir até o painel de developers do
               Mercado Pago e solicitar a homologação da sua aplicação:
             </p>
             <ol style={{ margin: '12px 0 16px', paddingLeft: 20, fontSize: 13, color: '#555', lineHeight: 1.9 }}>
               <li>Vá em <a href="https://www.mercadopago.com.br/developers/panel/app" target="_blank" rel="noreferrer" style={{ color: '#000DFF' }}>mercadopago.com.br/developers/panel/app</a></li>
               <li>Abra a aplicação que você criou</li>
-              <li>No menu lateral, clique em <strong>Avaliação → Qualidade da integração</strong></li>
+              <li>No menu lateral, clique em <strong>Avaliação &gt; Qualidade da integração</strong></li>
               <li>O checklist deve estar <strong>100% verde</strong> (espere de 15 min a 2h se ainda não atualizou)</li>
               <li>Clique em <strong>&quot;Ir para produção&quot;</strong> ou <strong>&quot;Solicitar homologação&quot;</strong></li>
-              <li>O Mercado Pago libera em até 48h</li>
+              <li>O Mercado Pago libera em até 48h e te avisa por email</li>
             </ol>
+
             <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: '14px 16px', marginBottom: 14 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#1e40af', marginBottom: 6 }}>
+                ✨ Ativação 100% automática
+              </p>
               <p style={{ fontSize: 12, color: '#1e40af', lineHeight: 1.6 }}>
-                💡 Só volte aqui e clique no botão abaixo <strong>depois</strong> que o Mercado Pago aprovar a sua
-                homologação. Se clicar antes, sua instituição vai aparecer no site, mas os pagamentos por cartão serão
-                rejeitados.
+                Quando o Mercado Pago aprovar a homologação, basta você voltar aqui e fazer <strong>mais um pagamento de teste</strong>.
+                Se ele for aprovado, sua instituição é ativada <strong>automaticamente</strong> em instantes — você não precisa clicar em nada.
               </p>
             </div>
+
+            {/* indicador de polling ativo */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f5f5f5', borderRadius: 10, padding: '10px 14px', marginBottom: 12 }}>
+              <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#16a34a', animation: 'levelup-pop 1.2s ease-in-out infinite' }} />
+              <span style={{ fontSize: 12, color: '#555' }}>
+                Verificando status a cada 10 segundos...
+              </span>
+            </div>
+
             {erro && <p style={{ fontSize: 12, color: '#ef4444' }}>{erro}</p>}
-            <button onClick={confirmarAtivacao} disabled={ativando}
-              style={{ ...btn, background: ativando ? '#9ca3af' : '#16a34a' }}>
-              {ativando ? 'Ativando...' : 'Já fui aprovada, ativar minha instituição →'}
+
+            <button onClick={iniciarTeste}
+              style={{ ...btn, background: '#000DFF' }}>
+              🔁 Fazer outro pagamento de teste
+            </button>
+
+            <button onClick={confirmarAtivacaoManual}
+              style={{ ...btn, background: 'transparent', color: '#9ca3af', border: '1px dashed #d1d5db', marginTop: 0 }}>
+              Forçar ativação manual (não recomendado)
             </button>
           </div>
         )}
