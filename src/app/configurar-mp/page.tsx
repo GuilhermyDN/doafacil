@@ -20,7 +20,7 @@ type Passo = 1 | 2 | 3 | 4
 
 // Score mínimo que o painel MP precisa mostrar em "Qualidade da integração"
 // para liberar a instituição. Mesma constante do backend (instituicao-portal.ts).
-const SCORE_MINIMO = 43
+const SCORE_MINIMO = 73
 
 function ConfigurarMpInner() {
   const params = useSearchParams()

@@ -160,7 +160,7 @@ story.append(Spacer(1, 2*cm))
 resumo = [
     ["1", "Credenciais", "Copie suas chaves de produção do Mercado Pago"],
     ["2", "Pagamento de teste", "Faça 1 pagamento para subir o score da integração"],
-    ["3", "Score da integração", "Confira o valor no painel MP e digite aqui (mínimo 43)"],
+    ["3", "Score da integração", "Confira o valor no painel MP e digite aqui (mínimo 73)"],
 ]
 tbl = Table(resumo, colWidths=[1.2*cm, 5.2*cm, 10.8*cm])
 tbl.setStyle(TableStyle([
@@ -305,7 +305,7 @@ for el in step_header(3, "Score da Qualidade da Integração"):
 story.append(Paragraph(
     "O Mercado Pago avalia cada integração através de uma pontuação chamada <b>Qualidade da integração</b>. "
     "A pontuação vai de 0 a 100 e sobe conforme você envia pagamentos com os campos obrigatórios corretos. "
-    "Quando a pontuação passa de <b>43</b>, a sua aplicação é considerada apta para produção.",
+    "Quando a pontuação passa de <b>73</b>, a sua aplicação é considerada apta para produção.",
     st_body,
 ))
 
@@ -318,7 +318,7 @@ story.append(numli(5, "Volte ao link do Humanity Bearers, digite o número no ca
 
 story.append(Spacer(1, 0.5*cm))
 story.append(callout(
-    "📊 Se o score estiver abaixo de 43",
+    "📊 Se o score estiver abaixo de 73",
     "Não tem problema — basta clicar em <b>&ldquo;Fazer outro pagamento de teste&rdquo;</b> na mesma tela "
     "e repetir o passo 2. Cada novo pagamento com os campos completos faz o score subir. "
     "Depois recarregue o painel do Mercado Pago e digite o novo valor.",
@@ -328,7 +328,7 @@ story.append(callout(
 story.append(Spacer(1, 0.3*cm))
 story.append(callout(
     "⚡ Aprovação instantânea",
-    "O Mercado Pago <b>não tem janela de 48h</b> para homologar. Assim que o score passa de 43, "
+    "O Mercado Pago <b>não tem janela de 48h</b> para homologar. Assim que o score passa de 73, "
     "a aplicação está aprovada. Assim que você digita o valor no campo do Humanity Bearers, "
     "sua instituição é ativada <b>na hora</b> e passa a aparecer no site público.",
     bg=GREENBG, border=HexColor("#bbf7d0"), textColor=GREEN,
@@ -336,7 +336,7 @@ story.append(callout(
 
 story.append(Spacer(1, 0.3*cm))
 story.append(Paragraph(
-    "Pronto! Passando do 43, sua instituição entra no ar:",
+    "Pronto! Passando do 73, sua instituição entra no ar:",
     st_body,
 ))
 story.append(li("Ela aparece na <b>página pública de doações</b> do Humanity Bearers."))

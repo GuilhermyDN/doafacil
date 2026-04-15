@@ -92,8 +92,8 @@ router.post('/mp-setup/registrar-teste', async (req: Request, res: Response) => 
 })
 
 // Score mínimo de Qualidade da Integração pra liberar a instituição.
-// O Mercado Pago considera integrações com score >= 43 aptas pra produção.
-const SCORE_MINIMO = 43
+// O Mercado Pago considera integrações com score >= 73 aptas pra produção.
+const SCORE_MINIMO = 73
 
 // POST /api/portal/mp-setup/validar-score — a instituição digita o valor
 // que aparece no painel developers do MP em "Avaliação > Qualidade da
