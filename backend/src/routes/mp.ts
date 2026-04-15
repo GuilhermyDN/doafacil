@@ -86,13 +86,14 @@ router.get('/callback', async (req: Request, res: Response) => {
       return
     }
 
-    const data = await tokenRes.json() as { access_token: string; user_id: number }
+    const data = await tokenRes.json() as { access_token: string; user_id: number; public_key?: string }
 
     await prisma.instituicao.update({
       where: { id: inst.id },
       data: {
         mercadoPagoToken: data.access_token,
         mpAccountId: String(data.user_id),
+        mpPublicKey: data.public_key || null,
         mpConnectToken: null, // invalida o token após uso
       },
     })
@@ -101,6 +102,54 @@ router.get('/callback', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('MP callback error:', err)
     res.redirect(`${frontendUrl}/conectar-mp?erro=erro-interno`)
+  }
+})
+
+// GET /api/mp/chave-publica?doacaoId=xxx — retorna a public key da instituição para tokenização no frontend
+router.get('/chave-publica', async (req: Request, res: Response) => {
+  const doacaoId = Number(req.query.doacaoId)
+  const fallback = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY || ''
+
+  if (!doacaoId) { res.json({ publicKey: fallback }); return }
+
+  try {
+    const doacao = await prisma.doacao.findUnique({
+      where: { id: doacaoId },
+      include: { instituicao: true },
+    })
+    if (!doacao?.instituicao) { res.json({ publicKey: fallback }); return }
+
+    const inst = doacao.instituicao
+
+    // Se já temos a chave salva, retorna direto
+    if (inst.mpPublicKey) { res.json({ publicKey: inst.mpPublicKey }); return }
+
+    // Tenta buscar via API do MP usando o token da instituição
+    if (inst.mercadoPagoToken) {
+      try {
+        const userRes = await fetch('https://api.mercadopago.com/users/me', {
+          headers: { Authorization: `Bearer ${inst.mercadoPagoToken}` },
+        })
+        if (userRes.ok) {
+          const user = await userRes.json() as { id: number }
+          const credRes = await fetch(
+            `https://api.mercadopago.com/users/${user.id}/mercadopago_account/credentials`,
+            { headers: { Authorization: `Bearer ${inst.mercadoPagoToken}` } }
+          )
+          if (credRes.ok) {
+            const cred = await credRes.json() as { public_key?: string }
+            if (cred.public_key) {
+              await prisma.instituicao.update({ where: { id: inst.id }, data: { mpPublicKey: cred.public_key } })
+              res.json({ publicKey: cred.public_key }); return
+            }
+          }
+        }
+      } catch (e) { console.error('chave-publica fetch error:', e) }
+    }
+
+    res.json({ publicKey: fallback })
+  } catch {
+    res.json({ publicKey: fallback })
   }
 })
 
@@ -196,25 +245,43 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
     if (!doacao) { res.status(404).json({ error: 'Doação não encontrada' }); return }
     if (doacao.pago) { res.status(400).json({ error: 'Doação já paga' }); return }
 
-    // Cartão usa sempre o token da PLATAFORMA (bate com NEXT_PUBLIC_MP_PUBLIC_KEY usado no Bricks)
-    const paymentClient = new Payment(mpClient)
-
-    const payment = await paymentClient.create({
-      body: {
-        transaction_amount: doacao.valorTotal,
-        token,
-        description: `Doação — ${doacao.instituicao.nome}`,
-        installments: installments || 1,
-        payment_method_id: paymentMethodId,
-        issuer_id: issuerId,
-        payer: {
-          email: payerEmail || doacao.doadorEmail || 'doador@humanitybearers.com.br',
-          identification: payerIdentification,
-        },
-        external_reference: String(doacao.id),
-        notification_url: `${process.env.NEXT_PUBLIC_URL || process.env.BACKEND_URL || 'http://localhost:3003'}/api/mp/webhook`,
+    const paymentBody = {
+      transaction_amount: doacao.valorTotal,
+      token,
+      description: `Doação — ${doacao.instituicao.nome}`,
+      installments: installments || 1,
+      payment_method_id: paymentMethodId,
+      issuer_id: issuerId,
+      payer: {
+        email: payerEmail || doacao.doadorEmail || 'doador@humanitybearers.com.br',
+        identification: payerIdentification,
       },
-    })
+      external_reference: String(doacao.id),
+      notification_url: `${process.env.NEXT_PUBLIC_URL || process.env.BACKEND_URL || 'http://localhost:3003'}/api/mp/webhook`,
+    }
+
+    // Prefere o token da instituição (combina com a public key usada na tokenização)
+    // Se der erro de credenciais (17 = token/chave não batem), cai no token da plataforma
+    let payment: any
+    const instToken = doacao.instituicao.mercadoPagoToken
+    if (instToken) {
+      try {
+        const instConfig = new MercadoPagoConfig({ accessToken: instToken })
+        payment = await new Payment(instConfig).create({ body: paymentBody })
+        console.log(`💳 Cartão via token da instituição: status=${payment.status}`)
+      } catch (err: any) {
+        const cause = err?.cause?.[0]?.code
+        const isCredError = cause === 17 || cause === 2 || err?.status === 401
+        if (isCredError) {
+          console.log('💳 Token da instituição incompatível (erro', cause, '), usando plataforma')
+          payment = await new Payment(mpClient).create({ body: paymentBody })
+        } else {
+          throw err
+        }
+      }
+    } else {
+      payment = await new Payment(mpClient).create({ body: paymentBody })
+    }
 
     console.log(`💳 Cartão: status=${payment.status} detail=${(payment as any).status_detail}`)
 

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { type Instituicao } from "@/lib/data";
 import { getInstituicoes, postDoacao, criarPixMp, type PostDoacaoResponse, type MpPixResponse } from "@/lib/api";
@@ -357,110 +357,150 @@ function TelaPagamento({ inst, tagSerial, autoSerial, onConfirmar, onVoltar }: {
   );
 }
 
-// ── TELA CARTÃO BRICKS ───────────────────────────────────────────────────────
+// ── TELA CARTÃO — CHECKOUT TRANSPARENTE ──────────────────────────────────────
 function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar }: {
   inst: Instituicao; qtd: number; doacaoId: number; valorTotal: number;
   onSucesso: () => void; onVoltar: () => void;
 }) {
   const { cor } = instColor(inst);
-  const [erro, setErro] = useState("");
-  const [processando, setProcessando] = useState(false);
-  const [tipoCartao, setTipoCartao] = useState<"credito" | "debito" | null>(null);
-  const controllerRef = (typeof window !== "undefined" ? { current: null as any } : { current: null });
-  const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
-  const PK  = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY || '';
+  const [erro, setErro]           = useState("");
+  const [processando, setProc]    = useState(false);
+  const [pronto, setPronto]       = useState(false);
+  const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003";
+  const cfRef = useRef<any>(null);
 
   useEffect(() => {
-    if (!PK || !tipoCartao) return;
+    let dead = false;
 
-    const tipoMP = tipoCartao === "credito" ? "credit_card" : "debit_card";
+    (async () => {
+      // 1. Busca a chave pública da instituição (fallback = chave da plataforma)
+      let pk = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY || "";
+      try {
+        const r = await fetch(`${API}/api/mp/chave-publica?doacaoId=${doacaoId}`, {
+          headers: { "ngrok-skip-browser-warning": "true" },
+        });
+        if (r.ok) { const d = await r.json(); if (d.publicKey) pk = d.publicKey; }
+      } catch {}
+      if (!pk || dead) return;
 
-    const initBricks = () => {
-      const mp = new (window as any).MercadoPago(PK, { locale: "pt-BR" });
-      mp.bricks().create("cardPayment", "mp-card-brick", {
-        initialization: { amount: valorTotal },
-        customization: {
-          paymentMethods: {
-            types: { included: [tipoMP] },
-            minInstallments: 1,
-            maxInstallments: tipoCartao === "credito" ? 1 : 1,
-          },
-          visual: { style: { theme: "default" } },
+      // 2. Carrega o SDK do MP
+      await new Promise<void>((resolve) => {
+        if ((window as any).MercadoPago) { resolve(); return; }
+        const ex = document.querySelector('script[src*="mercadopago"]');
+        if (ex) { ex.addEventListener("load", () => resolve()); return; }
+        const s = document.createElement("script");
+        s.src = "https://sdk.mercadopago.com/js/v2";
+        s.onload = () => resolve();
+        document.head.appendChild(s);
+      });
+      if (dead) return;
+
+      // 3. Inicializa o cardForm (Checkout Transparente)
+      const mp = new (window as any).MercadoPago(pk, { locale: "pt-BR" });
+      const cf = mp.cardForm({
+        amount: String(valorTotal),
+        iframe: true,
+        form: {
+          id: "form-cartao-ct",
+          cardholderName:     { id: "ct-nome",     placeholder: "Nome como no cartão" },
+          cardholderEmail:    { id: "ct-email",     placeholder: "seu@email.com" },
+          cardNumber:         { id: "ct-numero",    placeholder: "1234 1234 1234 1234" },
+          expirationDate:     { id: "ct-validade",  placeholder: "MM/YY" },
+          securityCode:       { id: "ct-cvv",       placeholder: "CVV" },
+          installments:       { id: "ct-parcelas" },
+          identificationType: { id: "ct-tipo-doc" },
+          identificationNumber:{ id: "ct-doc",     placeholder: "000.000.000-00" },
+          issuer:             { id: "ct-issuer" },
         },
         callbacks: {
-          onReady: () => {},
-          onError: (err: any) => setErro(err?.message || "Erro no formulário"),
-          onSubmit: async (formData: any) => {
-            setProcessando(true);
-            setErro("");
+          onFormMounted: (err: any) => {
+            if (dead) return;
+            if (err) setErro("Erro ao carregar formulário de cartão.");
+            else setPronto(true);
+          },
+          onSubmit: async (event: any) => {
+            event.preventDefault();
+            if (dead) return;
+            setProc(true); setErro("");
             try {
+              const d = cf.getCardFormData();
               const res = await fetch(`${API}/api/mp/cartao-token`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
                 body: JSON.stringify({
-                  doacaoId,
-                  token: formData.token,
-                  installments: formData.installments,
-                  paymentMethodId: formData.payment_method_id,
-                  issuerId: formData.issuer_id,
-                  payerEmail: formData.payer?.email,
-                  payerIdentification: formData.payer?.identification,
+                  doacaoId, token: d.token,
+                  installments: Number(d.installments) || 1,
+                  paymentMethodId: d.paymentMethodId,
+                  issuerId: d.issuerId,
+                  payerEmail: d.cardholderEmail,
+                  payerIdentification: d.identificationNumber
+                    ? { type: d.identificationType, number: d.identificationNumber }
+                    : undefined,
                 }),
               });
-              const data = await res.json();
-              if (data.status === "approved") {
-                onSucesso();
-              } else if (data.status === "in_process" || data.status === "pending") {
+              const result = await res.json();
+              if (["approved","in_process","pending"].includes(result.status)) {
                 onSucesso();
               } else {
                 const MSGS: Record<string, string> = {
-                  cc_rejected_insufficient_amount:      "Saldo insuficiente no cartão.",
-                  cc_rejected_bad_filled_security_code: "CVV incorreto. Verifique o código de segurança.",
-                  cc_rejected_bad_filled_date:          "Data de validade incorreta.",
-                  cc_rejected_bad_filled_other:         "Dados do cartão incorretos. Verifique e tente novamente.",
-                  cc_rejected_call_for_authorize:       "Banco bloqueou a transação. Ligue para autorizar e tente novamente.",
-                  cc_rejected_card_disabled:            "Cartão desabilitado para compras online. Verifique com seu banco.",
-                  cc_rejected_duplicated_payment:       "Pagamento duplicado detectado.",
-                  cc_rejected_high_risk:                "Transação recusada por segurança. Tente outro cartão.",
-                  cc_rejected_max_attempts:             "Limite de tentativas atingido. Aguarde alguns minutos.",
-                  rejected_insufficient_data:           "Preencha todos os campos do cartão.",
+                  cc_rejected_insufficient_amount:       "Saldo insuficiente no cartão.",
+                  cc_rejected_bad_filled_security_code:  "CVV incorreto. Verifique.",
+                  cc_rejected_bad_filled_date:           "Data de validade incorreta.",
+                  cc_rejected_bad_filled_other:          "Dados do cartão incorretos.",
+                  cc_rejected_call_for_authorize:        "Banco bloqueou. Ligue para autorizar.",
+                  cc_rejected_card_disabled:             "Cartão desabilitado para compras online.",
+                  cc_rejected_high_risk:                 "Recusado por segurança. Tente outro cartão ou pague via PIX.",
+                  cc_rejected_max_attempts:              "Muitas tentativas. Aguarde e tente novamente.",
+                  cc_rejected_duplicated_payment:        "Pagamento duplicado detectado.",
                 };
-                const detalhe: string = data.statusDetail || "";
-                setErro(MSGS[detalhe] || `Pagamento recusado${detalhe ? ` (${detalhe})` : ""}. Verifique os dados ou tente outro cartão.`);
+                const det = result.statusDetail || "";
+                setErro(MSGS[det] || `Pagamento recusado${det ? ` (${det})` : ""}. Verifique os dados.`);
               }
             } catch {
-              setErro("Erro ao processar pagamento. Tente novamente.");
+              setErro("Erro ao processar. Tente novamente.");
             } finally {
-              setProcessando(false);
+              if (!dead) setProc(false);
             }
           },
+          onError: (err: any) => { if (!dead) setErro(err?.message || "Erro no formulário"); },
+          onFetching: () => {},
         },
-      }).then((c: any) => { controllerRef.current = c; });
-    };
-
-    if ((window as any).MercadoPago) {
-      initBricks();
-    } else {
-      const existing = document.querySelector('script[src*="mercadopago"]');
-      if (existing) { existing.addEventListener("load", initBricks); return; }
-      const script = document.createElement("script");
-      script.src = "https://sdk.mercadopago.com/js/v2";
-      script.onload = initBricks;
-      document.head.appendChild(script);
-    }
+      });
+      if (dead) { try { cf.unmount(); } catch {} return; }
+      cfRef.current = cf;
+    })();
 
     return () => {
-      try { controllerRef.current?.unmount?.(); } catch {}
-      const el = document.getElementById("mp-card-brick");
-      if (el) el.innerHTML = "";
+      dead = true;
+      try { cfRef.current?.unmount?.(); } catch {}
+      cfRef.current = null;
+      ["ct-numero","ct-validade","ct-cvv"].forEach(id => {
+        const el = document.getElementById(id); if (el) el.innerHTML = "";
+      });
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tipoCartao]);
+  }, []);
+
+  const lbl: React.CSSProperties = {
+    fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase",
+    letterSpacing: 0.5, marginBottom: 6, display: "block",
+  };
+  const inp: React.CSSProperties = {
+    width: "100%", padding: "11px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`,
+    background: C.offWhite, fontSize: 14, color: C.ink, outline: "none", boxSizing: "border-box",
+  };
+  // Container para os iframes do MP (card number / expiry / cvv)
+  const ibox: React.CSSProperties = {
+    padding: "0 14px", borderRadius: 10, border: `1.5px solid ${C.border}`,
+    background: C.offWhite, minHeight: 44, display: "flex", alignItems: "center",
+  };
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 20px", position: "relative" }}>
       <PageBg />
       <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 480, background: C.white, borderRadius: 24, border: `1.5px solid ${C.border}`, boxShadow: "0 40px 100px rgba(0,0,0,0.45)", overflow: "hidden" }}>
+
+        {/* Header */}
         <div style={{ background: C.black, padding: "18px 22px", display: "flex", alignItems: "center", gap: 12 }}>
           <button onClick={onVoltar} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 9, width: 32, height: 32, cursor: "pointer", color: C.white, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>←</button>
           <div style={{ width: 40, height: 40, borderRadius: 10, background: instColor(inst).bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{inst.emoji}</div>
@@ -472,35 +512,62 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar 
             <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 800, color: cor }}>R$ {valorTotal.toFixed(2).replace(".", ",")}</p>
           </div>
         </div>
+
+        {/* Body */}
         <div style={{ padding: "24px 24px 28px" }}>
-
-          {/* Seleção crédito / débito */}
-          <div style={{ marginBottom: 20 }}>
-            <p style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>Tipo do cartão</p>
-            <div style={{ display: "flex", gap: 10 }}>
-              {(["credito", "debito"] as const).map(tipo => {
-                const ativo = tipoCartao === tipo;
-                return (
-                  <button key={tipo} onClick={() => { setTipoCartao(tipo); setErro(""); }}
-                    style={{
-                      flex: 1, padding: "14px 10px", borderRadius: 12, cursor: "pointer", border: `2px solid ${ativo ? C.blue : C.border}`,
-                      background: ativo ? C.blueL : C.offWhite, transition: "all 0.15s",
-                      display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
-                    }}>
-                    <span style={{ fontSize: 24 }}>{tipo === "credito" ? "💳" : "🏧"}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: ativo ? C.blue : C.ink }}>
-                      {tipo === "credito" ? "Crédito" : "Débito"}
-                    </span>
-                  </button>
-                );
-              })}
+          {erro && (
+            <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "12px 14px", marginBottom: 16, color: "#dc2626", fontSize: 13 }}>
+              ⚠️ {erro}
             </div>
-          </div>
+          )}
+          {!pronto && !erro && (
+            <div style={{ textAlign: "center", padding: "40px 0", color: C.muted, fontSize: 14 }}>
+              Carregando formulário de cartão...
+            </div>
+          )}
 
-          {erro && <div style={{ background: "#fff0f0", border: "1px solid #ff444433", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: "#cc0000" }}>{erro}</div>}
-          {processando && <div style={{ textAlign: "center", padding: "20px 0", color: C.muted, fontSize: 14 }}>Processando pagamento...</div>}
-          {!tipoCartao && <p style={{ textAlign: "center", color: C.muted, fontSize: 13, padding: "16px 0" }}>Selecione o tipo do cartão para continuar.</p>}
-          <div id="mp-card-brick" />
+          <form id="form-cartao-ct" style={{ display: pronto ? "block" : "none" }}>
+            <div style={{ marginBottom: 14 }}>
+              <label style={lbl}>Número do cartão</label>
+              <div id="ct-numero" style={ibox} />
+            </div>
+            <div style={{ marginBottom: 14, display: "flex", gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <label style={lbl}>Validade</label>
+                <div id="ct-validade" style={ibox} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={lbl}>CVV</label>
+                <div id="ct-cvv" style={ibox} />
+              </div>
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={lbl}>Nome no cartão</label>
+              <input id="ct-nome" type="text" placeholder="Como está impresso no cartão" style={inp} />
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={lbl}>CPF do titular</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                <select id="ct-tipo-doc" style={{ ...inp, width: 90, flex: "none" as const }} />
+                <input id="ct-doc" type="text" placeholder="000.000.000-00" style={{ ...inp, flex: 1 }} />
+              </div>
+            </div>
+            <div style={{ marginBottom: 18 }}>
+              <label style={lbl}>E-mail</label>
+              <input id="ct-email" type="email" placeholder="seu@email.com" style={inp} />
+            </div>
+            {/* Campos ocultos preenchidos pelo SDK */}
+            <select id="ct-parcelas" style={{ display: "none" }} />
+            <select id="ct-issuer"   style={{ display: "none" }} />
+            <button
+              type="submit"
+              disabled={processando}
+              style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", cursor: processando ? "not-allowed" : "pointer", background: processando ? C.muted : C.black, color: C.white, fontSize: 15, fontWeight: 700, marginTop: 4 }}
+            >
+              {processando ? "⏳ Processando..." : `💳 Pagar R$ ${valorTotal.toFixed(2).replace(".", ",")}`}
+            </button>
+          </form>
+
           <p style={{ fontSize: 11, color: C.muted, textAlign: "center", marginTop: 16, lineHeight: 1.6 }}>
             🔒 Dados criptografados pelo Mercado Pago · {qtd} {qtd === 1 ? "pessoa" : "pessoas"} com {inst.tipo}
           </p>
