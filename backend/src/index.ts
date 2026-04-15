@@ -24,6 +24,9 @@ import tagsRoutes from './routes/tags'
 const app = express()
 const PORT = process.env.PORT || 3001
 
+// Necessário para o rate-limit funcionar corretamente atrás do Nginx
+app.set('trust proxy', 1)
+
 const allowedOrigins = [
   'http://localhost:3000',
   'http://187.127.8.253',
