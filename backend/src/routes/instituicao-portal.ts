@@ -76,6 +76,50 @@ router.post('/mp-setup', async (req: Request, res: Response) => {
   res.json({ ok: true, mensagem: 'Credenciais salvas e validadas com sucesso!' })
 })
 
+// POST /api/portal/mp-setup/criar-doacao-teste — cria uma doação de R$ 1
+// exclusivamente para o pagamento de teste do fluxo de onboarding. O valor
+// é FIXO em R$ 1,00 (não usa o inst.valor real da instituição) — a
+// instituição não deveria pagar o valor cheio só para testar a integração.
+router.post('/mp-setup/criar-doacao-teste', async (req: Request, res: Response) => {
+  const { token, doadorNome, doadorEmail, doadorTel } = req.body
+  if (!token) { res.status(400).json({ error: 'Token obrigatório' }); return }
+  if (!doadorNome) { res.status(400).json({ error: 'Nome do doador obrigatório' }); return }
+
+  const inst = await prisma.instituicao.findUnique({ where: { mpSetupToken: String(token) } })
+  if (!inst) { res.status(404).json({ error: 'Link inválido ou expirado' }); return }
+  if (!inst.mercadoPagoToken) {
+    res.status(400).json({ error: 'Credenciais do Mercado Pago ainda não foram salvas.' }); return
+  }
+
+  // Cria um doador ad-hoc para o teste (sem vincular tag — setup não
+  // precisa acumular pontos)
+  const iniciais = String(doadorNome).split(' ').slice(0, 2).map((n: string) => n[0]?.toUpperCase() || '').join('')
+  const numero = String(Math.floor(100000 + Math.random() * 900000))
+  const doador = await prisma.doador.create({
+    data: {
+      nome: String(doadorNome),
+      email: doadorEmail || null,
+      telefone: doadorTel || null,
+      avatar: iniciais || 'T',
+      numero,
+    },
+  })
+
+  const doacao = await prisma.doacao.create({
+    data: {
+      doadorNome: String(doadorNome),
+      doadorEmail: doadorEmail || null,
+      doadorTel: doadorTel || null,
+      doadorId: doador.id,
+      instituicaoId: inst.id,
+      quantidade: 1,
+      valorTotal: 1.0, // fixo, independente do inst.valor
+    },
+  })
+
+  res.status(201).json({ doacaoId: doacao.id, valorTotal: 1.0 })
+})
+
 // POST /api/portal/mp-setup/registrar-teste — só marca que o pagamento de
 // teste foi feito, sem homologar. A homologação agora depende do score
 // que a própria instituição vai digitar no passo 3 (endpoint validar-score).

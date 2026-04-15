@@ -1056,18 +1056,34 @@ function DoacaoPageInner() {
     try {
       // Captura estado ANTES da doação — o nível/pontos atuais da tag.
       // Se der erro, seguimos em frente — banner de level-up é bônus, não crítico.
-      if (serialEfetivo) {
+      if (serialEfetivo && !setupMode) {
         setSnapshotAntes(await fetchTagSnapshot(serialEfetivo));
       }
 
-      const data = await postDoacao({
-        doadorNome: nome,
-        doadorEmail: email || undefined,
-        doadorTel: telefone || undefined,
-        tagSerial: serialEfetivo,
-        instituicaoId: escolhida.id,
-        quantidade,
-      });
+      // Em modo setup usamos um endpoint dedicado que força valorTotal=1,
+      // independente do inst.valor. A instituição não deveria pagar o
+      // valor cheio só para testar a integração.
+      let data: PostDoacaoResponse;
+      if (setupMode && setupToken) {
+        const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003";
+        const r = await fetch(`${API}/api/portal/mp-setup/criar-doacao-teste`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+          body: JSON.stringify({ token: setupToken, doadorNome: nome, doadorEmail: email, doadorTel: telefone }),
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || "Erro ao criar doação de teste");
+        data = { doacaoId: d.doacaoId, valorTotal: d.valorTotal, pixKey: "" } as PostDoacaoResponse;
+      } else {
+        data = await postDoacao({
+          doadorNome: nome,
+          doadorEmail: email || undefined,
+          doadorTel: telefone || undefined,
+          tagSerial: serialEfetivo,
+          instituicaoId: escolhida.id,
+          quantidade,
+        });
+      }
       setQtd(quantidade);
       setPixData(data);
 

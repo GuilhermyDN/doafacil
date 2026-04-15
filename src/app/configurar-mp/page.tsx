@@ -192,9 +192,9 @@ function ConfigurarMpInner() {
             <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '14px 16px', marginBottom: 14 }}>
               <p style={{ fontSize: 12, color: '#78350f', fontWeight: 600, marginBottom: 6 }}>⚠️ Importante</p>
               <p style={{ fontSize: 12, color: '#78350f', lineHeight: 1.6 }}>
-                O pagamento pode até ser <strong>recusado</strong> pelo antifraude do Mercado Pago — isso não é problema
-                e não impede a homologação. O que importa é o request chegar na sua conta MP com todos os campos obrigatórios.
-                Valor: <strong>R$ {estado.valor.toFixed(2).replace('.', ',')}</strong>.
+                Esse pagamento de teste é <strong>fixo em R$ 1,00</strong> — você não paga o valor cheio da sua
+                instituição. O objetivo é só fazer o request chegar na sua conta MP com todos os campos obrigatórios.
+                O pagamento pode até ser <strong>recusado</strong> pelo antifraude — isso não é problema e não impede a homologação.
               </p>
             </div>
             {erro && <p style={{ fontSize: 12, color: '#ef4444' }}>{erro}</p>}
