@@ -329,10 +329,10 @@ router.post('/cartao', async (req: Request, res: Response) => {
     const clienteInst = new MercadoPagoConfig({ accessToken: inst.mercadoPagoToken })
     const prefClient = new Preference(clienteInst)
 
-    // Exclui o tipo oposto ao que o usuário escolheu
+    // Exclui apenas métodos não-cartão (boleto, transferência, etc.)
+    // Não restringe crédito/débito para não causar erro fatal no checkout MP
+    // caso a conta da instituição não tenha um dos subtipos habilitado
     const excludedTypes: { id: string }[] = [{ id: 'ticket' }, { id: 'bank_transfer' }, { id: 'atm' }]
-    if (tipoCartao === 'credito') excludedTypes.push({ id: 'debit_card' })
-    if (tipoCartao === 'debito')  excludedTypes.push({ id: 'credit_card' })
 
     const pref = await prefClient.create({
       body: {
