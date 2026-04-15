@@ -504,8 +504,16 @@ function TelaCartaoBrick({ inst, qtd, doacaoId, valorTotal, onSucesso, onVoltar 
         setChallenge(data.threeDsInfo); return;
       }
 
+      // in_process / pending_review_manual → MP mandou o pagamento para
+      // análise manual. Não é recusa: o webhook vai confirmar ou recusar
+      // depois. Mostramos uma tela de "em análise" em vez de erro.
+      if (data.status === "in_process" || data.statusDetail === "pending_review_manual" || data.statusDetail === "pending_contingency") {
+        onSucesso(); // reaproveita a tela final; TelaConfirmado fica como "registrado, aguardando confirmação"
+        return;
+      }
+
       const MSGS: Record<string, string> = {
-        cc_rejected_high_risk:              "Transação recusada por segurança. Tente outro cartão ou pague via Pix.",
+        cc_rejected_high_risk:              "Transação recusada pela análise de segurança do banco. Tente outro cartão ou pague via Pix.",
         cc_rejected_bad_filled_security_code:"Código de segurança (CVV) incorreto.",
         cc_rejected_bad_filled_date:        "Data de vencimento inválida.",
         cc_rejected_bad_filled_card_number: "Número do cartão inválido.",
