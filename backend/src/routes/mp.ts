@@ -323,9 +323,28 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
     }
 
     console.log(`💳 Cartão iniciando — inst=${inst.id} paymentMethodId=${paymentMethodId} issuer_id=${finalIssuerId || '(none)'} email=${email}`)
-    const clienteInst = new MercadoPagoConfig({ accessToken: inst.mercadoPagoToken })
-    const payment = await new Payment(clienteInst).create({ body: paymentBody })
-    console.log(`💳 Cartão (inst ${inst.id}): status=${payment.status} detail=${(payment as any).status_detail} id=${payment.id}`)
+
+    // IMPORTANTE: chamamos POST /v1/payments direto via fetch em vez de usar
+    // o SDK (new Payment(...).create()). O SDK v2 do Node tem um schema interno
+    // que **remove `additional_info`** silenciosamente antes de enviar, o que
+    // impede a homologação do MP (que exige items.id/title/description/etc).
+    const mpResp = await fetch('https://api.mercadopago.com/v1/payments', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${inst.mercadoPagoToken}`,
+        'X-Idempotency-Key': `doacao-${doacao.id}-${Date.now()}`,
+      },
+      body: JSON.stringify(paymentBody),
+    })
+    const payment: any = await mpResp.json()
+    if (!mpResp.ok) {
+      console.error('MP cartao-token HTTP error:', mpResp.status, JSON.stringify(payment))
+      const msg = payment?.message || payment?.cause?.[0]?.description || 'Erro ao processar cartão'
+      res.status(mpResp.status).json({ error: msg })
+      return
+    }
+    console.log(`💳 Cartão (inst ${inst.id}): status=${payment.status} detail=${payment.status_detail} id=${payment.id}`)
 
     if (payment.status === 'approved') {
       await prisma.doacao.update({
@@ -339,10 +358,10 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
       })
     }
 
-    const threeDsInfo = (payment as any).three_ds_info || null
+    const threeDsInfo = payment.three_ds_info || null
     res.json({
       status: payment.status,
-      statusDetail: (payment as any).status_detail,
+      statusDetail: payment.status_detail,
       paymentId: payment.id,
       threeDsInfo, // { external_resource_url, creq } quando pending_challenge
     })
