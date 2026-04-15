@@ -871,20 +871,13 @@ function DoacaoPageInner() {
         setPixMpData(pix);
         setEtapa("pixqr");
       } else {
-        // Cartão: redireciona para o Checkout Pro do Mercado Pago (hospedado
-        // no domínio deles). O antifraude do Checkout Pro é mais permissivo
-        // que o do Checkout Transparente — dá pra receber cartão sem depender
-        // da homologação da conta marketplace.
-        const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003";
-        const r = await fetch(`${API}/api/mp/cartao`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
-          body: JSON.stringify({ doacaoId: data.doacaoId }),
-        });
-        const d = await r.json();
-        if (!r.ok || !d.init_point) throw new Error(d.error || "Erro ao iniciar pagamento com cartão.");
-        window.location.href = d.init_point;
-        return;
+        // Cartão: abre o Checkout Transparente (TelaCartaoBrick). Desde que
+        // a gente corrigiu issuer_id, additional_info.items completo, payer
+        // com email/nome reais e passou a chamar /v1/payments via fetch
+        // direto (o SDK strippava additional_info), o fluxo deve aguentar.
+        setCartaoDoacaoId(data.doacaoId);
+        setCartaoValor(data.valorTotal);
+        setEtapa("cartaobrick");
       }
     } catch (e: any) {
       setErroCodigo(e.codigo || null);
