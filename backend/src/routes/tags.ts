@@ -76,18 +76,12 @@ router.post('/:serial/vincular', async (req: Request, res: Response) => {
     const iniciais = nome.split(' ').slice(0, 2).map((n: string) => n[0]?.toUpperCase() || '').join('')
     const gerarNumero = () => String(Math.floor(100000 + Math.random() * 900000))
 
-    // Busca ou cria doador pelo email
-    let doador = await prisma.doador.findFirst({ where: { email } })
-    if (!doador) {
-      doador = await prisma.doador.create({
-        data: { nome, email, telefone, avatar: iniciais, numero: gerarNumero() },
-      })
-    } else {
-      // Atualiza telefone se não tinha
-      if (!doador.telefone && telefone) {
-        doador = await prisma.doador.update({ where: { id: doador.id }, data: { telefone } })
-      }
-    }
+    // Cada tag tem seu próprio Doador. O mesmo email pode existir em
+    // múltiplos doadores (um por tag que a pessoa usou). A identidade
+    // no sistema é o serial da tag, não o email.
+    const doador = await prisma.doador.create({
+      data: { nome, email, telefone, avatar: iniciais, numero: gerarNumero() },
+    })
 
     const tagAtualizada = await prisma.tag.update({
       where: { serial },

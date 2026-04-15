@@ -91,7 +91,10 @@ model Doador {
   numero         String      @unique
   nome           String
   apelido        String?
-  email          String?     @unique
+  // Email NÃO é unique: cada tag gera um Doador próprio, então a mesma
+  // pessoa pode aparecer em múltiplos registros (um por serial). A
+  // identidade do doador no sistema é o serial da tag, não o email.
+  email          String?
   telefone       String?
   avatar         String
   totalDoado     Float       @default(0)

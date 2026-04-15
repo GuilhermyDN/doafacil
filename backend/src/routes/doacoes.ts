@@ -38,44 +38,69 @@ router.post('/', async (req: Request, res: Response) => {
     let doadorId: number | undefined
     let tagId: number | undefined
 
-    // Resolve tag serial → tagId
+    const iniciais = doadorNome
+      .split(' ')
+      .slice(0, 2)
+      .map((n: string) => n[0]?.toUpperCase() || '')
+      .join('')
+    const gerarNumero = () => String(Math.floor(100000 + Math.random() * 900000))
+
+    // Identidade por SERIAL/tag: cada QR code tem o próprio Doador e acumula
+    // sua própria pontuação. Email NÃO é chave única — a mesma pessoa pode
+    // aparecer em múltiplos doadores (um por tag que ela usou).
     if (tagSerial) {
       const tag = await prisma.tag.findUnique({ where: { serial: tagSerial } })
-      if (tag) tagId = tag.id
-    }
-
-    if (doadorEmail) {
-      const iniciais = doadorNome
-        .split(' ')
-        .slice(0, 2)
-        .map((n: string) => n[0]?.toUpperCase() || '')
-        .join('')
-
-      const gerarNumero = () => String(Math.floor(100000 + Math.random() * 900000))
-
-      const doador = await prisma.doador.upsert({
-        where: { email: doadorEmail },
-        update: { telefone: doadorTel || undefined },
-        create: {
-          nome: doadorNome,
-          email: doadorEmail,
-          telefone: doadorTel || null,
-          avatar: iniciais,
-          numero: gerarNumero(),
-        },
-      })
-      doadorId = doador.id
-
-      // Vincula a tag ao doador se ainda estiver livre
-      if (tagId) {
-        const tag = await prisma.tag.findUnique({ where: { id: tagId } })
-        if (tag && !tag.doadorId) {
+      if (tag) {
+        tagId = tag.id
+        if (tag.doadorId) {
+          doadorId = tag.doadorId
+          // Mantém telefone/email atualizados no doador dessa tag
+          await prisma.doador.update({
+            where: { id: tag.doadorId },
+            data: {
+              telefone: doadorTel || undefined,
+              email: doadorEmail || undefined,
+            },
+          })
+        } else {
+          const novoDoador = await prisma.doador.create({
+            data: {
+              nome: doadorNome,
+              email: doadorEmail || null,
+              telefone: doadorTel || null,
+              avatar: iniciais,
+              numero: gerarNumero(),
+            },
+          })
+          doadorId = novoDoador.id
           await prisma.tag.update({
-            where: { id: tagId },
+            where: { id: tag.id },
             data: { doadorId, vinculadaEm: new Date() },
           })
         }
       }
+    }
+
+    // Fallback antigo: doação sem tag (fluxo raro, quase nunca acontece
+    // porque o frontend gera serial automaticamente). Mantém a lógica
+    // por email para não perder pontuação se alguém doar pelo caminho legado.
+    if (!doadorId && doadorEmail) {
+      const existente = await prisma.doador.findFirst({ where: { email: doadorEmail } })
+      const doador = existente
+        ? await prisma.doador.update({
+            where: { id: existente.id },
+            data: { telefone: doadorTel || undefined },
+          })
+        : await prisma.doador.create({
+            data: {
+              nome: doadorNome,
+              email: doadorEmail,
+              telefone: doadorTel || null,
+              avatar: iniciais,
+              numero: gerarNumero(),
+            },
+          })
+      doadorId = doador.id
     }
 
     const doacao = await prisma.doacao.create({

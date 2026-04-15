@@ -50,10 +50,13 @@ function PageBg() {
       }} />
       <div style={{ position: "absolute", bottom: "10%", right: "5%", width: 400, height: 400, borderRadius: "50%", background: C.blue, opacity: 0.06, filter: "blur(80px)" }}/>
       <div style={{ position: "absolute", top: "15%", left: "5%", width: 320, height: 320, borderRadius: "50%", background: C.orange, opacity: 0.08, filter: "blur(80px)" }}/>
-      <svg style={{ position: "absolute", top: 40, right: 60, opacity: 0.12 }} width={40} height={40} viewBox="0 0 40 40">
-        <line x1="2" y1="2" x2="38" y2="38" stroke={C.orange} strokeWidth="5" strokeLinecap="round"/>
-        <line x1="38" y1="2" x2="2" y2="38" stroke={C.orange} strokeWidth="5" strokeLinecap="round"/>
-      </svg>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/ursinho.png" alt="" style={{
+        position: "absolute", top: 40, right: 60,
+        width: 40, height: 40, opacity: 0.18,
+        filter: "grayscale(100%) contrast(1.4)",
+        userSelect: "none", pointerEvents: "none",
+      }} />
       <svg style={{ position: "absolute", bottom: 60, left: 50, opacity: 0.12 }} width={44} height={44} viewBox="0 0 44 44">
         <circle cx="22" cy="22" r="18" fill="none" stroke={C.blue} strokeWidth="4" strokeDasharray="8 5"/>
       </svg>
