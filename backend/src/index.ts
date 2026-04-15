@@ -2,6 +2,7 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import rateLimit from 'express-rate-limit'
+import { prisma } from './lib/prisma'
 
 import authRoutes from './routes/auth'
 import instituicoesRoutes from './routes/instituicoes'
@@ -86,6 +87,27 @@ app.use('/api/pedidos', pedidosRoutes)
 app.use('/api/tags', tagsRoutes)
 
 app.get('/health', (_, res) => res.json({ ok: true }))
+
+// ── JOB: cancela doações com PIX expirado (> 30 min, não pago, não cancelado) ─
+async function cancelarPixExpirados() {
+  try {
+    const limite = new Date(Date.now() - 30 * 60 * 1000) // 30 minutos atrás
+    const { count } = await prisma.doacao.updateMany({
+      where: {
+        pago: false,
+        cancelado: false,
+        mpPaymentId: { not: null },
+        dataCriacao: { lt: limite },
+      },
+      data: { cancelado: true },
+    })
+    if (count > 0) console.log(`🧹 ${count} doação(ões) com PIX expirado marcada(s) como canceladas`)
+  } catch (err) {
+    console.error('Erro no job de limpeza PIX:', err)
+  }
+}
+cancelarPixExpirados() // executa na inicialização
+setInterval(cancelarPixExpirados, 5 * 60 * 1000) // a cada 5 minutos
 
 app.listen(PORT, () => {
   console.log(`🚀 Backend rodando em http://localhost:${PORT}`)

@@ -73,6 +73,7 @@ model Doacao {
   quantidade    Int
   valorTotal    Float
   pago          Boolean   @default(false)
+  cancelado     Boolean   @default(false)
   dataCriacao   DateTime  @default(now())
   dataPagamento DateTime?
   observacao    String?

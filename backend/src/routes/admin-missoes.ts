@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { authMiddleware } from '../middleware/auth'
+import { verificarMissoesAutomaticas } from '../lib/helpers'
 const TIPOS_MISSAO = ['PRIMEIRA_DOACAO', 'FAMILIA', 'META_REFEICAO', 'MES_COMPLETO', 'META_VALOR', 'INDICACAO', 'CUSTOM']
 
 const router = Router()
@@ -20,6 +21,13 @@ router.post('/', async (req: Request, res: Response) => {
       data: { titulo, descricao, pontos: Number(pontos), emoji, tipo },
     })
     res.status(201).json(missao)
+
+    // Verifica retroativamente todos os doadores existentes (assíncrono — não trava a resposta)
+    prisma.doador.findMany({ select: { id: true } }).then(doadores => {
+      console.log(`🎯 Verificando missão "${titulo}" para ${doadores.length} doador(es) existentes...`)
+      Promise.allSettled(doadores.map(d => verificarMissoesAutomaticas(d.id)))
+        .then(() => console.log(`✅ Verificação retroativa de "${titulo}" concluída`))
+    }).catch(() => {})
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Erro interno' })

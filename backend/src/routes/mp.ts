@@ -196,18 +196,14 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
     if (!doacao) { res.status(404).json({ error: 'Doação não encontrada' }); return }
     if (doacao.pago) { res.status(400).json({ error: 'Doação já paga' }); return }
 
-    const inst = doacao.instituicao
-    if (!inst.mercadoPagoToken) {
-      res.status(400).json({ error: 'Esta instituição ainda não configurou o recebimento de pagamentos. Entre em contato com o administrador.' }); return
-    }
-    const clienteInst = new MercadoPagoConfig({ accessToken: inst.mercadoPagoToken })
-    const paymentClient = new Payment(clienteInst)
+    // Cartão usa sempre o token da PLATAFORMA (bate com NEXT_PUBLIC_MP_PUBLIC_KEY usado no Bricks)
+    const paymentClient = new Payment(mpClient)
 
     const payment = await paymentClient.create({
       body: {
         transaction_amount: doacao.valorTotal,
         token,
-        description: `Doação — ${inst.nome}`,
+        description: `Doação — ${doacao.instituicao.nome}`,
         installments: installments || 1,
         payment_method_id: paymentMethodId,
         issuer_id: issuerId,
