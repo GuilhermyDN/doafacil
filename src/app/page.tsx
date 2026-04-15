@@ -4,6 +4,22 @@ import { useRouter } from "next/navigation";
 import { type Instituicao } from "@/lib/data";
 import { getInstituicoes } from "@/lib/api";
 
+function UrsinhoSVG({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="18" cy="18" r="13" fill="#FF4E00"/>
+      <circle cx="62" cy="18" r="13" fill="#FF4E00"/>
+      <circle cx="40" cy="44" r="28" fill="#FF4E00"/>
+      <circle cx="27" cy="38" r="6" fill="#fff"/>
+      <circle cx="53" cy="38" r="6" fill="#fff"/>
+      <circle cx="28" cy="39" r="3" fill="#1c1a16"/>
+      <circle cx="54" cy="39" r="3" fill="#1c1a16"/>
+      <ellipse cx="40" cy="52" rx="9" ry="6" fill="#c93a00"/>
+      <path d="M33 56 Q40 62 47 56" stroke="#fff" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 const C = {
   black:   "#000000",
   blue:    "#000DFF",
@@ -92,10 +108,7 @@ export default function HomePage() {
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           {/* logo */}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ position: "relative", width: 22, height: 22, flexShrink: 0 }}>
-              <div style={{ position: "absolute", left: "50%", top: 0, transform: "translateX(-50%)", width: 3, height: 22, background: C.orange, borderRadius: 2 }}/>
-              <div style={{ position: "absolute", top: "34%", left: 0, width: 22, height: 3, background: C.orange, borderRadius: 2 }}/>
-            </div>
+            <UrsinhoSVG size={28} />
             <span style={{ fontFamily: "'Playfair Display',Georgia,serif", fontSize: 18, fontWeight: 700, color: C.white }}>Humanity Bearers</span>
           </div>
           {/* links desktop */}
@@ -432,10 +445,7 @@ export default function HomePage() {
       <footer style={{ background: "#050505", borderTop: "1px solid rgba(255,255,255,0.05)", padding: "40px 24px" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ position: "relative", width: 18, height: 18 }}>
-              <div style={{ position: "absolute", left: "50%", top: 0, transform: "translateX(-50%)", width: 2.5, height: 18, background: C.orange, borderRadius: 2 }}/>
-              <div style={{ position: "absolute", top: "34%", left: 0, width: 18, height: 2.5, background: C.orange, borderRadius: 2 }}/>
-            </div>
+            <UrsinhoSVG size={22} />
             <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 15, fontWeight: 700, color: C.white }}>Humanity Bearers</span>
             <span style={{ fontSize: 12, color: "rgba(255,255,255,0.2)" }}>— Humanity Bearers</span>
           </div>
