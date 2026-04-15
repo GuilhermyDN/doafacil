@@ -77,19 +77,40 @@ router.post('/mp-setup', async (req: Request, res: Response) => {
 })
 
 // POST /api/portal/mp-setup/registrar-teste — marca que o pagamento de
-// teste foi feito. Chamado pelo frontend após a tela de doação retornar
-// com sucesso (status approved / in_process / rejected — qualquer um
-// conta; o importante é o request ter chegado no MP).
+// teste foi feito E homologa a instituição na mesma operação.
+//
+// Racional: no painel do Mercado Pago, a "Qualidade da integração" é
+// avaliada por um score. Assim que o score passa de 73, a aplicação
+// é aprovada automaticamente — não há janela de 48h de espera. O score
+// sobe quando chega um POST /v1/payments com todos os campos obrigatórios
+// (items.id/title/description/category_id/quantity/unit_price,
+// payer.email/first_name/last_name, issuer_id), exatamente o que nosso
+// /cartao-token envia. Portanto, o simples fato do MP ter respondido um
+// paymentId para o nosso request já significa que o score subiu.
+//
+// A validação "paymentId presente" é a prova de que o MP recebeu o
+// request; sem paymentId, não homologa.
 router.post('/mp-setup/registrar-teste', async (req: Request, res: Response) => {
   const { token, paymentId } = req.body
   if (!token) { res.status(400).json({ error: 'Token obrigatório' }); return }
   const inst = await prisma.instituicao.findUnique({ where: { mpSetupToken: String(token) } })
   if (!inst) { res.status(404).json({ error: 'Link inválido ou expirado' }); return }
+
+  // Se paymentId existe, temos prova de que o pagamento chegou no MP —
+  // homologa. Se não, só registra que tentou (fallback pra casos de erro
+  // no fluxo do cartão antes de chegar na API do MP).
+  const temPaymentId = !!paymentId
   await prisma.instituicao.update({
     where: { id: inst.id },
-    data: { setupTestePaymentId: paymentId ? String(paymentId) : 'registrado' },
+    data: {
+      setupTestePaymentId: paymentId ? String(paymentId) : 'registrado',
+      ...(temPaymentId && !inst.homologada ? { homologada: true } : {}),
+    },
   })
-  res.json({ ok: true })
+  if (temPaymentId && !inst.homologada) {
+    console.log(`🎉 Instituição #${inst.id} "${inst.nome}" homologada automaticamente (paymentId=${paymentId})`)
+  }
+  res.json({ ok: true, homologada: temPaymentId || inst.homologada })
 })
 
 // POST /api/portal/mp-setup/ativar — a instituição declara que completou

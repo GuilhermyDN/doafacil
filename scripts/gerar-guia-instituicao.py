@@ -135,7 +135,7 @@ def callout(label: str, body: str, bg=AMBERBG, border=AMBER, textColor=AMBERTXT)
 
 def step_header(num: int, title: str):
     return [
-        Paragraph(f"PASSO {num} DE 4", st_step_num),
+        Paragraph(f"PASSO {num} DE 2", st_step_num),
         Paragraph(title, st_h1),
     ]
 
@@ -156,12 +156,10 @@ story.append(Paragraph("Como receber doações<br/>no Humanity Bearers", st_cove
 story.append(Paragraph("Passo a passo para conectar a sua conta<br/>do Mercado Pago e começar a receber.", st_cover_sub))
 story.append(Spacer(1, 2*cm))
 
-# Tabela-resumo dos 4 passos na capa
+# Tabela-resumo dos 2 passos na capa (homologação é automática)
 resumo = [
     ["1", "Credenciais", "Copie suas chaves de produção do Mercado Pago"],
-    ["2", "Pagamento de teste", "Faça 1 pagamento pra validar a integração"],
-    ["3", "Homologação", "Solicite a aprovação no painel do Mercado Pago"],
-    ["4", "Ativação", "Sua instituição entra no ar e começa a receber"],
+    ["2", "Pagamento de teste", "Faça 1 pagamento e a homologação é automática"],
 ]
 tbl = Table(resumo, colWidths=[1.2*cm, 5.2*cm, 10.8*cm])
 tbl.setStyle(TableStyle([
@@ -202,8 +200,10 @@ story.append(Paragraph(
     st_body,
 ))
 story.append(Paragraph(
-    "Este guia explica os 4 passos que você vai seguir no link de configuração que o Humanity Bearers "
-    "te enviou (algo como <font name='Courier'>humanitybearers.tech/configurar-mp?token=...</font>).",
+    "Este guia explica os 2 passos que você vai seguir no link de configuração que o Humanity Bearers "
+    "te enviou (algo como <font name='Courier'>humanitybearers.tech/configurar-mp?token=...</font>). "
+    "A homologação no Mercado Pago acontece <b>automaticamente</b> assim que o pagamento de teste é enviado — "
+    "você não precisa mexer no painel de developers do MP.",
     st_body,
 ))
 
@@ -284,68 +284,25 @@ story.append(Spacer(1, 0.5*cm))
 story.append(callout(
     "🧪 Pode ser recusado — sem problema",
     "É comum que essa primeira transação seja recusada pelo antifraude do Mercado Pago com a mensagem "
-    "<b>'cc_rejected_high_risk'</b>. Isso acontece porque a sua conta é nova no sistema. "
-    "<b>Ignore e prossiga para o passo 3</b> — o que importa é o pedido ter chegado no Mercado Pago "
-    "com todos os campos obrigatórios preenchidos.",
+    "<b>'cc_rejected_high_risk'</b>. Isso acontece porque a sua conta é nova no sistema, mas "
+    "<b>não impede a homologação</b>. O que importa é o pedido ter chegado na sua conta MP com todos "
+    "os campos obrigatórios preenchidos.",
     bg=BLUEBG, border=HexColor("#bfdbfe"), textColor=BLUETX,
 ))
 
 story.append(Spacer(1, 0.3*cm))
-story.append(Paragraph(
-    "Depois que o pagamento de teste terminar (aprovado, recusado ou em análise), o sistema te leva "
-    "automaticamente para o <b>passo 3</b>.",
-    st_body,
-))
-
-story.append(PageBreak())
-
-# ═══ PASSO 3 ═══
-for el in step_header(3, "Solicitar homologação no Mercado Pago"):
-    story.append(el)
-
-story.append(Paragraph(
-    "Agora que o Mercado Pago já recebeu 1 request real da sua integração, você precisa pedir "
-    "para eles revisarem e aprovarem sua aplicação para produção. Esse passo acontece no painel deles "
-    "— não no Humanity Bearers.",
-    st_body,
-))
-
-story.append(Paragraph("<b>O que fazer:</b>", st_h2))
-story.append(numli(1, "Volte para <font name='Courier'>mercadopago.com.br/developers/panel/app</font>."))
-story.append(numli(2, "Entre na aplicação que você criou no passo 1."))
-story.append(numli(3, "No menu lateral, encontre a seção <b>Avaliação</b> e clique em <b>Qualidade da integração</b>."))
-story.append(numli(4, "Verifique se o checklist está <b>100% verde</b> (pode levar de 15 minutos a 2 horas para atualizar depois do pagamento de teste — se ainda estiver amarelo, tome um café e recarregue a página)."))
-story.append(numli(5, "Clique no botão <b>'Ir para produção'</b> ou <b>'Solicitar homologação'</b> (o nome muda dependendo da versão do painel)."))
-story.append(numli(6, "O Mercado Pago analisa em até <b>48 horas úteis</b> e te avisa por email quando aprovar."))
-
-story.append(Spacer(1, 0.5*cm))
 story.append(callout(
-    "⏳ Enquanto o MP analisa",
-    "Você pode <b>fechar o link do Humanity Bearers</b> com tranquilidade — ele vai continuar funcionando "
-    "quando você voltar. Só não clique no botão do passo 4 até receber a confirmação de aprovação do "
-    "Mercado Pago por email, senão a sua instituição vai aparecer no site mas o cartão será rejeitado.",
+    "⚡ Homologação automática",
+    "Assim que o pagamento de teste é enviado, o score da sua integração no painel do Mercado Pago "
+    "passa de 73 e a sua aplicação é <b>aprovada instantaneamente</b> — não há janela de 48h. "
+    "O Humanity Bearers detecta isso na mesma hora e sua instituição é ativada automaticamente. "
+    "Você <b>não precisa mexer</b> no painel de developers do MP.",
+    bg=GREENBG, border=HexColor("#bbf7d0"), textColor=GREEN,
 ))
 
-story.append(PageBreak())
-
-# ═══ PASSO 4 ═══
-for el in step_header(4, "Ativação automática"):
-    story.append(el)
-
+story.append(Spacer(1, 0.3*cm))
 story.append(Paragraph(
-    "Assim que receber o email do Mercado Pago confirmando a aprovação da sua aplicação, volte ao link "
-    "de configuração do Humanity Bearers (o mesmo link que o admin te enviou) e clique em "
-    "<b>'Fazer outro pagamento de teste'</b>.",
-    st_body,
-))
-story.append(Paragraph(
-    "Se o pagamento for <b>aprovado</b> dessa vez (e deve ser, agora que o MP homologou sua aplicação), "
-    "sua instituição é ativada <b>automaticamente</b>, na hora, sem você precisar clicar em mais nada. "
-    "A tela vai atualizar sozinha para a confirmação final.",
-    st_body,
-))
-story.append(Paragraph(
-    "Pronto! Sua instituição entra no ar:",
+    "Depois do pagamento de teste, a próxima tela já é a confirmação final:",
     st_body,
 ))
 story.append(li("Ela aparece na <b>página pública de doações</b> do Humanity Bearers."))

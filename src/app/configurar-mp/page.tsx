@@ -15,14 +15,12 @@ type Estado = {
   homologada: boolean
 }
 
-type Passo = 1 | 2 | 3 | 4 | 5 // 5 = sucesso final
+// 1 = credenciais, 2 = pagamento teste, 3 = sucesso final (homologada)
+type Passo = 1 | 2 | 3
 
 function ConfigurarMpInner() {
   const params = useSearchParams()
   const token = params.get('token') ?? ''
-  // Quando o doador volta da tela de teste (/doacao?setup=...), ele volta pra
-  // /configurar-mp?token=X&etapa=3 para seguir pro passo de homologação.
-  const etapaQuery = params.get('etapa')
 
   const [estado, setEstado] = useState<Estado | null>(null)
   const [erro, setErro] = useState('')
@@ -40,35 +38,17 @@ function ConfigurarMpInner() {
       .then((d: Estado | { error: string }) => {
         if ('error' in d) { setErro(d.error); return }
         setEstado(d)
-        // Decide o passo inicial pelo estado + query param
-        if (d.homologada) setPasso(5)
-        else if (etapaQuery === '3' && d.credenciaisOk) setPasso(3)
-        else if (d.testeFeito && !d.homologada) setPasso(3)
-        else if (d.credenciaisOk && !d.testeFeito) setPasso(2)
+        // Com a homologação automática no /registrar-teste, o fluxo tem só
+        // 2 passos reais: credenciais e pagamento-teste. O passo 3 é só
+        // a tela de sucesso — alcançada quando homologada=true.
+        if (d.homologada) setPasso(3)
+        else if (d.credenciaisOk) setPasso(2)
         else setPasso(1)
       })
       .catch(() => setErro('Erro ao carregar. Verifique sua conexão.'))
   }
 
   useEffect(recarregar, [token]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Polling automático enquanto está no passo 3 — o webhook do MP pode
-  // auto-homologar a instituição a qualquer momento (assim que chegar o
-  // primeiro payment approved). Verificamos a cada 10s.
-  useEffect(() => {
-    if (passo !== 3) return
-    const iv = setInterval(() => {
-      fetch(`${API}/api/portal/mp-setup?token=${token}`, { headers: H })
-        .then(r => r.json())
-        .then((d: Estado | { error: string }) => {
-          if ('error' in d) return
-          setEstado(d)
-          if (d.homologada) setPasso(5)
-        })
-        .catch(() => {})
-    }, 10_000)
-    return () => clearInterval(iv)
-  }, [passo, token])
 
   async function salvarCredenciais() {
     setErro(''); setSalvando(true)
@@ -91,21 +71,6 @@ function ConfigurarMpInner() {
     // de R$ 1 em nome dessa própria instituição e abre direto o cartão.
     if (!estado) return
     window.location.href = `/doacao?setup=1&inst=${estado.id}&token=${encodeURIComponent(token)}`
-  }
-
-  // Ativação manual como fallback — a instituição pode clicar "já fui
-  // aprovada" se quiser forçar a ativação mesmo antes do webhook detectar.
-  // Útil caso o webhook falhe por algum motivo.
-  async function confirmarAtivacaoManual() {
-    setErro('')
-    try {
-      const r = await fetch(`${API}/api/portal/mp-setup/ativar`, {
-        method: 'POST', headers: H, body: JSON.stringify({ token }),
-      })
-      const d = await r.json()
-      if (!r.ok) { setErro(d.error || 'Erro ao ativar'); return }
-      recarregar()
-    } catch { setErro('Erro ao ativar. Tente novamente.') }
   }
 
   // ── Renderização ──
@@ -141,18 +106,19 @@ function ConfigurarMpInner() {
           <div style={{ fontSize: 40, margin: '6px 0' }}>{estado.emoji}</div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: '#111', margin: 0 }}>{estado.nome}</h1>
 
-          {/* Progresso visual */}
+          {/* Progresso visual — 2 passos de ação (credenciais + teste), o
+              passo 3 é só a tela de sucesso */}
           <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 18 }}>
-            {[1, 2, 3, 4].map(n => (
+            {[1, 2].map(n => (
               <div key={n} style={{
-                width: 32, height: 6, borderRadius: 3,
+                width: 40, height: 6, borderRadius: 3,
                 background: passo >= n ? '#000DFF' : '#e5e7eb',
                 transition: 'background 0.2s',
               }} />
             ))}
           </div>
           <p style={{ fontSize: 11, color: '#888', marginTop: 10, letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600 }}>
-            {passo === 5 ? 'Finalizado ✓' : `Passo ${passo} de 4`}
+            {passo === 3 ? 'Finalizado ✓' : `Passo ${passo} de 2`}
           </p>
         </div>
 
@@ -198,15 +164,16 @@ function ConfigurarMpInner() {
           <div style={box.card}>
             <h2 style={h2}>💳 Passo 2 — Pagamento de teste</h2>
             <p style={sub}>
-              Credenciais salvas com sucesso ✓ Agora precisamos enviar <strong>1 pagamento de teste</strong> com cartão
-              de crédito pra sua conta Mercado Pago. Esse passo é <strong>obrigatório</strong> — é ele que cumpre o
-              checklist de homologação do Mercado Pago.
+              Credenciais salvas com sucesso ✓ Agora só falta enviar <strong>1 pagamento de teste</strong> com cartão
+              de crédito pra sua conta Mercado Pago. Isso cumpre o checklist de qualidade da integração — assim
+              que o score passar de 73, a homologação é <strong>aprovada instantaneamente</strong> e sua instituição
+              entra no ar automaticamente.
             </p>
             <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '14px 16px', marginBottom: 14 }}>
               <p style={{ fontSize: 12, color: '#78350f', fontWeight: 600, marginBottom: 6 }}>⚠️ Importante</p>
               <p style={{ fontSize: 12, color: '#78350f', lineHeight: 1.6 }}>
-                O pagamento pode até ser <strong>recusado</strong> pelo antifraude — isso não é problema. O que importa
-                é o request chegar na sua conta MP com todos os campos obrigatórios, pra o painel de homologação liberar.
+                O pagamento pode até ser <strong>recusado</strong> pelo antifraude do Mercado Pago — isso não é problema
+                e não impede a homologação. O que importa é o request chegar na sua conta MP com todos os campos obrigatórios.
                 Valor: <strong>R$ {estado.valor.toFixed(2).replace('.', ',')}</strong>.
               </p>
             </div>
@@ -217,57 +184,8 @@ function ConfigurarMpInner() {
           </div>
         )}
 
-        {/* ── PASSO 3: HOMOLOGAÇÃO NO PAINEL MP (automático) ── */}
+        {/* ── PASSO 3: SUCESSO FINAL ── */}
         {passo === 3 && (
-          <div style={box.card}>
-            <h2 style={h2}>⏳ Passo 3 — Aguardando homologação do Mercado Pago</h2>
-            <p style={sub}>
-              O pagamento de teste já chegou na sua conta ✓ Agora você precisa ir até o painel de developers do
-              Mercado Pago e solicitar a homologação da sua aplicação:
-            </p>
-            <ol style={{ margin: '12px 0 16px', paddingLeft: 20, fontSize: 13, color: '#555', lineHeight: 1.9 }}>
-              <li>Vá em <a href="https://www.mercadopago.com.br/developers/panel/app" target="_blank" rel="noreferrer" style={{ color: '#000DFF' }}>mercadopago.com.br/developers/panel/app</a></li>
-              <li>Abra a aplicação que você criou</li>
-              <li>No menu lateral, clique em <strong>Avaliação &gt; Qualidade da integração</strong></li>
-              <li>O checklist deve estar <strong>100% verde</strong> (espere de 15 min a 2h se ainda não atualizou)</li>
-              <li>Clique em <strong>&quot;Ir para produção&quot;</strong> ou <strong>&quot;Solicitar homologação&quot;</strong></li>
-              <li>O Mercado Pago libera em até 48h e te avisa por email</li>
-            </ol>
-
-            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: '14px 16px', marginBottom: 14 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: '#1e40af', marginBottom: 6 }}>
-                ✨ Ativação 100% automática
-              </p>
-              <p style={{ fontSize: 12, color: '#1e40af', lineHeight: 1.6 }}>
-                Quando o Mercado Pago aprovar a homologação, basta você voltar aqui e fazer <strong>mais um pagamento de teste</strong>.
-                Se ele for aprovado, sua instituição é ativada <strong>automaticamente</strong> em instantes — você não precisa clicar em nada.
-              </p>
-            </div>
-
-            {/* indicador de polling ativo */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f5f5f5', borderRadius: 10, padding: '10px 14px', marginBottom: 12 }}>
-              <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#16a34a', animation: 'levelup-pop 1.2s ease-in-out infinite' }} />
-              <span style={{ fontSize: 12, color: '#555' }}>
-                Verificando status a cada 10 segundos...
-              </span>
-            </div>
-
-            {erro && <p style={{ fontSize: 12, color: '#ef4444' }}>{erro}</p>}
-
-            <button onClick={iniciarTeste}
-              style={{ ...btn, background: '#000DFF' }}>
-              🔁 Fazer outro pagamento de teste
-            </button>
-
-            <button onClick={confirmarAtivacaoManual}
-              style={{ ...btn, background: 'transparent', color: '#9ca3af', border: '1px dashed #d1d5db', marginTop: 0 }}>
-              Forçar ativação manual (não recomendado)
-            </button>
-          </div>
-        )}
-
-        {/* ── PASSO 5: SUCESSO FINAL ── */}
-        {passo === 5 && (
           <div style={{ ...box.card, textAlign: 'center' }}>
             <div style={{ fontSize: 64, marginBottom: 12 }}>🎉</div>
             <h2 style={{ fontSize: 24, fontWeight: 800, color: '#16a34a', marginBottom: 8 }}>
