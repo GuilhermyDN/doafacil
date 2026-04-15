@@ -76,47 +76,64 @@ router.post('/mp-setup', async (req: Request, res: Response) => {
   res.json({ ok: true, mensagem: 'Credenciais salvas e validadas com sucesso!' })
 })
 
-// POST /api/portal/mp-setup/registrar-teste — marca que o pagamento de
-// teste foi feito E homologa a instituição na mesma operação.
-//
-// Racional: no painel do Mercado Pago, a "Qualidade da integração" é
-// avaliada por um score. Assim que o score passa de 73, a aplicação
-// é aprovada automaticamente — não há janela de 48h de espera. O score
-// sobe quando chega um POST /v1/payments com todos os campos obrigatórios
-// (items.id/title/description/category_id/quantity/unit_price,
-// payer.email/first_name/last_name, issuer_id), exatamente o que nosso
-// /cartao-token envia. Portanto, o simples fato do MP ter respondido um
-// paymentId para o nosso request já significa que o score subiu.
-//
-// A validação "paymentId presente" é a prova de que o MP recebeu o
-// request; sem paymentId, não homologa.
+// POST /api/portal/mp-setup/registrar-teste — só marca que o pagamento de
+// teste foi feito, sem homologar. A homologação agora depende do score
+// que a própria instituição vai digitar no passo 3 (endpoint validar-score).
 router.post('/mp-setup/registrar-teste', async (req: Request, res: Response) => {
   const { token, paymentId } = req.body
   if (!token) { res.status(400).json({ error: 'Token obrigatório' }); return }
   const inst = await prisma.instituicao.findUnique({ where: { mpSetupToken: String(token) } })
   if (!inst) { res.status(404).json({ error: 'Link inválido ou expirado' }); return }
-
-  // Se paymentId existe, temos prova de que o pagamento chegou no MP —
-  // homologa. Se não, só registra que tentou (fallback pra casos de erro
-  // no fluxo do cartão antes de chegar na API do MP).
-  const temPaymentId = !!paymentId
   await prisma.instituicao.update({
     where: { id: inst.id },
-    data: {
-      setupTestePaymentId: paymentId ? String(paymentId) : 'registrado',
-      ...(temPaymentId && !inst.homologada ? { homologada: true } : {}),
-    },
+    data: { setupTestePaymentId: paymentId ? String(paymentId) : 'registrado' },
   })
-  if (temPaymentId && !inst.homologada) {
-    console.log(`🎉 Instituição #${inst.id} "${inst.nome}" homologada automaticamente (paymentId=${paymentId})`)
-  }
-  res.json({ ok: true, homologada: temPaymentId || inst.homologada })
+  res.json({ ok: true })
 })
 
-// POST /api/portal/mp-setup/ativar — a instituição declara que completou
-// a homologação no painel developers do MP e pede pra ser ativada.
-// A partir daqui, inst.homologada = true e a instituição passa a aparecer
-// na listagem pública /api/instituicoes.
+// Score mínimo de Qualidade da Integração pra liberar a instituição.
+// O Mercado Pago considera integrações com score >= 43 aptas pra produção.
+const SCORE_MINIMO = 43
+
+// POST /api/portal/mp-setup/validar-score — a instituição digita o valor
+// que aparece no painel developers do MP em "Avaliação > Qualidade da
+// integração". Se for >= SCORE_MINIMO, ativa a instituição na hora.
+router.post('/mp-setup/validar-score', async (req: Request, res: Response) => {
+  const { token, score } = req.body
+  if (!token) { res.status(400).json({ error: 'Token obrigatório' }); return }
+  const scoreNum = Number(score)
+  if (!Number.isFinite(scoreNum) || scoreNum < 0 || scoreNum > 100) {
+    res.status(400).json({ error: 'Valor inválido. Digite um número entre 0 e 100.' }); return
+  }
+
+  const inst = await prisma.instituicao.findUnique({ where: { mpSetupToken: String(token) } })
+  if (!inst) { res.status(404).json({ error: 'Link inválido ou expirado' }); return }
+  if (!inst.mercadoPagoToken || !inst.mpPublicKey) {
+    res.status(400).json({ error: 'Credenciais do Mercado Pago ainda não foram salvas.' }); return
+  }
+  if (!inst.setupTestePaymentId) {
+    res.status(400).json({ error: 'Você ainda não fez o pagamento de teste (passo 2).' }); return
+  }
+
+  if (scoreNum < SCORE_MINIMO) {
+    res.status(400).json({
+      error: `Score insuficiente. O Mercado Pago exige ao menos ${SCORE_MINIMO} para liberar a integração. Volte ao passo 2 e faça outro pagamento de teste — o score sobe a cada nova transação.`,
+      scoreMinimo: SCORE_MINIMO,
+    })
+    return
+  }
+
+  await prisma.instituicao.update({
+    where: { id: inst.id },
+    data: { homologada: true },
+  })
+  console.log(`🎉 Instituição #${inst.id} "${inst.nome}" homologada via score auto-declarado: ${scoreNum}`)
+  res.json({ ok: true, mensagem: 'Instituição ativada! Agora ela aparece na página pública de doações.' })
+})
+
+// POST /api/portal/mp-setup/ativar — deprecated, mantido só por compatibilidade.
+// A ativação nova passa por /validar-score. Se chamarem este endpoint com um
+// token válido, redireciona a lógica pro validar-score aceitando score=100.
 router.post('/mp-setup/ativar', async (req: Request, res: Response) => {
   const { token } = req.body
   if (!token) { res.status(400).json({ error: 'Token obrigatório' }); return }

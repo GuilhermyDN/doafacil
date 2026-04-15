@@ -15,8 +15,12 @@ type Estado = {
   homologada: boolean
 }
 
-// 1 = credenciais, 2 = pagamento teste, 3 = sucesso final (homologada)
-type Passo = 1 | 2 | 3
+// 1 = credenciais, 2 = pagamento teste, 3 = validar score MP, 4 = sucesso
+type Passo = 1 | 2 | 3 | 4
+
+// Score mínimo que o painel MP precisa mostrar em "Qualidade da integração"
+// para liberar a instituição. Mesma constante do backend (instituicao-portal.ts).
+const SCORE_MINIMO = 43
 
 function ConfigurarMpInner() {
   const params = useSearchParams()
@@ -31,6 +35,10 @@ function ConfigurarMpInner() {
   const [accessToken, setAccessToken] = useState('')
   const [salvando, setSalvando] = useState(false)
 
+  // Form passo 3
+  const [scoreInput, setScoreInput] = useState('')
+  const [validandoScore, setValidandoScore] = useState(false)
+
   const recarregar = () => {
     if (!token) { setErro('Link inválido'); return }
     fetch(`${API}/api/portal/mp-setup?token=${token}`, { headers: H })
@@ -38,10 +46,9 @@ function ConfigurarMpInner() {
       .then((d: Estado | { error: string }) => {
         if ('error' in d) { setErro(d.error); return }
         setEstado(d)
-        // Com a homologação automática no /registrar-teste, o fluxo tem só
-        // 2 passos reais: credenciais e pagamento-teste. O passo 3 é só
-        // a tela de sucesso — alcançada quando homologada=true.
-        if (d.homologada) setPasso(3)
+        // Ordem dos passos: credenciais → teste → validar score → sucesso
+        if (d.homologada) setPasso(4)
+        else if (d.testeFeito) setPasso(3)
         else if (d.credenciaisOk) setPasso(2)
         else setPasso(1)
       })
@@ -71,6 +78,20 @@ function ConfigurarMpInner() {
     // de R$ 1 em nome dessa própria instituição e abre direto o cartão.
     if (!estado) return
     window.location.href = `/doacao?setup=1&inst=${estado.id}&token=${encodeURIComponent(token)}`
+  }
+
+  async function validarScore() {
+    setErro(''); setValidandoScore(true)
+    try {
+      const r = await fetch(`${API}/api/portal/mp-setup/validar-score`, {
+        method: 'POST', headers: H,
+        body: JSON.stringify({ token, score: Number(scoreInput) }),
+      })
+      const d = await r.json()
+      if (!r.ok) { setErro(d.error || 'Erro ao validar score'); return }
+      recarregar()
+    } catch { setErro('Erro ao validar. Tente novamente.') }
+    finally { setValidandoScore(false) }
   }
 
   // ── Renderização ──
@@ -106,19 +127,19 @@ function ConfigurarMpInner() {
           <div style={{ fontSize: 40, margin: '6px 0' }}>{estado.emoji}</div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: '#111', margin: 0 }}>{estado.nome}</h1>
 
-          {/* Progresso visual — 2 passos de ação (credenciais + teste), o
-              passo 3 é só a tela de sucesso */}
+          {/* Progresso visual — 3 passos de ação (credenciais + teste + score),
+              o passo 4 é só a tela de sucesso */}
           <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 18 }}>
-            {[1, 2].map(n => (
+            {[1, 2, 3].map(n => (
               <div key={n} style={{
-                width: 40, height: 6, borderRadius: 3,
+                width: 36, height: 6, borderRadius: 3,
                 background: passo >= n ? '#000DFF' : '#e5e7eb',
                 transition: 'background 0.2s',
               }} />
             ))}
           </div>
           <p style={{ fontSize: 11, color: '#888', marginTop: 10, letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600 }}>
-            {passo === 3 ? 'Finalizado ✓' : `Passo ${passo} de 2`}
+            {passo === 4 ? 'Finalizado ✓' : `Passo ${passo} de 3`}
           </p>
         </div>
 
@@ -164,10 +185,9 @@ function ConfigurarMpInner() {
           <div style={box.card}>
             <h2 style={h2}>💳 Passo 2 — Pagamento de teste</h2>
             <p style={sub}>
-              Credenciais salvas com sucesso ✓ Agora só falta enviar <strong>1 pagamento de teste</strong> com cartão
-              de crédito pra sua conta Mercado Pago. Isso cumpre o checklist de qualidade da integração — assim
-              que o score passar de 73, a homologação é <strong>aprovada instantaneamente</strong> e sua instituição
-              entra no ar automaticamente.
+              Credenciais salvas com sucesso ✓ Agora precisamos enviar <strong>1 pagamento de teste</strong> com cartão
+              de crédito pra sua conta Mercado Pago. Isso faz o score de &ldquo;Qualidade da integração&rdquo; subir no
+              painel do MP.
             </p>
             <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '14px 16px', marginBottom: 14 }}>
               <p style={{ fontSize: 12, color: '#78350f', fontWeight: 600, marginBottom: 6 }}>⚠️ Importante</p>
@@ -184,8 +204,63 @@ function ConfigurarMpInner() {
           </div>
         )}
 
-        {/* ── PASSO 3: SUCESSO FINAL ── */}
+        {/* ── PASSO 3: CONFIRMAR SCORE DE QUALIDADE DA INTEGRAÇÃO ── */}
         {passo === 3 && (
+          <div style={box.card}>
+            <h2 style={h2}>📊 Passo 3 — Confirmar score de qualidade</h2>
+            <p style={sub}>
+              Pagamento de teste enviado ✓ Agora vá ao painel de developers do Mercado Pago para conferir o
+              score da sua integração e digite o valor abaixo. Se for <strong>{SCORE_MINIMO} ou mais</strong>,
+              sua instituição é ativada na hora.
+            </p>
+
+            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: '14px 16px' }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#1e40af', marginBottom: 6 }}>
+                📍 Onde encontrar o score
+              </p>
+              <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: '#1e40af', lineHeight: 1.8 }}>
+                <li>Vá em <a href="https://www.mercadopago.com.br/developers/panel/app" target="_blank" rel="noreferrer" style={{ color: '#1e40af', textDecoration: 'underline' }}>mercadopago.com.br/developers/panel/app</a></li>
+                <li>Abra a aplicação que você criou</li>
+                <li>No menu lateral, clique em <strong>Avaliação &gt; Qualidade da integração</strong></li>
+                <li>Olhe o número grande em destaque na tela (pode ir de 0 a 100)</li>
+                <li>Digite esse número no campo abaixo</li>
+              </ol>
+            </div>
+
+            <div>
+              <label style={label}>Seu score atual</label>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                inputMode="numeric"
+                value={scoreInput}
+                onChange={e => setScoreInput(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                placeholder={`Ex: ${SCORE_MINIMO}`}
+                style={{ ...input, fontSize: 20, fontFamily: 'inherit', textAlign: 'center', letterSpacing: 2, fontWeight: 700 }}
+              />
+              <p style={{ fontSize: 11, color: '#888', marginTop: 6 }}>
+                Mínimo necessário: <strong>{SCORE_MINIMO}</strong>
+              </p>
+            </div>
+
+            {erro && <p style={{ fontSize: 12, color: '#ef4444' }}>{erro}</p>}
+
+            <button onClick={validarScore}
+              disabled={validandoScore || !scoreInput.trim()}
+              style={{ ...btn, background: validandoScore || !scoreInput.trim() ? '#9ca3af' : '#16a34a' }}>
+              {validandoScore ? 'Validando...' : 'Validar e ativar minha instituição →'}
+            </button>
+
+            <button onClick={iniciarTeste}
+              style={{ ...btn, background: 'transparent', color: '#6b7280', border: '1px dashed #d1d5db', marginTop: 0 }}>
+              🔁 Score ainda baixo? Fazer outro pagamento de teste
+            </button>
+          </div>
+        )}
+
+        {/* ── PASSO 4: SUCESSO FINAL ── */}
+        {passo === 4 && (
           <div style={{ ...box.card, textAlign: 'center' }}>
             <div style={{ fontSize: 64, marginBottom: 12 }}>🎉</div>
             <h2 style={{ fontSize: 24, fontWeight: 800, color: '#16a34a', marginBottom: 8 }}>
