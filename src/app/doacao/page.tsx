@@ -202,7 +202,9 @@ function TelaPagamento({ inst, tagSerial, autoSerial, setupMode, onConfirmar, on
   const [anonimo, setAnonimo] = useState(false);
   const [serialCopiado, setSerialCopiado] = useState(false);
   const { cor, bg } = instColor(inst);
-  const total = inst.valor * qtd;
+  // Em modo setup, o total exibido é R$ 1,00 fixo — bate com o valor
+  // real que será cobrado pelo endpoint POST /api/portal/mp-setup/criar-doacao-teste.
+  const total = setupMode ? 1 : inst.valor * qtd;
   const podeConfirmarPix = anonimo || (nome.trim().length > 0 && email.trim().length > 0 && telefone.trim().length > 0);
   // Cartão exige cadastro: o antifraude do MP rejeita pagamentos sem payer.email real.
   const podeConfirmarCartao = !anonimo && nome.trim().length > 0 && email.trim().length > 0 && telefone.trim().length > 0;
