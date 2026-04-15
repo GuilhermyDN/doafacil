@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { type Doador, type Missao, type Doacao } from "@/lib/data";
 import {
   login as apiLogin, logout as apiLogout, isLoggedIn,
@@ -338,6 +338,7 @@ export default function AdminPage() {
   const [instAdminForm, setInstAdminForm] = useState(instFormBlank);
   const [instAdminEditing, setInstAdminEditing] = useState<number | "new" | null>(null);
   const [instAdminSaving, setInstAdminSaving] = useState(false);
+  const instEditFormRef = useRef<HTMLDivElement>(null);
   const [instLinkGerado, setInstLinkGerado]         = useState<Record<number, string>>({});
   const [instLinkGastosGerado, setInstLinkGastosGerado] = useState<Record<number, string>>({});
   const [instLinkCopiado, setInstLinkCopiado]       = useState<Record<number, boolean>>({});
@@ -419,6 +420,13 @@ export default function AdminPage() {
     if (!autenticado || tab !== "instituicoes") return;
     getInstituicoes().then(setInstAdminList);
   }, [autenticado, tab]);
+
+  // scroll ao formulário de edição quando abre
+  useEffect(() => {
+    if (instAdminEditing !== null) {
+      setTimeout(() => instEditFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    }
+  }, [instAdminEditing]);
 
   // carregar instituições para aba prestação
   useEffect(() => {
@@ -1564,7 +1572,7 @@ export default function AdminPage() {
     };
 
     const renderForm = () => (
-      <div style={{ background: C.white, borderRadius: 18, border: `2px solid ${C.blue}`, padding: "24px" }}>
+      <div ref={instEditFormRef} style={{ background: C.white, borderRadius: 18, border: `2px solid ${C.blue}`, padding: "24px" }}>
         <p style={{ fontSize: 14, fontWeight: 700, color: C.ink, marginBottom: 20 }}>
           {isNew ? "➕ Nova instituição" : `✏️ Editar — ${editInst?.nome}`}
         </p>
