@@ -6,6 +6,29 @@ import { getInstituicoes, postDoacao, criarPixMp, type PostDoacaoResponse, type 
 
 type Etapa = "escolha" | "pagamento" | "pixqr" | "cartaobrick" | "confirmado";
 
+// ── NÍVEIS ──────────────────────────────────────────────────────────────────
+// Ordem crescente de progressão (nice → killer). Usado para detectar subida
+// de nível comparando o snapshot antes/depois da doação.
+const NIVEIS_ORDEM = ["nice", "cool", "tough", "ruler", "fstar", "topnotch", "goat", "killer"] as const;
+const NIVEIS_INFO: Record<string, { label: string; emoji: string; cor: string }> = {
+  nice:     { label: "NICE",     emoji: "🩶", cor: "#c4c4c4" },
+  cool:     { label: "COOL",     emoji: "🩵", cor: "#7dd3fc" },
+  tough:    { label: "TOUGH",    emoji: "🤍", cor: "#9ca3af" },
+  ruler:    { label: "RULER",    emoji: "💚", cor: "#22c55e" },
+  fstar:    { label: "F★★",      emoji: "🔥", cor: "#e05c1a" },
+  topnotch: { label: "TOP-NOTCH", emoji: "💠", cor: "#4f9ef8" },
+  goat:     { label: "G.O.A.T",  emoji: "🐐", cor: "#d4a017" },
+  killer:   { label: "KILLER",   emoji: "👑", cor: "#0f0f0f" },
+};
+function nivelRank(nivel: string | null | undefined): number {
+  if (!nivel) return -1;
+  const i = NIVEIS_ORDEM.indexOf(nivel as typeof NIVEIS_ORDEM[number]);
+  return i < 0 ? -1 : i;
+}
+
+type SnapshotTag = { nivel: string | null; pontos: number } | null;
+type LevelUp = { de: string | null; para: string; pontos: number } | null;
+
 // ── BRAND COLORS ─────────────────────────────────────────────────────────────
 const C = {
   black:   "#000000",
@@ -770,8 +793,8 @@ function TelaPixQrCode({ inst, qtd, doacaoId, pixData, onPago, onNova }: {
 }
 
 // ── TELA CONFIRMADO ───────────────────────────────────────────────────────────
-function TelaConfirmado({ inst, qtd, pixData, viaMp, onNova }: {
-  inst: Instituicao | null; qtd: number; pixData: PostDoacaoResponse | null; viaMp?: boolean; onNova: () => void;
+function TelaConfirmado({ inst, qtd, pixData, viaMp, levelUp, onNova }: {
+  inst: Instituicao | null; qtd: number; pixData: PostDoacaoResponse | null; viaMp?: boolean; levelUp?: LevelUp; onNova: () => void;
 }) {
   const cor  = inst ? instColor(inst).cor : C.blue;
   const bg   = inst ? instColor(inst).bg  : C.blueL;
@@ -797,6 +820,42 @@ function TelaConfirmado({ inst, qtd, pixData, viaMp, onNova }: {
         <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(20px, 5vw, 26px)", fontWeight: 700, color: C.ink, lineHeight: 1.25, marginBottom: 10 }}>
           Que Deus abençoe<br />sua generosidade!
         </h2>
+
+        {/* Banner de subida de nível — só aparece se o nível efetivamente mudou */}
+        {levelUp && (() => {
+          const info = NIVEIS_INFO[levelUp.para];
+          if (!info) return null;
+          return (
+            <div style={{
+              background: `linear-gradient(135deg, ${info.cor}18, ${info.cor}05)`,
+              border: `2px solid ${info.cor}`,
+              borderRadius: 18,
+              padding: "18px 20px",
+              marginBottom: 20,
+              boxShadow: `0 12px 32px ${info.cor}33`,
+              animation: "levelup-pop 0.6s ease-out",
+            }}>
+              <p style={{ fontSize: 10, letterSpacing: 3, color: info.cor, textTransform: "uppercase", fontWeight: 800, marginBottom: 8 }}>
+                🎉 Parabéns! Você subiu de nível
+              </p>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 8 }}>
+                {levelUp.de && NIVEIS_INFO[levelUp.de] && (
+                  <>
+                    <span style={{ fontSize: 22, opacity: 0.5 }}>{NIVEIS_INFO[levelUp.de].emoji}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>{NIVEIS_INFO[levelUp.de].label}</span>
+                    <span style={{ fontSize: 18, color: info.cor }}>→</span>
+                  </>
+                )}
+                <span style={{ fontSize: 32 }}>{info.emoji}</span>
+                <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 800, color: info.cor }}>{info.label}</span>
+              </div>
+              <p style={{ fontSize: 12, color: C.muted }}>
+                Você já acumulou <strong style={{ color: info.cor }}>{levelUp.pontos}</strong> pontos no seu QR code.
+              </p>
+            </div>
+          );
+        })()}
+
         {inst && (
           <p style={{ color: C.muted, fontSize: 13, marginBottom: 24, lineHeight: 1.8 }}>
             <strong style={{ color: C.ink }}>{qtd} {qtd === 1 ? "pessoa" : "pessoas"}</strong> com{" "}
@@ -848,6 +907,8 @@ function DoacaoPageInner() {
   const [pixMpData, setPixMpData]   = useState<MpPixResponse | null>(null);
   const [cartaoDoacaoId, setCartaoDoacaoId] = useState<number | null>(null);
   const [cartaoValor, setCartaoValor]       = useState(0);
+  const [snapshotAntes, setSnapshotAntes] = useState<SnapshotTag>(null);
+  const [levelUp, setLevelUp]             = useState<LevelUp>(null);
   const [loading, setLoading]     = useState(false);
   const [erro, setErro]           = useState(statusMp === "falha" ? "O pagamento foi cancelado ou falhou. Tente novamente." : "");
   // serial auto-gerado quando não veio pela URL
@@ -869,12 +930,48 @@ function DoacaoPageInner() {
 
   const [erroCodigo, setErroCodigo] = useState<string | null>(null);
 
+  // Busca estado atual da tag (usado antes e depois da doação para detectar subida de nível)
+  const fetchTagSnapshot = async (serial: string): Promise<SnapshotTag> => {
+    try {
+      const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003";
+      const r = await fetch(`${API}/api/tags/${encodeURIComponent(serial)}`, {
+        headers: { "ngrok-skip-browser-warning": "true" },
+      });
+      if (!r.ok) return null;
+      const d = await r.json();
+      return { nivel: d.nivel ?? null, pontos: d.pontos ?? 0 };
+    } catch { return null; }
+  };
+
+  // Chamado quando o pagamento é confirmado (polling PIX ou sucesso do cartão).
+  // Compara o snapshot salvo em handleConfirmar com o estado atual da tag
+  // e mostra banner de subida de nível se mudou.
+  const finalizarDoacao = async () => {
+    if (serialEfetivo) {
+      const depois = await fetchTagSnapshot(serialEfetivo);
+      const antesNivel = snapshotAntes?.nivel ?? null;
+      const depoisNivel = depois?.nivel ?? null;
+      if (depoisNivel && nivelRank(depoisNivel) > nivelRank(antesNivel)) {
+        setLevelUp({ de: antesNivel, para: depoisNivel, pontos: depois?.pontos ?? 0 });
+      } else {
+        setLevelUp(null);
+      }
+    }
+    setEtapa("confirmado");
+  };
+
   const handleConfirmar = async (quantidade: number, nome: string, email: string, telefone: string, metodo: "pix" | "cartao") => {
     if (!escolhida) return;
     setLoading(true);
     setErro("");
     setErroCodigo(null);
     try {
+      // Captura estado ANTES da doação — o nível/pontos atuais da tag.
+      // Se der erro, seguimos em frente — banner de level-up é bônus, não crítico.
+      if (serialEfetivo) {
+        setSnapshotAntes(await fetchTagSnapshot(serialEfetivo));
+      }
+
       const data = await postDoacao({
         doadorNome: nome,
         doadorEmail: email || undefined,
@@ -909,17 +1006,18 @@ function DoacaoPageInner() {
 
   const resetar = () => {
     setEtapa("escolha"); setEscolhida(null); setQtd(1); setPixData(null); setPixMpData(null); setCartaoDoacaoId(null); setErro("");
+    setSnapshotAntes(null); setLevelUp(null);
     window.history.replaceState({}, "", "/doacao");
   };
 
   if (etapa === "cartaobrick" && escolhida && cartaoDoacaoId)
-    return <TelaCartaoBrick inst={escolhida} qtd={qtd} doacaoId={cartaoDoacaoId} valorTotal={cartaoValor} onSucesso={() => setEtapa("confirmado")} onVoltar={() => setEtapa("pagamento")} />;
+    return <TelaCartaoBrick inst={escolhida} qtd={qtd} doacaoId={cartaoDoacaoId} valorTotal={cartaoValor} onSucesso={finalizarDoacao} onVoltar={() => setEtapa("pagamento")} />;
 
   if (etapa === "pixqr" && escolhida && pixMpData && pixData)
-    return <TelaPixQrCode inst={escolhida} qtd={qtd} doacaoId={pixData.doacaoId} pixData={pixMpData} onPago={() => setEtapa("confirmado")} onNova={resetar} />;
+    return <TelaPixQrCode inst={escolhida} qtd={qtd} doacaoId={pixData.doacaoId} pixData={pixMpData} onPago={finalizarDoacao} onNova={resetar} />;
 
   if (etapa === "confirmado")
-    return <TelaConfirmado inst={escolhida} qtd={qtd} pixData={pixData} viaMp={viaMp} onNova={resetar} />;
+    return <TelaConfirmado inst={escolhida} qtd={qtd} pixData={pixData} viaMp={viaMp} levelUp={levelUp} onNova={resetar} />;
 
   if (etapa === "pagamento" && escolhida)
     return (
