@@ -245,6 +245,14 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
     if (!doacao) { res.status(404).json({ error: 'Doação não encontrada' }); return }
     if (doacao.pago) { res.status(400).json({ error: 'Doação já paga' }); return }
 
+    // Nome do doador — separa em first/last se possível. Só envia se for real
+    // (ignora fallback "Doador" para não ativar flag do antifraude do MP).
+    const nomeDoador = (doacao.doadorNome || '').trim()
+    const nomeEhReal = nomeDoador && nomeDoador.toLowerCase() !== 'doador'
+    const partesNome = nomeEhReal ? nomeDoador.split(/\s+/) : []
+    const firstName = partesNome[0] || undefined
+    const lastName = partesNome.length > 1 ? partesNome.slice(1).join(' ') : undefined
+
     const paymentBody: any = {
       transaction_amount: doacao.valorTotal,
       token,
@@ -252,13 +260,32 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
       installments: installments || 1,
       payment_method_id: paymentMethodId,
       issuer_id: issuerId,
+      statement_descriptor: 'HUMANITYBEARERS',
       payer: {
         email: payerEmail || doacao.doadorEmail || 'doador@humanitybearers.com.br',
+        first_name: firstName,
+        last_name: lastName,
         identification: payerIdentification,
+      },
+      // Campos de homologação do MP — melhoram o índice de aprovação do antifraude
+      additional_info: {
+        items: [
+          {
+            id: String(doacao.id),
+            title: `Doação — ${doacao.instituicao.nome}`,
+            description: `${doacao.quantidade}x ${doacao.instituicao.tipo || 'doação'}`,
+            category_id: 'donations',
+            quantity: doacao.quantidade || 1,
+            unit_price: Number((doacao.valorTotal / (doacao.quantidade || 1)).toFixed(2)),
+          },
+        ],
+        payer: {
+          first_name: firstName,
+          last_name: lastName,
+        },
       },
       external_reference: String(doacao.id),
       notification_url: `${process.env.NEXT_PUBLIC_URL || process.env.BACKEND_URL || 'http://localhost:3003'}/api/mp/webhook`,
-      three_d_secure_mode: 'mandatory', // força 3DS: banco SEMPRE envia desafio ao usuário
     }
 
     // Usa o token da INSTITUIÇÃO — a public key usada no frontend bate com este token
@@ -269,10 +296,10 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
     }
     // No modelo marketplace do MP: token criado com public_key da plataforma
     // é válido para pagar via access_token da instituição (que autorizou via OAuth).
-    console.log(`💳 Cartão 3DS iniciando — inst=${inst.id} token_inst=${inst.mercadoPagoToken?.slice(0,20)}... paymentMethodId=${paymentMethodId}`)
+    console.log(`💳 Cartão iniciando — inst=${inst.id} token_inst=${inst.mercadoPagoToken?.slice(0,20)}... paymentMethodId=${paymentMethodId}`)
     const clienteInst = new MercadoPagoConfig({ accessToken: inst.mercadoPagoToken })
     const payment = await new Payment(clienteInst).create({ body: paymentBody })
-    console.log(`💳 Cartão 3DS (inst ${inst.id}): status=${payment.status} detail=${(payment as any).status_detail} id=${payment.id}`)
+    console.log(`💳 Cartão (inst ${inst.id}): status=${payment.status} detail=${(payment as any).status_detail} id=${payment.id}`)
 
     if (payment.status === 'approved') {
       await prisma.doacao.update({
