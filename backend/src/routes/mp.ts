@@ -140,7 +140,12 @@ router.post('/pix', async (req: Request, res: Response) => {
 
     const pix = payment.point_of_interaction?.transaction_data
     if (!pix?.qr_code) {
-      res.status(500).json({ error: 'MP não retornou QR Code Pix' }); return
+      console.error('MP pix: QR Code null. payment_status:', payment.status, 'point_of_interaction:', JSON.stringify(payment.point_of_interaction))
+      res.status(400).json({
+        error: 'A conta do Mercado Pago desta instituição não possui chave PIX cadastrada ou o PIX não está ativo. O responsável pela instituição precisa acessar mercadopago.com.br → Configurações → Meios de pagamento → PIX e cadastrar uma chave PIX.',
+        codigo: 'SEM_CHAVE_PIX',
+      })
+      return
     }
 
     // Salva o ID do pagamento MP na doação
@@ -156,8 +161,25 @@ router.post('/pix', async (req: Request, res: Response) => {
       expiracao: payment.date_of_expiration,
     })
   } catch (err: any) {
-    console.error('MP pix error:', err?.cause || err?.message || err)
-    res.status(500).json({ error: err?.message || 'Erro ao gerar Pix' })
+    const rawMsg: string = err?.message || String(err?.cause || '')
+    console.error('MP pix error:', rawMsg, err?.cause)
+
+    // Erro específico: conta do recebedor sem chave PIX
+    const semChavePix =
+      rawMsg.includes('key enabled') ||
+      rawMsg.includes('QR render') ||
+      rawMsg.includes('13253') ||
+      rawMsg.includes('Financial Identity') ||
+      rawMsg.includes('Collector user')
+
+    if (semChavePix) {
+      res.status(400).json({
+        error: 'A conta do Mercado Pago desta instituição não possui chave PIX cadastrada ou o PIX não está ativo. O responsável precisa acessar mercadopago.com.br → Configurações → Meios de pagamento → PIX e cadastrar uma chave.',
+        codigo: 'SEM_CHAVE_PIX',
+      })
+    } else {
+      res.status(500).json({ error: rawMsg || 'Erro ao gerar Pix' })
+    }
   }
 })
 

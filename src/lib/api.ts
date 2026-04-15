@@ -20,7 +20,9 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Erro desconhecido' }))
-    throw new Error(err.error || `Erro ${res.status}`)
+    const e = new Error(err.error || `Erro ${res.status}`) as Error & { codigo?: string }
+    if (err.codigo) e.codigo = err.codigo
+    throw e
   }
   return res.json()
 }

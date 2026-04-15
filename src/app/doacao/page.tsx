@@ -654,10 +654,13 @@ function DoacaoPageInner() {
   // serial efetivo: o do QR tem prioridade, senão usa o auto-gerado
   const serialEfetivo = tagSerial || autoSerial;
 
+  const [erroCodigo, setErroCodigo] = useState<string | null>(null);
+
   const handleConfirmar = async (quantidade: number, nome: string, email: string, telefone: string, metodo: "pix" | "cartao") => {
     if (!escolhida) return;
     setLoading(true);
     setErro("");
+    setErroCodigo(null);
     try {
       const data = await postDoacao({
         doadorNome: nome,
@@ -680,6 +683,7 @@ function DoacaoPageInner() {
         setEtapa("cartaobrick");
       }
     } catch (e: any) {
+      setErroCodigo(e.codigo || null);
       setErro(e.message || "Erro ao registrar doação");
     } finally {
       setLoading(false);
@@ -703,7 +707,36 @@ function DoacaoPageInner() {
   if (etapa === "pagamento" && escolhida)
     return (
       <>
-        {erro && <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: "#ff4444", color: "#fff", padding: "10px 20px", borderRadius: 10, zIndex: 999, fontSize: 13 }}>{erro}</div>}
+        {/* Modal: conta sem chave PIX */}
+        {erroCodigo === "SEM_CHAVE_PIX" && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+            <div style={{ background: "#fff", borderRadius: 20, padding: "32px 28px", maxWidth: 420, width: "100%", textAlign: "center", boxShadow: "0 32px 80px rgba(0,0,0,0.5)" }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111", marginBottom: 10 }}>PIX não disponível nesta instituição</h2>
+              <p style={{ fontSize: 14, color: "#555", lineHeight: 1.7, marginBottom: 20 }}>
+                A conta do Mercado Pago desta instituição ainda não tem uma <strong>chave PIX cadastrada</strong>.
+                O responsável precisa acessar o Mercado Pago e ativar o PIX antes de aceitar doações.
+              </p>
+              <p style={{ fontSize: 12, color: "#888", marginBottom: 24 }}>
+                Caminho: mercadopago.com.br → Configurações → Meios de pagamento → PIX
+              </p>
+              <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+                <button onClick={() => { setErroCodigo(null); setErro(""); }}
+                  style={{ background: C.blue, color: "#fff", border: "none", borderRadius: 10, padding: "10px 24px", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+                  Tentar cartão
+                </button>
+                <button onClick={() => { setErroCodigo(null); setErro(""); setEtapa("escolha"); }}
+                  style={{ background: "#f0f0f0", color: "#333", border: "none", borderRadius: 10, padding: "10px 24px", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>
+                  Voltar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Toast erro genérico */}
+        {erro && erroCodigo !== "SEM_CHAVE_PIX" && (
+          <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: "#ff4444", color: "#fff", padding: "10px 20px", borderRadius: 10, zIndex: 999, fontSize: 13 }}>{erro}</div>
+        )}
         {loading && (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 998, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
             <div style={{ width: 48, height: 48, border: "4px solid rgba(255,255,255,0.15)", borderTop: `4px solid ${C.blue}`, borderRadius: "50%", animation: "spin 0.8s linear infinite" }}/>
