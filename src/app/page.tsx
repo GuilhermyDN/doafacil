@@ -6,17 +6,7 @@ import { getInstituicoes } from "@/lib/api";
 
 function UrsinhoSVG({ size = 22 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="18" cy="18" r="13" fill="#FF4E00"/>
-      <circle cx="62" cy="18" r="13" fill="#FF4E00"/>
-      <circle cx="40" cy="44" r="28" fill="#FF4E00"/>
-      <circle cx="27" cy="38" r="6" fill="#fff"/>
-      <circle cx="53" cy="38" r="6" fill="#fff"/>
-      <circle cx="28" cy="39" r="3" fill="#1c1a16"/>
-      <circle cx="54" cy="39" r="3" fill="#1c1a16"/>
-      <ellipse cx="40" cy="52" rx="9" ry="6" fill="#c93a00"/>
-      <path d="M33 56 Q40 62 47 56" stroke="#fff" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-    </svg>
+    <img src="/ursinho.png" alt="Ursinho Humanity Bearers" width={size} height={size} style={{ objectFit: "contain", display: "block" }} />
   );
 }
 
