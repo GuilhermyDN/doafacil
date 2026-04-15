@@ -364,13 +364,27 @@ router.post('/webhook', async (req: Request, res: Response) => {
     const { type, data } = req.body
     if (type !== 'payment' || !data?.id) return
 
-    // Consulta o pagamento na API do MP
-    const paymentClient = new Payment(mpClient)
+    const paymentIdStr = String(data.id)
+
+    // Busca a doação pelo mpPaymentId para obter o token correto da instituição
+    const doacaoPorPagamento = await prisma.doacao.findFirst({
+      where: { mpPaymentId: paymentIdStr },
+      include: { instituicao: true },
+    })
+
+    // Usa o token da instituição se disponível, senão cai no token da plataforma
+    const tokenUsado = doacaoPorPagamento?.instituicao?.mercadoPagoToken
+      || process.env.MP_ACCESS_TOKEN
+      || ''
+    const clienteUsado = new MercadoPagoConfig({ accessToken: tokenUsado })
+    const paymentClient = new Payment(clienteUsado)
     const payment = await paymentClient.get({ id: data.id })
+
+    console.log(`📩 Webhook MP: payment ${paymentIdStr} status=${payment.status}`)
 
     if (payment.status !== 'approved') return
 
-    const doacaoId = Number(payment.external_reference)
+    const doacaoId = doacaoPorPagamento?.id || Number(payment.external_reference)
     if (!doacaoId || isNaN(doacaoId)) return
 
     const doacao = await prisma.doacao.findUnique({ where: { id: doacaoId } })
