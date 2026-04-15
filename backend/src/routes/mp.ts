@@ -258,7 +258,7 @@ router.post('/cartao-token', async (req: Request, res: Response) => {
       },
       external_reference: String(doacao.id),
       notification_url: `${process.env.NEXT_PUBLIC_URL || process.env.BACKEND_URL || 'http://localhost:3003'}/api/mp/webhook`,
-      three_d_secure_mode: 'optional', // ativa 3DS: se alto risco → banco envia desafio ao usuário
+      three_d_secure_mode: 'mandatory', // força 3DS: banco SEMPRE envia desafio ao usuário
     }
 
     // Usa a plataforma para evitar cc_rejected_high_risk de contas não verificadas
