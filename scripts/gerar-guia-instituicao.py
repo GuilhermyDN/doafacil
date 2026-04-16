@@ -189,9 +189,9 @@ story.append(PageBreak())
 # ═══ APRESENTAÇÃO ═══
 story.append(Paragraph("Olá! Bem-vinda ao Humanity Bearers", st_h1))
 story.append(Paragraph(
-    "O Humanity Bearers é uma plataforma que conecta doadores a instituições que trabalham para "
-    "reduzir o sofrimento de pessoas em situação de rua — oferecendo refeições, banhos, cobertores "
-    "e outros cuidados básicos.",
+    "O Humanity Bearers é uma plataforma que conecta pessoas a iniciativas que promovem a humanidade "
+    "em todas as suas formas — viabilizando ações reais de cuidado, dignidade humana, proteção animal "
+    "e regeneração social e ambiental.",
     st_body,
 ))
 story.append(Paragraph(
