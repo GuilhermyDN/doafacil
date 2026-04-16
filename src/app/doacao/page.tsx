@@ -384,6 +384,20 @@ function TelaPagamento({ inst, tagSerial, autoSerial, setupMode, onConfirmar, on
             <p style={{ fontSize: 12, color: cor, lineHeight: 1.6 }}>A chave Pix aparece na próxima tela. O valor vai direto para a instituição.</p>
           </div>
 
+          {/* Aviso de consentimento — clicar em Pagar declara aceite dos Termos
+              de Uso e Política de Privacidade (LGPD: consent by action). */}
+          <div style={{ marginBottom: 14 }}>
+            <p style={{ fontSize: 11, color: C.muted, lineHeight: 1.55, textAlign: "center" }}>
+              Ao prosseguir, você declara que leu, compreendeu e concorda com os{" "}
+              <a href="/termos-uso" target="_blank" rel="noreferrer" style={{ color: cor, fontWeight: 600, textDecoration: "underline" }}>Termos de Uso</a>{" "}
+              e a{" "}
+              <a href="/politica-privacidade" target="_blank" rel="noreferrer" style={{ color: cor, fontWeight: 600, textDecoration: "underline" }}>Política de Privacidade</a>{" "}
+              do Humanity Bearers™, autorizando o tratamento dos seus dados. Você também reconhece que
+              as doações são realizadas diretamente à instituição escolhida, não havendo intermediação
+              financeira pela plataforma.
+            </p>
+          </div>
+
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {!setupMode && (
               <button
