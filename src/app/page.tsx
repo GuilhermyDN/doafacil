@@ -158,13 +158,13 @@ export default function HomePage() {
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
           {/* Watermark GRANDE do rosto do ursinho — só metade aparece (canto inf. direito) */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/ursinho-rosto.jpg" alt="" style={{
+          <img src="/ursinho-rosto.png" alt="" style={{
             position: "absolute",
             right: "-18%",
             bottom: "-22%",
             width: "min(95vmin, 720px)",
-            opacity: 0.08,
-            mixBlendMode: "screen",
+            opacity: 0.18,
+            filter: "invert(1)",
             userSelect: "none",
           }}/>
           <div style={{ position: "absolute", top: "20%", left: "10%", width: 300, height: 300, borderRadius: "50%", background: C.blue, opacity: 0.07, filter: "blur(80px)" }}/>
@@ -222,7 +222,7 @@ export default function HomePage() {
             {/* rosto ursinho grande no topo */}
             <div style={{ position: "relative" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/ursinho-rosto.jpg" alt="Humanity Bearer" className="float" style={{
+              <img src="/ursinho-rosto.png" alt="Humanity Bearer" className="float" style={{
                 width: 220, height: 220, objectFit: "contain",
                 background: "#fff", borderRadius: 24,
                 boxShadow: `0 20px 60px ${C.orange}55`,
@@ -249,13 +249,13 @@ export default function HomePage() {
               />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <div style={{ background: "#fff", borderRadius: 16, padding: "14px 10px", width: 110, textAlign: "center", boxShadow: "0 10px 28px rgba(0,0,0,0.3)" }}>
-                <img src="/hb-animais.jpg" alt="Animais" style={{ width: "100%", height: 64, objectFit: "contain", marginBottom: 6 }} />
+                <img src="/hb-animais.png" alt="Animais" style={{ width: "100%", height: 64, objectFit: "contain", marginBottom: 6 }} />
                 <p style={{ fontSize: 11, fontWeight: 800, color: C.orange, textTransform: "uppercase", letterSpacing: 1 }}>Animais</p>
                 <p style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>Abandonados</p>
               </div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <div style={{ background: "#fff", borderRadius: 16, padding: "14px 10px", width: 110, textAlign: "center", boxShadow: "0 10px 28px rgba(0,0,0,0.3)" }}>
-                <img src="/hb-arvore.jpg" alt="Árvores" style={{ width: "100%", height: 64, objectFit: "contain", marginBottom: 6 }} />
+                <img src="/hb-arvore.png" alt="Árvores" style={{ width: "100%", height: 64, objectFit: "contain", marginBottom: 6 }} />
                 <p style={{ fontSize: 11, fontWeight: 800, color: "#22c55e", textTransform: "uppercase", letterSpacing: 1 }}>Árvores</p>
                 <p style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>Regeneração</p>
               </div>
@@ -319,7 +319,7 @@ export default function HomePage() {
             {/* graphic — ONE HEALTH */}
             <div style={{ background: C.black, borderRadius: 24, padding: "32px", display: "flex", flexDirection: "column", gap: 16, position: "relative", overflow: "hidden" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/ursinho-rosto.jpg" alt="" style={{ position: "absolute", right: -20, bottom: -20, width: 180, opacity: 0.12, filter: "grayscale(100%)", pointerEvents: "none", mixBlendMode: "screen" }}/>
+              <img src="/ursinho-rosto.png" alt="" style={{ position: "absolute", right: -20, bottom: -20, width: 180, opacity: 0.35, filter: "invert(1)", pointerEvents: "none" }}/>
               <p style={{ fontSize: 11, color: C.orange, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase" }}>Qual é o movimento?</p>
               <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, color: C.white, lineHeight: 1.4 }}>
                 "Que nenhuma vida seja ignorada — nem nas ruas, nem na natureza."

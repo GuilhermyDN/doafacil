@@ -61,25 +61,23 @@ function PageBg() {
           inferior direito. mix-blend-mode screen deixa o efeito "gasto"
           sobre o fundo preto sem precisar de PNG transparente. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/ursinho-rosto.jpg" alt="" style={{
+      <img src="/ursinho-rosto.png" alt="" style={{
         position: "absolute",
         right: "-20%",
         bottom: "-25%",
         width: "min(110vmin, 780px)",
-        opacity: 0.08,
-        mixBlendMode: "screen",
+        opacity: 0.18,
+        filter: "invert(1)",
         userSelect: "none", pointerEvents: "none",
       }} />
 
-      {/* Ursinho pequeno no canto sup. direito (antes era uma cruz SVG).
-          Usa o rosto colorido em vez da silhueta p&b pra combinar com a
-          marca d'água grande. */}
+      {/* Ursinho pequeno no canto sup. direito (antes era uma cruz SVG). */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/ursinho-rosto.jpg" alt="" style={{
+      <img src="/ursinho-rosto.png" alt="" style={{
         position: "absolute", top: 28, right: 24,
-        width: 56, height: 56, borderRadius: 12,
-        objectFit: "cover", opacity: 0.55,
-        mixBlendMode: "screen",
+        width: 56, height: 56,
+        objectFit: "contain", opacity: 0.7,
+        filter: "invert(1)",
         userSelect: "none", pointerEvents: "none",
       }} />
 
@@ -115,7 +113,7 @@ function TelaEscolha({ onEscolher }: { onEscolher: (i: Instituicao) => void }) {
         <div style={{ background: C.black, padding: "24px 28px 26px", position: "relative", overflow: "hidden" }}>
           {/* Ursinho pequeno no canto sup. direito */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/ursinho-rosto.jpg" alt="" style={{ position: "absolute", right: 10, top: 10, width: 54, height: 54, objectFit: "contain", opacity: 0.6, mixBlendMode: "screen", pointerEvents: "none" }}/>
+          <img src="/ursinho-rosto.png" alt="" style={{ position: "absolute", right: 10, top: 10, width: 54, height: 54, objectFit: "contain", opacity: 0.85, filter: "invert(1)", pointerEvents: "none" }}/>
           {/* Progress bar com 3 stops */}
           <div style={{ display: "flex", gap: 0, marginBottom: 22, height: 6, borderRadius: 3, overflow: "hidden" }}>
             <div style={{ flex: 1, background: C.blue }}/>

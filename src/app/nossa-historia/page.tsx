@@ -23,7 +23,7 @@ export default function NossaHistoriaPage() {
           <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
             {/* Ursinho no lugar do logo - quebrado, riscado */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/ursinho-rosto.jpg" alt="" style={{ width: 32, height: 32, objectFit: "contain", mixBlendMode: "screen", opacity: 0.85 }} />
+            <img src="/ursinho-rosto.png" alt="" style={{ width: 32, height: 32, objectFit: "contain", filter: "invert(1)", opacity: 0.9 }} />
             <span style={{ fontFamily: "'Playfair Display',Georgia,serif", fontSize: 18, fontWeight: 700, color: C.white }}>Humanity Bearers</span>
           </a>
           <button onClick={() => router.push("/doacao")} style={{ background: C.orange, color: C.white, border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
