@@ -1543,7 +1543,8 @@ export default function AdminPage() {
         setInstAdminList(l => l.map(i => i.id === inst.id ? atualizada : i));
       } catch { alert("Erro ao atualizar homologação."); }
     };
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    // Links sempre apontam pro domínio público — evita IP:porta no link.
+    const baseUrl = "https://humanitybearers.tech";
     const getLinkMp     = (inst: import("@/lib/data").Instituicao) => inst.mpSetupToken ? `${baseUrl}/configurar-mp?token=${inst.mpSetupToken}` : null;
     const getLinkGastos = (inst: import("@/lib/data").Instituicao) => inst.gastosToken  ? `${baseUrl}/gastos-instituicao?token=${inst.gastosToken}` : null;
 
@@ -2184,7 +2185,7 @@ export default function AdminPage() {
         {tagsLoading && <p style={{ textAlign: 'center', color: C.muted, padding: 24 }}>Carregando...</p>}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {tags.map(tag => {
-            const urlDoacao = `${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/doacao?tag=${encodeURIComponent(tag.serial)}`;
+            const urlDoacao = `https://humanitybearers.tech/doacao?tag=${encodeURIComponent(tag.serial)}`;
             const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=16&data=${encodeURIComponent(urlDoacao)}`;
 
             const baixarComSerial = async () => {

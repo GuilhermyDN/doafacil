@@ -214,7 +214,9 @@ function TelaPagamento({ inst, tagSerial, autoSerial, setupMode, onConfirmar, on
   // Cartão exige cadastro: o antifraude do MP rejeita pagamentos sem payer.email real.
   const podeConfirmarCartao = !anonimo && nome.trim().length > 0 && email.trim().length > 0 && telefone.trim().length > 0;
 
-  const BASE = typeof window !== "undefined" ? window.location.origin : "https://humanitybearers.com.br";
+  // QR code SEMPRE aponta pro domínio público — evita que acesso via IP do
+  // servidor gere QR com IP (que quebra em celulares sem acesso à LAN).
+  const BASE = "https://humanitybearers.tech";
   const qrUrl = autoSerial ? `${BASE}/doacao?tag=${autoSerial}` : null;
   const qrImgUrl = qrUrl ? `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qrUrl)}&bgcolor=ffffff&color=000000&margin=6` : null;
 
