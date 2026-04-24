@@ -112,29 +112,30 @@ function TelaEscolha({ onEscolher }: { onEscolher: (i: Instituicao) => void }) {
         background: C.white, borderRadius: 24, border: `1.5px solid ${C.border}`,
         boxShadow: "0 40px 100px rgba(0,0,0,0.45), 0 8px 24px rgba(0,13,255,0.12)", overflow: "hidden",
       }}>
-        <div style={{ background: C.black, padding: "24px 28px 20px", position: "relative", overflow: "hidden" }}>
+        <div style={{ background: C.black, padding: "24px 28px 26px", position: "relative", overflow: "hidden" }}>
+          {/* Ursinho pequeno no canto sup. direito */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/ursinho.png" alt="" style={{ position: "absolute", right: -10, top: -10, width: 90, opacity: 0.12, filter: "grayscale(100%)", pointerEvents: "none" }}/>
-          <div style={{ display: "flex", gap: 0, marginBottom: 18, height: 4 }}>
-            <div style={{ flex: 1, background: C.blue, borderRadius: "2px 0 0 2px" }}/>
+          <img src="/ursinho-rosto.jpg" alt="" style={{ position: "absolute", right: 10, top: 10, width: 54, height: 54, objectFit: "contain", opacity: 0.6, mixBlendMode: "screen", pointerEvents: "none" }}/>
+          {/* Progress bar com 3 stops */}
+          <div style={{ display: "flex", gap: 0, marginBottom: 22, height: 6, borderRadius: 3, overflow: "hidden" }}>
+            <div style={{ flex: 1, background: C.blue }}/>
             <div style={{ flex: 1, background: C.orange }}/>
-            <div style={{ flex: 1, background: C.white, borderRadius: "0 2px 2px 0", opacity: 0.2 }}/>
+            <div style={{ flex: 1, background: "rgba(255,255,255,0.15)" }}/>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, position: "relative", zIndex: 1 }}>
-            <div style={{ position: "relative", width: 26, height: 26, flexShrink: 0 }}>
-              <div style={{ position: "absolute", left: "50%", top: 0, transform: "translateX(-50%)", width: 3, height: 26, background: C.orange, borderRadius: 2 }}/>
-              <div style={{ position: "absolute", top: "34%", left: 0, width: 26, height: 3, background: C.orange, borderRadius: 2 }}/>
-            </div>
-            <div>
-              <p style={{ fontSize: 10, letterSpacing: 3.5, color: C.orange, textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>Faça uma doação</p>
-              <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 22, fontWeight: 700, color: C.white, margin: 0, lineHeight: 1.2 }}>Escolha como ajudar</h1>
-            </div>
-          </div>
+          <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "clamp(20px,4vw,26px)", fontWeight: 900, color: C.white, margin: 0, lineHeight: 1.15, letterSpacing: 0.5, textTransform: "uppercase" }}>
+            E AÍ BEARER<br/>BORA GERAR<br/>HUMANIDADE?
+          </h1>
         </div>
 
-        <div style={{ padding: "22px 26px 28px" }}>
+        <div style={{ padding: "24px 26px 28px" }}>
+          {/* Título azul estilizado "QUAL VAI SER ?" */}
+          <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: "clamp(26px,5vw,38px)", fontWeight: 900, color: C.blue, lineHeight: 1, letterSpacing: 1, marginBottom: 18, transform: "rotate(-2deg)", display: "inline-block" }}>
+            <span style={{ display: "block" }}>QUAL</span>
+            <span style={{ display: "block", marginLeft: 30 }}>VAI</span>
+            <span style={{ display: "block", marginLeft: 60 }}>SER ?</span>
+          </h2>
           <p style={{ fontSize: 13, color: C.muted, marginBottom: 18, lineHeight: 1.7 }}>
-            Cada doação vai direto para a instituição, sem intermediários. 100% transparente.
+            Escolha onde sua humanidade vai bater. Pix direto, sem intermediário.
           </p>
 
           {loading && <p style={{ textAlign: "center", color: C.muted, padding: "20px 0" }}>Carregando instituições...</p>}
@@ -159,8 +160,13 @@ function TelaEscolha({ onEscolher }: { onEscolher: (i: Instituicao) => void }) {
                     {inst.emoji}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: isHov ? C.white : C.ink, marginBottom: 2, fontFamily: "'Playfair Display', serif" }}>{inst.nome}</p>
-                    <p style={{ fontSize: 12, color: isHov ? "rgba(255,255,255,0.7)" : C.muted }}>{inst.tipo}</p>
+                    <p style={{ fontSize: 11, fontWeight: 800, color: isHov ? "rgba(255,255,255,0.85)" : cor, letterSpacing: 1, textTransform: "uppercase" }}>
+                      {inst.tipo === "Refeicao" ? "Refeição + Banho" : inst.tipo === "Banho" ? "Cuidar dos bichos" : "Plantar uma árvore"}
+                    </p>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: isHov ? C.white : C.ink, margin: "2px 0", fontFamily: "'Playfair Display', serif" }}>{inst.nome}</p>
+                    <p style={{ fontSize: 11, color: isHov ? "rgba(255,255,255,0.7)" : C.muted, lineHeight: 1.4 }}>
+                      {inst.tipo === "Refeicao" ? "Dá dignidade e revigora a quebra." : inst.tipo === "Banho" ? "Vai fera, mostra seu jeito animal de ajudar." : "Ou vai ficar plantado vendo tudo acabar."}
+                    </p>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
                     <p style={{ fontSize: 22, fontWeight: 800, color: isHov ? C.white : cor, fontFamily: "'Playfair Display', serif", lineHeight: 1 }}>R$ {inst.valor}</p>

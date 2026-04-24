@@ -71,15 +71,20 @@ export default function HomePage() {
   }, []);
 
   const COMO_FUNCIONA = [
-    { n: "01", titulo: "Escolha a causa", desc: "Selecione entre Refeição, Banho ou Cobertor — cada uma vai para uma instituição parceira real.", emoji: "🎯", cor: C.blue },
-    { n: "02", titulo: "Defina o impacto", desc: "Escolha quantas pessoas quer ajudar e veja o valor em tempo real. Sem surpresas.", emoji: "🤝", cor: C.orange },
-    { n: "03", titulo: "Pague pelo Pix", desc: "Receba a chave Pix diretamente. O valor vai 100% para a instituição, sem intermediários.", emoji: "⚡", cor: "#6600cc" },
+    { n: "01", titulo: "Escolha onde sua humanidade vai bater", desc: "Refeição e banho a pessoas, cuidado animal, plantar árvores. Ou bate geral.", emoji: "🎯", cor: C.blue },
+    { n: "02", titulo: "Defina o peso da sua humanidade", desc: "Quantas vidas você vai impactar hoje? Aqui você decide o nível.", emoji: "🤝", cor: C.orange },
+    { n: "03", titulo: "Ative sua humanidade", desc: "Pix instantâneo. Impacto direto. Sem desculpa. Papo reto.", emoji: "⚡", cor: "#6600cc" },
   ];
 
+  // "POR QUE ISSO É DIFERENTE?" — 6 pilares da plataforma. POSICIONAMENTO
+  // abre a seção com o manifesto; os outros 5 são atributos.
   const VALORES = [
-    { icon: I.shield, titulo: "100% Transparente", desc: "Toda doação é registrada e você pode acompanhar o repasse no painel público de prestação de contas.", cor: C.blue },
-    { icon: I.heart,  titulo: "Impacto Real",       desc: "Trabalhamos com instituições verificadas que atendem pessoas em situação de rua na cidade.", cor: C.orange },
-    { icon: I.trophy, titulo: "Gamificação",        desc: "Ganhe pontos, complete missões e suba no ranking dos doadores. Sua generosidade tem reconhecimento!", cor: "#6600cc" },
+    { icon: I.trophy, titulo: "POSICIONAMENTO", sub: "Humanidade como atitude", desc: "Isso não é sobre doar. É sobre se posicionar. Ou você escolhe gerar humanidade… ou continua só assistindo.", cor: "#6600cc" },
+    { icon: I.pix,    titulo: "DIRETO AO PONTO (PIX)", sub: "Humanidade sem intermediário", desc: "O caminho é simples: você e quem precisa. Sem sistema no meio, sem ninguém lucrando com a humanidade. Pix direto. Impacto imediato. Do seu gesto até o destino final.", cor: C.blue },
+    { icon: I.users,  titulo: "COMUNIDADE", sub: "Humanidade em movimento", desc: "Você não está sozinho. Está dentro de um movimento de pessoas que decidiram agir. Quando mais gente entra, mais a humanidade se multiplica. Isso aqui cresce em rede.", cor: C.orange },
+    { icon: I.shield, titulo: "TRANSPARÊNCIA", sub: "Humanidade transparente", desc: "Aqui, tudo que você faz vira registro. Sem maquiagem, sem narrativa forçada. Cada ação gera humanidade visível, rastreável e comprovada. Você vê, acompanha e sabe exatamente onde sua humanidade chegou.", cor: C.blue },
+    { icon: I.heart,  titulo: "IMPACTO", sub: "Humanidade real", desc: "Nada de promessa bonita ou intenção vazia. Aqui, humanidade vira impacto direto na vida de alguém. Você age — e a humanidade acontece. Sem intermediário, sem desvio, sem delay.", cor: C.orange },
+    { icon: I.star,   titulo: "GAMIFICAÇÃO", sub: "Humanidade que evolui", desc: "Aqui, fazer o bem não passa despercebido. Sua humanidade ganha forma, nível e reconhecimento. Cada ação soma. Cada impacto conta. Você evolui enquanto gera humanidade no mundo.", cor: "#6600cc" },
   ];
 
   return (
@@ -115,7 +120,7 @@ export default function HomePage() {
           </div>
           {/* links desktop */}
           <div className="hide-mobile" style={{ display: "flex", alignItems: "center", gap: 28 }}>
-            <a href="#quem-somos" className="nav-link">Quem somos</a>
+            <a href="/nossa-historia" className="nav-link">Nossa história</a>
             <a href="#como-funciona" className="nav-link">Como funciona</a>
             <a href="#instituicoes" className="nav-link">Instituições</a>
             <a href="/missoes" className="nav-link">🎯 Missões</a>
@@ -280,42 +285,51 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── QUEM SOMOS ── */}
+      {/* ── QUEM SOMOS ── "Isso aqui não é uma ONG" + ONE HEALTH */}
       <section id="quem-somos" style={{ background: C.white, padding: "80px 24px" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 60 }}>
             <span style={{ fontSize: 11, color: C.orange, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase" }}>Nossa história</span>
-            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: "clamp(28px,4vw,46px)", fontWeight: 700, color: C.ink, marginTop: 10, lineHeight: 1.2 }}>Quem somos</h2>
+            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: "clamp(28px,4vw,46px)", fontWeight: 700, color: C.ink, marginTop: 10, lineHeight: 1.2 }}>
+              Isso aqui não é uma ONG
+            </h2>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 40, alignItems: "center" }}>
             <div>
-              <p style={{ fontSize: 16, color: C.muted, lineHeight: 1.9, marginBottom: 20 }}>
-                Somos uma organização comprometida com o amor ao próximo. Nossa missão vai além das palavras — acreditamos que intenção sem ação é vazia, e por isso transformamos doações em impacto real na vida de pessoas em situação de vulnerabilidade.
+              <p style={{ fontSize: 16, color: C.muted, lineHeight: 1.9, marginBottom: 18 }}>
+                É um novo comportamento.<br/>Um novo tipo de pessoa.
+              </p>
+              <p style={{ fontSize: 16, color: C.muted, lineHeight: 1.9, marginBottom: 18 }}>
+                Gente que não fala sobre humanidade — <strong style={{ color: C.ink }}>pratica</strong>.<br/>
+                Gente que não assiste — <strong style={{ color: C.ink }}>entra no jogo</strong>.
               </p>
               <p style={{ fontSize: 16, color: C.muted, lineHeight: 1.9, marginBottom: 28 }}>
-                O <strong style={{ color: C.ink }}>Humanity Bearers</strong> nasceu da necessidade de criar um canal direto, transparente e gamificado entre quem quer ajudar e quem precisa de ajuda. Cada doação é rastreada, reportada e celebrada.
+                <strong style={{ color: C.ink }}>Humanity Bearers</strong> é para quem decidiu carregar humanidade como a segunda pele.
               </p>
-              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
                 <div style={{ background: C.offWhite, borderRadius: 12, padding: "14px 18px", border: `1px solid ${C.border}` }}>
                   <p style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>Fundada em</p>
                   <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: C.ink, marginTop: 4 }}>2026</p>
                 </div>
+                <a href="/nossa-historia" style={{ fontSize: 13, fontWeight: 700, color: C.orange, textDecoration: "none", border: `2px solid ${C.orange}`, padding: "12px 18px", borderRadius: 12 }}>
+                  Qual é o rolê aqui? →
+                </a>
               </div>
             </div>
-            {/* graphic */}
+            {/* graphic — ONE HEALTH */}
             <div style={{ background: C.black, borderRadius: 24, padding: "32px", display: "flex", flexDirection: "column", gap: 16, position: "relative", overflow: "hidden" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/ursinho.png" alt="Ursinho mascote Humanity Bearers" style={{ position: "absolute", right: -10, bottom: -10, width: 130, opacity: 0.1, filter: "grayscale(100%)", pointerEvents: "none" }}/>
-              <p style={{ fontSize: 11, color: C.orange, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase" }}>Nossa missão</p>
+              <img src="/ursinho-rosto.jpg" alt="" style={{ position: "absolute", right: -20, bottom: -20, width: 180, opacity: 0.12, filter: "grayscale(100%)", pointerEvents: "none", mixBlendMode: "screen" }}/>
+              <p style={{ fontSize: 11, color: C.orange, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase" }}>Qual é o movimento?</p>
               <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, color: C.white, lineHeight: 1.4 }}>
-                "Que nenhuma pessoa durma com fome, sem abrigo ou sem dignidade."
+                "Que nenhuma vida seja ignorada — nem nas ruas, nem na natureza."
               </p>
               <div style={{ height: 1, background: "rgba(255,255,255,0.1)" }}/>
               {[
                 "Refeições quentinhas para moradores de rua",
                 "Banho e higiene para quem não tem onde",
-                "Cobertores nos dias frios do inverno",
-                "Amor e acolhida sem julgamento",
+                "Cuidados com animais abandonados",
+                "Biofilantropia",
               ].map((item, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 20, height: 20, borderRadius: "50%", background: C.orange, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -325,6 +339,16 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* ONE HEALTH banner */}
+          <div style={{ marginTop: 72, textAlign: "center" }}>
+            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: "clamp(36px,6vw,68px)", fontWeight: 900, color: C.blue, letterSpacing: 1, marginBottom: 16 }}>
+              ONE HEALTH
+            </h2>
+            <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "clamp(28px,4.5vw,46px)", fontWeight: 700, color: C.ink, lineHeight: 1.2 }}>
+              Simples.<br/>Direto.<br/>Brutal.
+            </p>
           </div>
         </div>
       </section>
@@ -350,21 +374,35 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── VALORES ── */}
+      {/* ── POR QUE ISSO É DIFERENTE? ── */}
       <section style={{ background: C.white, padding: "80px 24px" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 56 }}>
-            <span style={{ fontSize: 11, color: C.orange, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase" }}>Por que escolher</span>
-            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: "clamp(26px,4vw,42px)", fontWeight: 700, color: C.ink, marginTop: 10 }}>Nossos valores</h2>
+          {/* Título diagonal estilo rabisco laranja */}
+          <div style={{ marginBottom: 48, textAlign: "center" }}>
+            <h2 style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: "clamp(32px, 6vw, 64px)",
+              fontWeight: 900,
+              color: C.orange,
+              letterSpacing: -1,
+              display: "inline-block",
+              transform: "rotate(-4deg)",
+              textShadow: "2px 2px 0 rgba(0,0,0,0.08)",
+            }}>
+              POR QUE ISSO É<br/>DIFERENTE ?
+            </h2>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 20 }}>
             {VALORES.map((v, i) => (
-              <div key={i} style={{ border: `2px solid ${v.cor}22`, borderRadius: 20, padding: "28px", background: v.cor + "06" }}>
-                <div style={{ width: 50, height: 50, borderRadius: 14, background: v.cor + "18", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
-                  <Icon d={v.icon} size={22} color={v.cor}/>
+              <div key={i} style={{ border: `2px solid ${v.cor}22`, borderRadius: 20, padding: "28px", background: v.cor + "06", display: "flex", gap: 16 }}>
+                <div style={{ width: 64, height: 64, borderRadius: 18, background: v.cor + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Icon d={v.icon} size={28} color={v.cor}/>
                 </div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: C.ink, marginBottom: 10, fontFamily: "'Playfair Display',serif" }}>{v.titulo}</h3>
-                <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.7 }}>{v.desc}</p>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 12, fontWeight: 800, color: C.ink, letterSpacing: 1, marginBottom: 8 }}>{v.titulo}</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: v.cor, marginBottom: 10 }}>{v.sub}</p>
+                  <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.7, whiteSpace: "pre-line" }}>{v.desc}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -415,14 +453,14 @@ export default function HomePage() {
         <div style={{ maxWidth: 600, margin: "0 auto" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/ursinho.png" alt="" className="float" style={{ width: 80, margin: "0 auto 20px", display: "block", filter: "brightness(10)", opacity: 0.85 }}/>
-          <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: "clamp(26px,4vw,42px)", fontWeight: 700, color: C.white, lineHeight: 1.25, marginBottom: 16 }}>
-            Pronto para fazer<br />a diferença?
+          <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: "clamp(28px,4.5vw,46px)", fontWeight: 700, color: C.white, lineHeight: 1.2, marginBottom: 20, transform: "rotate(-2deg)" }}>
+            Pronto para carregar<br />humanidade?
           </h2>
-          <p style={{ fontSize: 16, color: "rgba(255,255,255,0.65)", marginBottom: 36, lineHeight: 1.7 }}>
-            Sua doação chega em minutos. Nenhuma burocracia, nenhum intermediário. Só você e quem precisa.
+          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.75)", marginBottom: 36, lineHeight: 1.8 }}>
+            Em minutos, sua ação muda uma realidade.<br/>Sem burocracia. Sem teatro.<br/>Só humanidade em movimento.
           </p>
-          <button onClick={() => router.push("/doacao")} style={{ background: C.orange, color: C.white, border: "none", borderRadius: 14, padding: "16px 40px", fontSize: 16, fontWeight: 700, cursor: "pointer", boxShadow: `0 12px 40px rgba(0,0,0,0.3)`, display: "inline-flex", alignItems: "center", gap: 10 }}>
-            Fazer minha doação agora <Icon d={I.arrow} size={18} color={C.white}/>
+          <button onClick={() => router.push("/doacao")} style={{ background: C.orange, color: C.white, border: "none", borderRadius: 14, padding: "18px 56px", fontSize: 22, fontWeight: 900, cursor: "pointer", boxShadow: `0 12px 40px rgba(0,0,0,0.3)`, display: "inline-flex", alignItems: "center", gap: 14, letterSpacing: 1 }}>
+            DEMORÔ <Icon d={I.arrow} size={22} color={C.white}/>
           </button>
         </div>
       </section>
@@ -434,10 +472,13 @@ export default function HomePage() {
             <div>
               <p style={{ fontSize: 11, color: C.orange, letterSpacing: 3, textTransform: "uppercase", fontWeight: 700, marginBottom: 8 }}>🎮 GAME MODE</p>
               <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(26px,4vw,40px)", fontWeight: 700, color: C.white, margin: 0 }}>
-                Missões em Destaque
+                Missões Bearer
               </h2>
-              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", marginTop: 10, maxWidth: 440 }}>
-                Complete missões, acumule pontos e ajude mais pessoas. A comunidade escolhe as missões da semana e do mês.
+              <div style={{ display: "inline-block", background: C.orange, color: C.white, fontSize: 12, fontWeight: 800, letterSpacing: 2, padding: "6px 16px", borderRadius: 99, marginTop: 14, fontFamily: "monospace" }}>
+                SCAN•CONNECT•IMPACT
+              </div>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", marginTop: 14, maxWidth: 440 }}>
+                Complete ações, acumule pontos e evolua no ranking de humanidade.
               </p>
             </div>
             <a href="/missoes" style={{ background: C.orange, color: C.white, fontWeight: 700, fontSize: 14, padding: "12px 24px", borderRadius: 12, textDecoration: "none", whiteSpace: "nowrap" }}>
@@ -446,9 +487,11 @@ export default function HomePage() {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
             {[
-              { emoji: "🤝", titulo: "Primeira Doação", descricao: "Faça sua primeira doação e entre para a comunidade Humanity Bearers.", pontos: 200, periodo: "semana" },
-              { emoji: "👨‍👩‍👧", titulo: "Missão Família", descricao: "Convide um familiar para se juntar ao movimento e multiplicar o impacto.", pontos: 300, periodo: "semana" },
-              { emoji: "🌟", titulo: "Mês Completo", descricao: "Doe todos os meses durante um ano inteiro e torne-se um herói permanente.", pontos: 500, periodo: "mes" },
+              { emoji: "🤝", titulo: "Primeira humanidade",  desc: "Já não ficou só observando. Você pode mais e sabe disso.",       recompensa: "+ acesso ao ranking",            periodo: "semana", nMissao: 1 },
+              { emoji: "👨‍👩‍👧", titulo: "Humanidade contínua", desc: "Humanidade não é modinha. Frio, fome, sede dá todo dia. Mínimo de 10 impactos no mês.",      recompensa: "+ acesso a drop exclusivo",      periodo: "mes",    nMissao: 2 },
+              { emoji: "🦾", titulo: "Voluntariado",         desc: "Trabalhou 1 dia em uma das instituições.",                          recompensa: "+ acesso à coleção antecipada",  periodo: "mes",    nMissao: 3 },
+              { emoji: "🌟", titulo: "Mentoria",             desc: "Chamou alguém? Então pegou a visão.",                               recompensa: "+ acesso à coleção exclusiva",   periodo: "mes",    nMissao: 4 },
+              { emoji: "💜", titulo: "Desapego",             desc: "Foi capaz de doar uma peça rankeada? Isso foi realmente duka.",     recompensa: "+ tier Benefector + purple patch", periodo: "mes",  nMissao: 5 },
             ].map((m, i) => (
               <div key={i} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 18, padding: "24px", display: "flex", flexDirection: "column", gap: 14 }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
@@ -456,19 +499,20 @@ export default function HomePage() {
                     {m.emoji}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
-                      <p style={{ fontSize: 15, fontWeight: 700, color: C.white, margin: 0 }}>{m.titulo}</p>
+                    <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>Missão {m.nMissao}</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 4, marginBottom: 6 }}>
+                      <p style={{ fontSize: 16, fontWeight: 800, color: C.white, margin: 0 }}>{m.titulo}</p>
                       <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", padding: "2px 8px", borderRadius: 99, background: m.periodo === "semana" ? "rgba(255,78,0,0.15)" : "rgba(0,13,255,0.15)", color: m.periodo === "semana" ? C.orange : "#4f9ef8", border: `1px solid ${m.periodo === "semana" ? "rgba(255,78,0,0.3)" : "rgba(79,158,248,0.3)"}` }}>
                         📌 {m.periodo === "semana" ? "Semana" : "Mês"}
                       </span>
                     </div>
-                    <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", lineHeight: 1.6, margin: 0 }}>{m.descricao}</p>
+                    <p style={{ fontSize: 13, color: C.orange, lineHeight: 1.6, margin: 0 }}>{m.desc}</p>
                   </div>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 12 }}>
-                  <span style={{ fontSize: 18, fontWeight: 800, color: C.orange }}>+{m.pontos} pts</span>
-                  <a href="/doacao" style={{ fontSize: 12, fontWeight: 700, color: C.orange, textDecoration: "none", border: `1px solid rgba(255,78,0,0.3)`, padding: "6px 14px", borderRadius: 8 }}>
-                    Participar →
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 12, gap: 10, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: C.orange }}>{m.recompensa}</span>
+                  <a href="/doacao" style={{ fontSize: 13, fontWeight: 800, color: C.orange, textDecoration: "none", border: `1.5px solid ${C.orange}`, padding: "6px 14px", borderRadius: 8 }}>
+                    mete marcha
                   </a>
                 </div>
               </div>

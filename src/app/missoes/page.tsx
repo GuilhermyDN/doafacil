@@ -105,14 +105,14 @@ export default function MissoesPage() {
         padding: "48px 20px 36px",
         textAlign: "center",
       }}>
-        <p style={{ fontSize: 11, color: "#FF4E00", letterSpacing: 3, textTransform: "uppercase", fontWeight: 700, marginBottom: 10 }}>
-          🎮 GAME MODE · HUMANITY BEARERS
-        </p>
-        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(28px,6vw,48px)", fontWeight: 700, margin: "0 0 10px", color: "#fff" }}>
-          Missões em Destaque
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(30px,6vw,52px)", fontWeight: 800, margin: "0 0 16px", color: "#fff", letterSpacing: 1 }}>
+          Missões Bearer
         </h1>
+        <div style={{ display: "inline-block", background: "#FF4E00", color: "#fff", fontSize: 13, fontWeight: 800, letterSpacing: 2, padding: "8px 20px", borderRadius: 99, fontFamily: "monospace", marginBottom: 16 }}>
+          SCAN•CONNECT•IMPACT
+        </div>
         <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", maxWidth: 460, margin: "0 auto 24px" }}>
-          Missões escolhidas pela comunidade para essa semana e esse mês. Conclua, ganhe pontos e suba no ranking!
+          Complete ações, acumule pontos e evolua no ranking de humanidade.
         </p>
 
         {/* busca de doador */}
@@ -333,10 +333,10 @@ export default function MissoesPage() {
             </p>
             <a href="/doacao" style={{
               display: "inline-block", background: "#FF4E00", color: "#fff",
-              fontWeight: 700, fontSize: 14, padding: "12px 28px",
-              borderRadius: 12, textDecoration: "none",
+              fontWeight: 900, fontSize: 15, padding: "14px 32px",
+              borderRadius: 12, textDecoration: "none", letterSpacing: 1,
             }}>
-              Fazer uma doação →
+              mete marcha →
             </a>
           </div>
         )}
