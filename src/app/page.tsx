@@ -37,6 +37,18 @@ function Icon({ d, size = 20, color = "currentColor" }: { d: string; size?: numb
   );
 }
 
+// Card compacto usado na composição "Humanity Bearer" do hero. Usado
+// para o ecossistema "Pessoas" (sem imagem própria ainda — usa emoji).
+function EcoCard({ label, subtitle, emoji, cor }: { label: string; subtitle: string; emoji: string; cor: string }) {
+  return (
+    <div style={{ background: "#fff", borderRadius: 16, padding: "14px 10px", width: 110, textAlign: "center", boxShadow: "0 10px 28px rgba(0,0,0,0.3)" }}>
+      <div style={{ fontSize: 56, height: 64, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 6 }}>{emoji}</div>
+      <p style={{ fontSize: 11, fontWeight: 800, color: cor, textTransform: "uppercase", letterSpacing: 1 }}>{label}</p>
+      <p style={{ fontSize: 10, color: "#777", marginTop: 2 }}>{subtitle}</p>
+    </div>
+  );
+}
+
 const I = {
   arrow:  "M5 12h14M12 5l7 7-7 7",
   check:  "M20 6L9 17l-5-5",
@@ -113,7 +125,7 @@ export default function HomePage() {
           {/* CTA */}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button onClick={() => router.push("/doacao")} style={{ background: C.orange, color: C.white, border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
-              Fazer doação →
+              JÁ É →
             </button>
             <button onClick={() => setMenuOpen(o => !o)} className="show-mobile" style={{ background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 8, width: 36, height: 36, cursor: "pointer", color: C.white, fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>
               {menuOpen ? "✕" : "☰"}
@@ -139,8 +151,17 @@ export default function HomePage() {
       <section style={{ background: C.black, minHeight: "92vh", display: "flex", alignItems: "center", position: "relative", overflow: "hidden", padding: "60px 24px" }}>
         {/* bg decoration */}
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+          {/* Watermark GRANDE do rosto do ursinho — só metade aparece (canto inf. direito) */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/ursinho.png" alt="" className="float" style={{ position: "absolute", right: "-2%", bottom: "-5%", width: "42vmin", maxWidth: 400, opacity: 0.07, filter: "grayscale(100%) contrast(1.5)", userSelect: "none" }}/>
+          <img src="/ursinho-rosto.jpg" alt="" style={{
+            position: "absolute",
+            right: "-18%",
+            bottom: "-22%",
+            width: "min(95vmin, 720px)",
+            opacity: 0.08,
+            mixBlendMode: "screen",
+            userSelect: "none",
+          }}/>
           <div style={{ position: "absolute", top: "20%", left: "10%", width: 300, height: 300, borderRadius: "50%", background: C.blue, opacity: 0.07, filter: "blur(80px)" }}/>
           <div style={{ position: "absolute", bottom: "15%", right: "15%", width: 280, height: 280, borderRadius: "50%", background: C.orange, opacity: 0.08, filter: "blur(80px)" }}/>
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, display: "flex" }}>
@@ -148,32 +169,38 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="hero-grid" style={{ maxWidth: 1100, margin: "0 auto", width: "100%", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center", position: "relative", zIndex: 1 }}>
+        <div className="hero-grid" style={{ maxWidth: 1100, margin: "0 auto", width: "100%", display: "grid", gridTemplateColumns: "1.1fr 1fr", gap: 60, alignItems: "center", position: "relative", zIndex: 1 }}>
           {/* text */}
           <div className="fade-up">
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,78,0,0.12)", border: "1px solid rgba(255,78,0,0.25)", borderRadius: 99, padding: "5px 14px", marginBottom: 24 }}>
-              <div style={{ width: 7, height: 7, borderRadius: "50%", background: C.orange }}/>
-              <span style={{ fontSize: 11, color: C.orange, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>Humanity Bearers</span>
+              <span style={{ fontSize: 12, color: C.orange, fontWeight: 700, letterSpacing: 2, textTransform: "lowercase", fontFamily: "monospace" }}>scan•connect•impact</span>
             </div>
-            <h1 style={{ fontFamily: "'Playfair Display',Georgia,serif", fontSize: "clamp(32px,5vw,62px)", fontWeight: 700, color: C.white, lineHeight: 1.1, marginBottom: 20 }}>
-              Juntos,<br />
-              <span style={{ color: C.orange }}>transformamos</span><br />
-              vidas
+
+            <h1 style={{ fontFamily: "'Playfair Display',Georgia,serif", fontWeight: 800, lineHeight: 1.05, marginBottom: 28 }}>
+              <span style={{ fontSize: "clamp(36px,6vw,68px)", color: C.white, display: "block", letterSpacing: -1 }}>A HUMANIDADE</span>
+              <span style={{ fontSize: "clamp(28px,4.5vw,52px)", color: C.orange, display: "block", fontStyle: "italic", fontWeight: 700 }}>não é discurso</span>
+              <span style={{ fontSize: "clamp(36px,6vw,68px)", color: C.white, display: "block", letterSpacing: -1 }}>é AÇÃO</span>
             </h1>
-            <p style={{ fontSize: 16, color: "rgba(255,255,255,0.5)", lineHeight: 1.8, marginBottom: 36, maxWidth: 420 }}>
-              Uma plataforma de doação direta e transparente para quem está em situação de vulnerabilidade. Cada real vai direto para quem precisa — sem burocracia.
+
+            <p style={{ fontSize: 15, color: "rgba(255,255,255,0.62)", lineHeight: 1.8, marginBottom: 32, maxWidth: 480 }}>
+              Que nenhuma vida seja ignorada — nem nas ruas, nem na natureza, nem no silêncio dos que
+              não têm voz. Aqui, a gente age com <strong style={{ color: C.white }}>humanidade</strong>:
+              transformando intenção em impacto real — dignidade pra pessoas, cuidado com animais e
+              regeneração das árvores. Tudo é um só sistema, onde tudo pulsa, tudo vive. Não é só
+              ajudar — é <strong style={{ color: C.orange }}>ativar a humanidade</strong>.
             </p>
+
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               <button onClick={() => router.push("/doacao")} style={{ background: C.orange, color: C.white, border: "none", borderRadius: 12, padding: "14px 28px", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, boxShadow: `0 12px 32px ${C.orange}44` }}>
-                Quero doar agora <Icon d={I.arrow} size={16} color={C.white}/>
+                Gera humanidade agora <Icon d={I.arrow} size={16} color={C.white}/>
               </button>
               <a href="#quem-somos" style={{ background: "rgba(255,255,255,0.06)", color: C.white, border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, padding: "14px 28px", fontSize: 15, fontWeight: 500, cursor: "pointer", textDecoration: "none", display: "flex", alignItems: "center" }}>
-                Saiba mais
+                Pega a visão
               </a>
             </div>
             {/* trust badges */}
             <div style={{ display: "flex", gap: 20, marginTop: 36, flexWrap: "wrap" }}>
-              {[["✓ Pix direto","para a instituição"],["🔒 100% transparente","prestação pública"],["🏆 Ranking","de doadores"]].map(([t, s], i) => (
+              {[["✓ Pix direto","para a humanidade"],["🔒 100% transparente","prestação pública"],["🏆 Ranking","de Bearers"]].map(([t, s], i) => (
                 <div key={i}>
                   <p style={{ fontSize: 12, fontWeight: 700, color: C.white }}>{t}</p>
                   <p style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{s}</p>
@@ -182,32 +209,56 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* cards float */}
-          <div className="hide-mobile" style={{ position: "relative", height: 420 }}>
-            {instituicoes.slice(0, 3).map((inst, i) => {
-              const { cor, bg } = instColor(inst.tipo);
-              const offsets = [
-                { top: 0,    left: 20,   rotate: "-4deg" },
-                { top: 100,  left: 100,  rotate: "2deg"  },
-                { top: 200,  left: 10,   rotate: "-1deg" },
-              ];
-              const o = offsets[i] ?? offsets[0];
-              return (
-                <div key={inst.id} className="float" style={{ position: "absolute", top: o.top, left: o.left, background: C.white, borderRadius: 20, padding: "18px 20px", width: 240, boxShadow: "0 20px 60px rgba(0,0,0,0.4)", transform: `rotate(${o.rotate})`, animationDelay: `${i * 0.8}s`, border: `2px solid ${cor}22` }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{inst.emoji}</div>
-                    <div>
-                      <p style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{inst.nome}</p>
-                      <p style={{ fontSize: 22, fontWeight: 800, color: cor, fontFamily: "'Playfair Display',serif", lineHeight: 1, marginTop: 2 }}>R$ {inst.valor}</p>
-                    </div>
-                  </div>
-                  <div style={{ marginTop: 12, background: bg, borderRadius: 8, padding: "6px 10px", display: "flex", alignItems: "center", gap: 6 }}>
-                    <Icon d={I.check} size={12} color={cor}/>
-                    <span style={{ fontSize: 11, color: cor, fontWeight: 600 }}>Pix disponível</span>
-                  </div>
-                </div>
-              );
-            })}
+          {/* Composição Humanity Bearer — o ursinho "mascote" com os
+              ecossistemas que ele carrega (pessoas, animais, árvores).
+              Esconde no mobile porque o layout do hero vira coluna e a
+              composição fica grande demais. */}
+          <div className="hide-mobile" style={{ position: "relative", minHeight: 460, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 18 }}>
+            {/* rosto ursinho grande no topo */}
+            <div style={{ position: "relative" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/ursinho-rosto.jpg" alt="Humanity Bearer" className="float" style={{
+                width: 220, height: 220, objectFit: "contain",
+                background: "#fff", borderRadius: 24,
+                boxShadow: `0 20px 60px ${C.orange}55`,
+                border: `3px solid ${C.orange}44`,
+              }}/>
+              <span style={{
+                position: "absolute", bottom: -10, left: "50%", transform: "translateX(-50%)",
+                background: C.white, color: C.black,
+                fontFamily: "'Playfair Display',Georgia,serif", fontWeight: 800, fontSize: 16,
+                padding: "6px 16px", borderRadius: 99, whiteSpace: "nowrap",
+                boxShadow: "0 8px 20px rgba(0,0,0,0.3)",
+              }}>
+                Humanity Bearer<sup style={{ fontSize: 9 }}>™</sup>
+              </span>
+            </div>
+
+            {/* 3 ecossistemas: pessoas (bowl), animais, árvores */}
+            <div style={{ display: "flex", gap: 12, marginTop: 18, alignItems: "flex-end" }}>
+              <EcoCard
+                label="Pessoas"
+                subtitle="Refeição + Banho"
+                emoji="🍲"
+                cor={C.blue}
+              />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <div style={{ background: "#fff", borderRadius: 16, padding: "14px 10px", width: 110, textAlign: "center", boxShadow: "0 10px 28px rgba(0,0,0,0.3)" }}>
+                <img src="/hb-animais.jpg" alt="Animais" style={{ width: "100%", height: 64, objectFit: "contain", marginBottom: 6 }} />
+                <p style={{ fontSize: 11, fontWeight: 800, color: C.orange, textTransform: "uppercase", letterSpacing: 1 }}>Animais</p>
+                <p style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>Abandonados</p>
+              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <div style={{ background: "#fff", borderRadius: 16, padding: "14px 10px", width: 110, textAlign: "center", boxShadow: "0 10px 28px rgba(0,0,0,0.3)" }}>
+                <img src="/hb-arvore.jpg" alt="Árvores" style={{ width: "100%", height: 64, objectFit: "contain", marginBottom: 6 }} />
+                <p style={{ fontSize: 11, fontWeight: 800, color: "#22c55e", textTransform: "uppercase", letterSpacing: 1 }}>Árvores</p>
+                <p style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>Regeneração</p>
+              </div>
+            </div>
+
+            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", letterSpacing: 3, fontFamily: "monospace", textTransform: "uppercase", marginTop: 8 }}>
+              SCAN • CONNECT • IMPACT
+            </p>
           </div>
         </div>
       </section>

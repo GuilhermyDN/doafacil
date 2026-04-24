@@ -10,6 +10,7 @@ export type Instituicao = {
   ativo?: boolean;
   homologada?: boolean;
   setupTestePaymentId?: string | null;
+  site?: string | null;
   mercadoPagoToken?: string | null;
   mpPublicKey?: string | null;
   mpSetupToken?: string | null;

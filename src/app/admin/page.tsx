@@ -333,7 +333,7 @@ export default function AdminPage() {
     Banho:    { emoji: "🚿", cor: "#2A5FA5", bg: "#E6EEF8" },
     Cobertor: { emoji: "🧣", cor: "#FF4E00", bg: "#fff0eb" },
   };
-  const instFormBlank = { nome: "", tipo: "Refeicao" as "Refeicao"|"Banho"|"Cobertor", valor: "", pixKey: "", emoji: "🍽", cor: "#000DFF", bg: "#e0e4ff" };
+  const instFormBlank = { nome: "", tipo: "Refeicao" as "Refeicao"|"Banho"|"Cobertor", valor: "", pixKey: "", emoji: "🍽", cor: "#000DFF", bg: "#e0e4ff", site: "" };
   const [instAdminList, setInstAdminList] = useState<import("@/lib/data").Instituicao[]>([]);
   const [instAdminForm, setInstAdminForm] = useState(instFormBlank);
   const [instAdminEditing, setInstAdminEditing] = useState<number | "new" | null>(null);
@@ -1508,7 +1508,7 @@ export default function AdminPage() {
       setInstAdminEditing("new");
     };
     const handleOpenEdit = (inst: import("@/lib/data").Instituicao) => {
-      setInstAdminForm({ nome: inst.nome, tipo: inst.tipo, valor: String(inst.valor), pixKey: inst.pixKey, emoji: inst.emoji, cor: inst.cor, bg: inst.bg });
+      setInstAdminForm({ nome: inst.nome, tipo: inst.tipo, valor: String(inst.valor), pixKey: inst.pixKey, emoji: inst.emoji, cor: inst.cor, bg: inst.bg, site: inst.site || "" });
       setInstAdminEditing(inst.id);
     };
     const handleTipoChange = (tipo: "Refeicao"|"Banho"|"Cobertor") => {
@@ -1519,7 +1519,7 @@ export default function AdminPage() {
       if (!instAdminForm.nome || !instAdminForm.pixKey || !instAdminForm.valor) return;
       setInstAdminSaving(true);
       try {
-        const body = { nome: instAdminForm.nome, tipo: instAdminForm.tipo, valor: parseFloat(instAdminForm.valor), pixKey: instAdminForm.pixKey, emoji: instAdminForm.emoji, cor: instAdminForm.cor, bg: instAdminForm.bg };
+        const body = { nome: instAdminForm.nome, tipo: instAdminForm.tipo, valor: parseFloat(instAdminForm.valor), pixKey: instAdminForm.pixKey, emoji: instAdminForm.emoji, cor: instAdminForm.cor, bg: instAdminForm.bg, site: instAdminForm.site.trim() || null };
         if (isNew) {
           const nova = await postInstituicao(body);
           setInstAdminList(l => [...l, nova]);
@@ -1607,6 +1607,16 @@ export default function AdminPage() {
             <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Chave Pix *</label>
             <input value={instAdminForm.pixKey} onChange={e => setInstAdminForm(f => ({ ...f, pixKey: e.target.value }))}
               placeholder="CPF, CNPJ, email, telefone ou chave aleatória" style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 13, outline: "none" }} />
+          </div>
+          <div style={{ gridColumn: "1/-1" }}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>
+              Site / Instagram / Linktree <span style={{ fontWeight: 400, textTransform: "none", color: C.muted }}>(opcional)</span>
+            </label>
+            <input value={instAdminForm.site} onChange={e => setInstAdminForm(f => ({ ...f, site: e.target.value }))}
+              placeholder="https://instagram.com/suainstituicao" style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 13, outline: "none" }} />
+            <p style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
+              Aparece no final da doação como &ldquo;saber mais sobre essa instituição&rdquo;.
+            </p>
           </div>
           <div>
             <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Emoji</label>

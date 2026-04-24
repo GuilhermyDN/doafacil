@@ -23,7 +23,7 @@ router.get('/', async (_req: Request, res: Response) => {
 // POST /api/admin/instituicoes
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { nome, tipo, valor, pixKey, emoji, cor, bg, mercadoPagoToken, mpPublicKey } = req.body
+    const { nome, tipo, valor, pixKey, emoji, cor, bg, site, mercadoPagoToken, mpPublicKey } = req.body
     if (!nome || !tipo || valor === undefined || !pixKey || !emoji || !cor || !bg) {
       res.status(400).json({ error: 'Todos os campos são obrigatórios' })
       return
@@ -31,7 +31,7 @@ router.post('/', async (req: Request, res: Response) => {
     const mpSetupToken = crypto.randomBytes(24).toString('hex')
     const gastosToken  = crypto.randomBytes(24).toString('hex')
     const inst = await prisma.instituicao.create({
-      data: { nome, tipo, valor: Number(valor), pixKey, emoji, cor, bg, mercadoPagoToken, mpPublicKey, mpSetupToken, gastosToken },
+      data: { nome, tipo, valor: Number(valor), pixKey, emoji, cor, bg, site: site || null, mercadoPagoToken, mpPublicKey, mpSetupToken, gastosToken },
     })
     res.status(201).json(inst)
   } catch (err) {
@@ -44,7 +44,7 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id)
-    const { nome, tipo, valor, pixKey, emoji, cor, bg, ativo, homologada, mercadoPagoToken, mpPublicKey } = req.body
+    const { nome, tipo, valor, pixKey, emoji, cor, bg, ativo, homologada, site, mercadoPagoToken, mpPublicKey } = req.body
 
     const inst = await prisma.instituicao.update({
       where: { id },
@@ -58,6 +58,7 @@ router.put('/:id', async (req: Request, res: Response) => {
         ...(bg !== undefined && { bg }),
         ...(ativo !== undefined && { ativo: Boolean(ativo) }),
         ...(homologada !== undefined && { homologada: Boolean(homologada) }),
+        ...(site !== undefined && { site: site || null }),
         ...(mercadoPagoToken !== undefined && { mercadoPagoToken: mercadoPagoToken || null }),
         ...(mpPublicKey !== undefined && { mpPublicKey: mpPublicKey || null }),
       },

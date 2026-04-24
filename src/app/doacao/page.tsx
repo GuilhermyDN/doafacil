@@ -57,32 +57,35 @@ const instColor = (inst: Instituicao) =>
 function PageBg() {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden", background: C.black }}>
+      {/* WATERMARK GRANDE — rosto do ursinho aparecendo só metade no canto
+          inferior direito. mix-blend-mode screen deixa o efeito "gasto"
+          sobre o fundo preto sem precisar de PNG transparente. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/ursinho.png" alt="" style={{
-        position: "absolute", right: "-5%", bottom: "-8%",
-        width: "55vmin", maxWidth: 480, opacity: 0.07,
-        filter: "grayscale(100%) contrast(1.4)",
+      <img src="/ursinho-rosto.jpg" alt="" style={{
+        position: "absolute",
+        right: "-20%",
+        bottom: "-25%",
+        width: "min(110vmin, 780px)",
+        opacity: 0.08,
+        mixBlendMode: "screen",
         userSelect: "none", pointerEvents: "none",
       }} />
+
+      {/* Ursinho pequeno no canto sup. direito (antes era uma cruz SVG).
+          Usa o rosto colorido em vez da silhueta p&b pra combinar com a
+          marca d'água grande. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/ursinho.png" alt="" style={{
-        position: "absolute", left: "-4%", top: "-6%",
-        width: "28vmin", maxWidth: 240, opacity: 0.045,
-        filter: "grayscale(100%) contrast(1.4)",
+      <img src="/ursinho-rosto.jpg" alt="" style={{
+        position: "absolute", top: 28, right: 24,
+        width: 56, height: 56, borderRadius: 12,
+        objectFit: "cover", opacity: 0.55,
+        mixBlendMode: "screen",
         userSelect: "none", pointerEvents: "none",
       }} />
+
+      {/* Glows coloridos pra manter a paleta da marca */}
       <div style={{ position: "absolute", bottom: "10%", right: "5%", width: 400, height: 400, borderRadius: "50%", background: C.blue, opacity: 0.06, filter: "blur(80px)" }}/>
       <div style={{ position: "absolute", top: "15%", left: "5%", width: 320, height: 320, borderRadius: "50%", background: C.orange, opacity: 0.08, filter: "blur(80px)" }}/>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/ursinho.png" alt="" style={{
-        position: "absolute", top: 40, right: 60,
-        width: 40, height: 40, opacity: 0.18,
-        filter: "grayscale(100%) contrast(1.4)",
-        userSelect: "none", pointerEvents: "none",
-      }} />
-      <svg style={{ position: "absolute", bottom: 60, left: 50, opacity: 0.12 }} width={44} height={44} viewBox="0 0 44 44">
-        <circle cx="22" cy="22" r="18" fill="none" stroke={C.blue} strokeWidth="4" strokeDasharray="8 5"/>
-      </svg>
     </div>
   );
 }
@@ -933,6 +936,25 @@ function TelaConfirmado({ inst, qtd, pixData, viaMp, levelUp, onNova }: {
             <p style={{ fontSize: 14, color: "#00a650", fontWeight: 600 }}>✓ Pagamento confirmado pelo Mercado Pago</p>
             <p style={{ fontSize: 12, color: "#00a650", marginTop: 4, opacity: 0.8 }}>O dinheiro chegará diretamente à instituição.</p>
           </div>
+        )}
+
+        {/* Link para o site/instagram/linktree da instituição — as ONGs
+            pediram um canal pra o doador saber mais sobre o projeto delas.
+            Só aparece quando inst.site foi cadastrado no admin. */}
+        {inst?.site && (
+          <a href={inst.site} target="_blank" rel="noreferrer"
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              gap: 10, width: "100%", padding: "13px 16px", marginBottom: 10,
+              borderRadius: 12, background: cor + "10", border: `1.5px solid ${cor}40`,
+              color: cor, fontSize: 13, fontWeight: 600, textDecoration: "none",
+            }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 16 }}>{inst.emoji}</span>
+              Saber mais sobre {inst.nome}
+            </span>
+            <span style={{ fontSize: 16 }}>↗</span>
+          </a>
         )}
 
         <button onClick={onNova} style={{ width: "100%", padding: "14px", borderRadius: 12, background: "none", border: `2px solid ${C.border}`, color: C.ink, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>

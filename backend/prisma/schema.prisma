@@ -59,6 +59,9 @@ model Instituicao {
   // nem PIX nem cartão aparecem para doadores.
   homologada        Boolean         @default(false)
   setupTestePaymentId String?
+  // URL de site/instagram/linktree da instituição. Aparece como "saber
+  // mais" no final da doação para o doador conhecer o projeto.
+  site              String?
   mercadoPagoToken  String?
   mpPublicKey       String?
   mpConnectToken    String?         @unique
