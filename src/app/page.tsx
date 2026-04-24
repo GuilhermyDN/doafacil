@@ -181,10 +181,10 @@ export default function HomePage() {
               <span style={{ fontSize: 12, color: C.orange, fontWeight: 700, letterSpacing: 2, textTransform: "lowercase", fontFamily: "monospace" }}>scan•connect•impact</span>
             </div>
 
-            <h1 style={{ fontFamily: "'Playfair Display',Georgia,serif", fontWeight: 800, lineHeight: 1.05, marginBottom: 28 }}>
-              <span style={{ fontSize: "clamp(36px,6vw,68px)", color: C.white, display: "block", letterSpacing: -1 }}>A HUMANIDADE</span>
-              <span style={{ fontSize: "clamp(28px,4.5vw,52px)", color: C.orange, display: "block", fontStyle: "italic", fontWeight: 700 }}>não é discurso</span>
-              <span style={{ fontSize: "clamp(36px,6vw,68px)", color: C.white, display: "block", letterSpacing: -1 }}>é AÇÃO</span>
+            <h1 style={{ fontFamily: "var(--font-spray), 'Permanent Marker', cursive", fontWeight: 400, lineHeight: 1, marginBottom: 28, letterSpacing: 2 }}>
+              <span style={{ fontSize: "clamp(42px,7vw,82px)", color: C.white, display: "block" }}>A HUMANIDADE</span>
+              <span style={{ fontSize: "clamp(30px,5vw,58px)", color: C.orange, display: "block", fontFamily: "var(--font-marker), cursive" }}>não é discurso</span>
+              <span style={{ fontSize: "clamp(42px,7vw,82px)", color: C.white, display: "block" }}>é AÇÃO</span>
             </h1>
 
             <p style={{ fontSize: 15, color: "rgba(255,255,255,0.62)", lineHeight: 1.8, marginBottom: 32, maxWidth: 480 }}>
@@ -290,7 +290,7 @@ export default function HomePage() {
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 60 }}>
             <span style={{ fontSize: 11, color: C.orange, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase" }}>Nossa história</span>
-            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: "clamp(28px,4vw,46px)", fontWeight: 700, color: C.ink, marginTop: 10, lineHeight: 1.2 }}>
+            <h2 style={{ fontFamily: "var(--font-spray), 'Permanent Marker', cursive", fontSize: "clamp(34px,5.5vw,64px)", fontWeight: 400, color: C.ink, marginTop: 10, lineHeight: 1.1, letterSpacing: 1 }}>
               Isso aqui não é uma ONG
             </h2>
           </div>
@@ -343,10 +343,10 @@ export default function HomePage() {
 
           {/* ONE HEALTH banner */}
           <div style={{ marginTop: 72, textAlign: "center" }}>
-            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: "clamp(36px,6vw,68px)", fontWeight: 900, color: C.blue, letterSpacing: 1, marginBottom: 16 }}>
+            <h2 style={{ fontFamily: "var(--font-spray), 'Permanent Marker', cursive", fontSize: "clamp(42px,7vw,88px)", fontWeight: 400, color: C.blue, letterSpacing: 2, marginBottom: 16 }}>
               ONE HEALTH
             </h2>
-            <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "clamp(28px,4.5vw,46px)", fontWeight: 700, color: C.ink, lineHeight: 1.2 }}>
+            <p style={{ fontFamily: "var(--font-marker), cursive", fontSize: "clamp(32px,5vw,54px)", fontWeight: 400, color: C.ink, lineHeight: 1.1, letterSpacing: 1 }}>
               Simples.<br/>Direto.<br/>Brutal.
             </p>
           </div>
@@ -358,7 +358,7 @@ export default function HomePage() {
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 56 }}>
             <span style={{ fontSize: 11, color: C.blue, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase" }}>Simples assim</span>
-            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: "clamp(26px,4vw,42px)", fontWeight: 700, color: C.ink, marginTop: 10 }}>Como funciona</h2>
+            <h2 style={{ fontFamily: "var(--font-spray), 'Permanent Marker', cursive", fontSize: "clamp(32px,5vw,56px)", fontWeight: 400, color: C.ink, marginTop: 10, letterSpacing: 1 }}>Como funciona</h2>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 20 }}>
             {COMO_FUNCIONA.map((step, i) => (
@@ -380,14 +380,13 @@ export default function HomePage() {
           {/* Título diagonal estilo rabisco laranja */}
           <div style={{ marginBottom: 48, textAlign: "center" }}>
             <h2 style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: "clamp(32px, 6vw, 64px)",
-              fontWeight: 900,
+              fontFamily: "var(--font-spray), 'Permanent Marker', cursive",
+              fontSize: "clamp(38px, 7vw, 76px)",
+              fontWeight: 400,
               color: C.orange,
-              letterSpacing: -1,
+              letterSpacing: 1,
               display: "inline-block",
-              transform: "rotate(-4deg)",
-              textShadow: "2px 2px 0 rgba(0,0,0,0.08)",
+              lineHeight: 1,
             }}>
               POR QUE ISSO É<br/>DIFERENTE ?
             </h2>
@@ -414,7 +413,7 @@ export default function HomePage() {
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 56 }}>
             <span style={{ fontSize: 11, color: C.orange, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase" }}>Parceiros verificados</span>
-            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: "clamp(26px,4vw,42px)", fontWeight: 700, color: C.white, marginTop: 10 }}>Instituições parceiras</h2>
+            <h2 style={{ fontFamily: "var(--font-spray), 'Permanent Marker', cursive", fontSize: "clamp(32px,5vw,56px)", fontWeight: 400, color: C.white, marginTop: 10, letterSpacing: 1 }}>Instituições parceiras</h2>
             <p style={{ fontSize: 15, color: "rgba(255,255,255,0.4)", marginTop: 10, maxWidth: 500, margin: "10px auto 0" }}>Cada instituição é verificada pela Humanity Bearers antes de entrar na plataforma.</p>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 18 }}>
@@ -453,7 +452,7 @@ export default function HomePage() {
         <div style={{ maxWidth: 600, margin: "0 auto" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/ursinho.png" alt="" className="float" style={{ width: 80, margin: "0 auto 20px", display: "block", filter: "brightness(10)", opacity: 0.85 }}/>
-          <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: "clamp(28px,4.5vw,46px)", fontWeight: 700, color: C.white, lineHeight: 1.2, marginBottom: 20, transform: "rotate(-2deg)" }}>
+          <h2 style={{ fontFamily: "var(--font-spray), 'Permanent Marker', cursive", fontSize: "clamp(32px,5.5vw,56px)", fontWeight: 400, color: C.white, lineHeight: 1.1, marginBottom: 20, letterSpacing: 1 }}>
             Pronto para carregar<br />humanidade?
           </h2>
           <p style={{ fontSize: 15, color: "rgba(255,255,255,0.75)", marginBottom: 36, lineHeight: 1.8 }}>
@@ -471,7 +470,7 @@ export default function HomePage() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16, marginBottom: 48 }}>
             <div>
               <p style={{ fontSize: 11, color: C.orange, letterSpacing: 3, textTransform: "uppercase", fontWeight: 700, marginBottom: 8 }}>🎮 GAME MODE</p>
-              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(26px,4vw,40px)", fontWeight: 700, color: C.white, margin: 0 }}>
+              <h2 style={{ fontFamily: "var(--font-spray), 'Permanent Marker', cursive", fontSize: "clamp(34px,5vw,54px)", fontWeight: 400, color: C.white, margin: 0, letterSpacing: 2 }}>
                 Missões Bearer
               </h2>
               <div style={{ display: "inline-block", background: C.orange, color: C.white, fontSize: 12, fontWeight: 800, letterSpacing: 2, padding: "6px 16px", borderRadius: 99, marginTop: 14, fontFamily: "monospace" }}>

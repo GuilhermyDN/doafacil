@@ -39,7 +39,7 @@ export default function NossaHistoriaPage() {
             <p style={{ fontSize: 13, color: C.orange, fontWeight: 800, letterSpacing: 4, textTransform: "uppercase", marginBottom: 12 }}>
               Nossa história
             </p>
-            <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: "clamp(34px,6vw,60px)", fontWeight: 900, color: C.blue, lineHeight: 1.1, letterSpacing: -1 }}>
+            <h1 style={{ fontFamily: "var(--font-spray), 'Permanent Marker', cursive", fontSize: "clamp(42px,7vw,78px)", fontWeight: 400, color: C.blue, lineHeight: 1.05, letterSpacing: 2 }}>
               Qual é o rolê aqui?
             </h1>
           </div>

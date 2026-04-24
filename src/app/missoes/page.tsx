@@ -105,7 +105,7 @@ export default function MissoesPage() {
         padding: "48px 20px 36px",
         textAlign: "center",
       }}>
-        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(30px,6vw,52px)", fontWeight: 800, margin: "0 0 16px", color: "#fff", letterSpacing: 1 }}>
+        <h1 style={{ fontFamily: "var(--font-spray), 'Permanent Marker', cursive", fontSize: "clamp(40px,7vw,72px)", fontWeight: 400, margin: "0 0 16px", color: "#fff", letterSpacing: 2 }}>
           Missões Bearer
         </h1>
         <div style={{ display: "inline-block", background: "#FF4E00", color: "#fff", fontSize: 13, fontWeight: 800, letterSpacing: 2, padding: "8px 20px", borderRadius: 99, fontFamily: "monospace", marginBottom: 16 }}>

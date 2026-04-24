@@ -122,17 +122,15 @@ function TelaEscolha({ onEscolher }: { onEscolher: (i: Instituicao) => void }) {
             <div style={{ flex: 1, background: C.orange }}/>
             <div style={{ flex: 1, background: "rgba(255,255,255,0.15)" }}/>
           </div>
-          <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "clamp(20px,4vw,26px)", fontWeight: 900, color: C.white, margin: 0, lineHeight: 1.15, letterSpacing: 0.5, textTransform: "uppercase" }}>
+          <h1 style={{ fontFamily: "var(--font-spray), 'Permanent Marker', cursive", fontSize: "clamp(24px,5vw,34px)", fontWeight: 400, color: C.white, margin: 0, lineHeight: 1.05, letterSpacing: 1 }}>
             E AÍ BEARER<br/>BORA GERAR<br/>HUMANIDADE?
           </h1>
         </div>
 
         <div style={{ padding: "24px 26px 28px" }}>
           {/* Título azul estilizado "QUAL VAI SER ?" */}
-          <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: "clamp(26px,5vw,38px)", fontWeight: 900, color: C.blue, lineHeight: 1, letterSpacing: 1, marginBottom: 18, transform: "rotate(-2deg)", display: "inline-block" }}>
-            <span style={{ display: "block" }}>QUAL</span>
-            <span style={{ display: "block", marginLeft: 30 }}>VAI</span>
-            <span style={{ display: "block", marginLeft: 60 }}>SER ?</span>
+          <h2 style={{ fontFamily: "var(--font-spray), 'Permanent Marker', cursive", fontSize: "clamp(32px,6vw,48px)", fontWeight: 400, color: C.blue, lineHeight: 1, letterSpacing: 2, marginBottom: 18 }}>
+            QUAL VAI SER ?
           </h2>
           <p style={{ fontSize: 13, color: C.muted, marginBottom: 18, lineHeight: 1.7 }}>
             Escolha onde sua humanidade vai bater. Pix direto, sem intermediário.
