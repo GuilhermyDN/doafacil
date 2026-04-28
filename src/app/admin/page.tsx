@@ -330,8 +330,8 @@ export default function AdminPage() {
   // instituicoes tab
   const TIPO_DEFAULTS = {
     Refeicao: { emoji: "🍽", cor: "#000DFF", bg: "#e0e4ff" },
-    Banho:    { emoji: "🚿", cor: "#2A5FA5", bg: "#E6EEF8" },
-    Cobertor: { emoji: "🧣", cor: "#FF4E00", bg: "#fff0eb" },
+    Banho:    { emoji: "🐾", cor: "#FF8C00", bg: "#fff3e0" },
+    Cobertor: { emoji: "🌳", cor: "#22c55e", bg: "#f0fdf4" },
   };
   const instFormBlank = { nome: "", tipo: "Refeicao" as "Refeicao"|"Banho"|"Cobertor", valor: "", pixKey: "", emoji: "🍽", cor: "#000DFF", bg: "#e0e4ff", site: "" };
   const [instAdminList, setInstAdminList] = useState<import("@/lib/data").Instituicao[]>([]);
@@ -1593,9 +1593,9 @@ export default function AdminPage() {
             <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Tipo *</label>
             <select value={instAdminForm.tipo} onChange={e => handleTipoChange(e.target.value as any)}
               style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 13, outline: "none", background: C.white, cursor: "pointer" }}>
-              <option value="Refeicao">🍽 Refeição</option>
-              <option value="Banho">🚿 Banho</option>
-              <option value="Cobertor">🧣 Cobertor</option>
+              <option value="Refeicao">🍽 Pessoas (Refeição + Banho)</option>
+              <option value="Banho">🐾 Animais (Cão e Gato)</option>
+              <option value="Cobertor">🌳 Árvores (Regeneração)</option>
             </select>
           </div>
           <div>
