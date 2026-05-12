@@ -121,7 +121,7 @@ export default function MissoesPage() {
             value={busca}
             onChange={e => setBusca(e.target.value)}
             onKeyDown={e => e.key === "Enter" && buscarDoador()}
-            placeholder="Nome, número ou serial (GS-HB25-D01-...)"
+            placeholder="Nome, número ou serial (GS-HB26-...)"
             style={{
               flex: 1, padding: "12px 16px", borderRadius: 12,
               background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",

@@ -2171,7 +2171,7 @@ export default function AdminPage() {
     return (
       <div style={{ maxWidth: 820, margin: '0 auto', padding: '0 4px' }}>
         <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 800, color: C.ink, marginBottom: 4 }}>Tags</h2>
-        <p style={{ fontSize: 13, color: C.muted, marginBottom: 24 }}>Gere e gerencie os seriais no formato <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>GS-HB25-D01-0247-59KJ</span></p>
+        <p style={{ fontSize: 13, color: C.muted, marginBottom: 24 }}>Gere e gerencie os seriais no formato <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>GS-HB26-D26001-0247-59KJ</span></p>
 
         {/* Gerar lote */}
         <div style={{ background: C.white, borderRadius: 16, border: `1px solid ${C.border}`, padding: '20px 24px', marginBottom: 20 }}>
@@ -2179,14 +2179,15 @@ export default function AdminPage() {
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div>
               <p style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>Campanha</p>
-              <input value={gerarCampanha} onChange={e => setGerarCampanha(e.target.value.toUpperCase())}
-                placeholder="D01" maxLength={4}
-                style={{ border: `1.5px solid ${C.border}`, borderRadius: 8, padding: '8px 12px', fontSize: 13, width: 80, fontFamily: 'monospace', fontWeight: 700 }} />
+              <input value={gerarCampanha}
+                onChange={e => setGerarCampanha(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                placeholder="D26001" maxLength={6}
+                style={{ border: `1.5px solid ${C.border}`, borderRadius: 8, padding: '8px 12px', fontSize: 13, width: 110, fontFamily: 'monospace', fontWeight: 700 }} />
             </div>
             <div>
               <p style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>Ano (2 dígitos)</p>
               <input value={gerarAno} onChange={e => setGerarAno(e.target.value)} type="number"
-                placeholder="25" maxLength={2}
+                placeholder="26" maxLength={2}
                 style={{ border: `1.5px solid ${C.border}`, borderRadius: 8, padding: '8px 12px', fontSize: 13, width: 80, fontFamily: 'monospace', fontWeight: 700 }} />
             </div>
             <div>
@@ -2225,7 +2226,7 @@ export default function AdminPage() {
         {/* Filtros */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
           <input value={tagsFiltroCampanha} onChange={e => setTagsFiltroCampanha(e.target.value.toUpperCase())}
-            placeholder="Filtrar campanha (ex: D01)"
+            placeholder="Filtrar campanha (ex: D26001)"
             style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: '7px 12px', fontSize: 12, fontFamily: 'monospace', width: 180 }} />
           <select value={tagsFiltroStatus} onChange={e => setTagsFiltroStatus(e.target.value)}
             style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: '7px 12px', fontSize: 12 }}>
