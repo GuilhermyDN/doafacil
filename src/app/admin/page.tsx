@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import QRCode from "qrcode";
 import { type Doador, type Missao, type Doacao } from "@/lib/data";
 import {
   login as apiLogin, logout as apiLogout, isLoggedIn,
@@ -73,6 +74,58 @@ const Icons = {
   receipt: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zM14 2v6h6M16 13H8M16 17H8M10 9H8",
   settings:"M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z",
 };
+
+// ── QR helpers (lib local 'qrcode' — não depende mais de qrserver.com que
+//    estava falhando por CORS/disponibilidade) ─────────────────────────────
+function QRPreview({ url, size = 140 }: { url: string; size?: number }) {
+  const [dataUrl, setDataUrl] = useState<string>("");
+  useEffect(() => {
+    QRCode.toDataURL(url, { margin: 1, width: size * 2, errorCorrectionLevel: "M" })
+      .then(setDataUrl).catch(() => setDataUrl(""));
+  }, [url, size]);
+  if (!dataUrl) return <div style={{ width: size, height: size, background: "#f4f4f4", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#999" }}>gerando…</div>;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={dataUrl} alt="QR" width={size} height={size} />;
+}
+
+async function baixarQRComContador(serial: string, contador: string) {
+  // Gera QR localmente como dataURL — não depende de internet/CDN externo
+  const qrDataUrl = await QRCode.toDataURL(`https://humanitybearers.tech/doacao?tag=${encodeURIComponent(serial)}`, {
+    margin: 1, width: 800, errorCorrectionLevel: "M",
+  });
+  const canvas = document.createElement("canvas");
+  const padding = 30;
+  const qrSize = 400;
+  const textAreaH = 100;
+  canvas.width = qrSize + padding * 2;
+  canvas.height = qrSize + padding * 2 + textAreaH;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const img = new Image();
+  img.src = qrDataUrl;
+  await new Promise(res => { img.onload = res; img.onerror = res; });
+  ctx.drawImage(img, padding, padding, qrSize, qrSize);
+  // Contador NNN/TOTAL em destaque (laranja, grande)
+  ctx.fillStyle = "#FF4E00";
+  ctx.font = "bold 28px monospace";
+  ctx.textAlign = "center";
+  ctx.fillText(contador, canvas.width / 2, qrSize + padding + 36);
+  // Serial em monospace
+  ctx.fillStyle = "#111111";
+  ctx.font = "bold 18px monospace";
+  ctx.fillText(serial, canvas.width / 2, qrSize + padding + 64);
+  // Tagline
+  ctx.fillStyle = "#777777";
+  ctx.font = "12px sans-serif";
+  ctx.fillText("SCAN · CONNECT · IMPACT", canvas.width / 2, qrSize + padding + 86);
+  // Download
+  const a = document.createElement("a");
+  const safeContador = contador.replace("/", "-of-");
+  a.download = `${serial}_${safeContador}.png`;
+  a.href = canvas.toDataURL("image/png");
+  a.click();
+}
 
 // ── BEAR MASCOT IMAGE ────────────────────────────────────────────────────────
 function UrsinhoSVG({ size = 80 }: { size?: number }) {
@@ -2181,44 +2234,43 @@ export default function AdminPage() {
           </select>
         </div>
 
-        {/* Lista */}
+        {/* Lista — NNN/TOTAL é calculado por chave campanha+ano */}
         {tagsLoading && <p style={{ textAlign: 'center', color: C.muted, padding: 24 }}>Carregando...</p>}
+
+        {/* Baixar todos os QR como ZIP — gera local com a lib qrcode */}
+        {tags.length > 0 && (() => {
+          const baixarTodos = async () => {
+            if (!confirm(`Baixar ${tags.length} QR Codes? Cada um será salvo individualmente.`)) return;
+            for (const tag of tags) {
+              const totalLote = tags.filter(t => t.campanha === tag.campanha && t.ano === tag.ano).reduce((m, t) => Math.max(m, t.sequencia), 0);
+              const numStr  = String(tag.sequencia).padStart(String(totalLote).length, '0');
+              const totStr  = String(totalLote);
+              await baixarQRComContador(tag.serial, `${numStr}/${totStr}`);
+              // pequena pausa pra navegador não bloquear downloads em massa
+              await new Promise(r => setTimeout(r, 200));
+            }
+          };
+          return (
+            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={baixarTodos} style={{ padding: '8px 18px', borderRadius: 8, background: C.dark, color: C.gold, border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                ⬇ Baixar todos os QR ({tags.length})
+              </button>
+            </div>
+          );
+        })()}
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {tags.map(tag => {
             const urlDoacao = `https://humanitybearers.tech/doacao?tag=${encodeURIComponent(tag.serial)}`;
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=16&data=${encodeURIComponent(urlDoacao)}`;
+            // Total do lote = max sequencia entre tags com mesmo campanha+ano
+            const totalLote = tags
+              .filter(t => t.campanha === tag.campanha && t.ano === tag.ano)
+              .reduce((m, t) => Math.max(m, t.sequencia), 0);
+            const padLen = String(totalLote).length;
+            const numStr = String(tag.sequencia).padStart(padLen, '0');
+            const contadorStr = `${numStr}/${totalLote}`;
 
-            const baixarComSerial = async () => {
-              const canvas = document.createElement('canvas');
-              const padding = 24;
-              const qrSize = 400;
-              const textAreaH = 72;
-              canvas.width = qrSize + padding * 2;
-              canvas.height = qrSize + padding * 2 + textAreaH;
-              const ctx = canvas.getContext('2d')!;
-              // fundo branco
-              ctx.fillStyle = '#ffffff';
-              ctx.fillRect(0, 0, canvas.width, canvas.height);
-              // carrega QR
-              const img = new Image();
-              img.crossOrigin = 'anonymous';
-              img.src = qrUrl;
-              await new Promise(res => { img.onload = res; img.onerror = res; });
-              ctx.drawImage(img, padding, padding, qrSize, qrSize);
-              // serial abaixo
-              ctx.fillStyle = '#111111';
-              ctx.font = 'bold 22px monospace';
-              ctx.textAlign = 'center';
-              ctx.fillText(tag.serial, canvas.width / 2, qrSize + padding + 36);
-              ctx.fillStyle = '#777777';
-              ctx.font = '14px sans-serif';
-              ctx.fillText('SCAN · CONNECT · IMPACT', canvas.width / 2, qrSize + padding + 58);
-              // download
-              const a = document.createElement('a');
-              a.download = `${tag.serial}.png`;
-              a.href = canvas.toDataURL('image/png');
-              a.click();
-            };
+            const baixarComSerial = () => baixarQRComContador(tag.serial, contadorStr);
 
             return (
               <div key={tag.id} style={{
@@ -2227,7 +2279,12 @@ export default function AdminPage() {
               }}>
                 <div style={{ flex: 1, minWidth: 200 }}>
                   <p style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 700, color: C.ink, letterSpacing: 1 }}>{tag.serial}</p>
-                  <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Campanha {tag.campanha} · #{tag.sequencia}</p>
+                  <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                    Campanha {tag.campanha}
+                    <span style={{ marginLeft: 6, padding: '1px 8px', borderRadius: 99, background: C.offWhite, fontFamily: 'monospace', fontWeight: 700, color: C.ink }}>
+                      {contadorStr}
+                    </span>
+                  </p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   {tag.vinculada ? (
@@ -2247,11 +2304,11 @@ export default function AdminPage() {
                 {/* QR expandido */}
                 {tagQrAberto === tag.serial && (
                   <div style={{ width: '100%', borderTop: `1px solid ${C.border}`, paddingTop: 16, marginTop: 4, display: 'flex', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                    {/* Preview com serial */}
+                    {/* Preview com serial — QR gerado localmente via lib qrcode */}
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: '#fff', border: `1px solid ${C.border}`, borderRadius: 10, padding: 12 }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={qrUrl} alt={`QR ${tag.serial}`} width={140} height={140} />
+                      <QRPreview url={urlDoacao} size={140} />
                       <p style={{ fontFamily: 'monospace', fontSize: 10, fontWeight: 700, color: C.ink, letterSpacing: 1 }}>{tag.serial}</p>
+                      <p style={{ fontFamily: 'monospace', fontSize: 10, fontWeight: 800, color: C.orange }}>{contadorStr}</p>
                       <p style={{ fontSize: 9, color: C.muted, letterSpacing: 1 }}>SCAN · CONNECT · IMPACT</p>
                     </div>
                     <div style={{ flex: 1, minWidth: 200 }}>
@@ -2260,7 +2317,7 @@ export default function AdminPage() {
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <button onClick={baixarComSerial}
                           style={{ padding: '7px 16px', borderRadius: 8, background: C.dark, color: C.gold, border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                          ⬇ Baixar QR com serial
+                          ⬇ Baixar QR ({contadorStr})
                         </button>
                         <button onClick={() => navigator.clipboard.writeText(urlDoacao)}
                           style={{ padding: '7px 16px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.white, color: C.ink, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
