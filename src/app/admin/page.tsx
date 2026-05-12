@@ -423,7 +423,8 @@ export default function AdminPage() {
   const [tagsFiltroStatus, setTagsFiltroStatus]     = useState('');
   const [gerarQtd, setGerarQtd]             = useState('10');
   const [gerarCampanha, setGerarCampanha]   = useState('D01');
-  const [gerarAno, setGerarAno]             = useState('25');
+  // Default = últimos 2 dígitos do ano atual (sai do hardcoded '25')
+  const [gerarAno, setGerarAno]             = useState(String(new Date().getFullYear()).slice(-2));
   const [gerandoTags, setGerandoTags]       = useState(false);
   const [tagsGeradas, setTagsGeradas]       = useState<{ primeira: string; ultima: string; geradas: number } | null>(null);
   const [tagQrAberto, setTagQrAberto]       = useState<string | null>(null); // serial do QR aberto
