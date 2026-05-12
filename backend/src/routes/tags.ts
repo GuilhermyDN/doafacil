@@ -5,10 +5,12 @@ import crypto from 'crypto'
 
 const router = Router()
 
-// ── Gera serial no formato GS-HB25-D01-0247-59KJ ─────────────────────────────
+// ── Gera serial no formato GS-HB26-FSCIVP-247-59KJ ───────────────────────────
+// Sequência com 3 dígitos (até 999 tags por campanha — basta criar nova campanha
+// quando estourar). Campanha pode ter até 6 chars (letras+números).
 function gerarSerial(ano: number, campanha: string, sequencia: number): { serial: string; chave: string } {
   const anoStr = String(ano).slice(-2).padStart(2, '0')
-  const seqStr = String(sequencia).padStart(4, '0')
+  const seqStr = String(sequencia).padStart(3, '0')
   const chave = crypto.randomBytes(3).toString('hex').toUpperCase().slice(0, 4)
   const serial = `GS-HB${anoStr}-${campanha}-${seqStr}-${chave}`
   return { serial, chave }
@@ -214,6 +216,17 @@ router.post('/gerar', authMiddleware, async (req: Request, res: Response) => {
     orderBy: { sequencia: 'desc' },
   })
   let proximaSeq = (ultima?.sequencia ?? 0) + 1
+
+  // Sequência tem 3 dígitos (max 999 por campanha). Se este lote estoura,
+  // bloqueia com mensagem clara — admin deve criar nova campanha.
+  if (proximaSeq + qtd - 1 > 999) {
+    res.status(400).json({
+      error: `Campanha ${campanha}/${ano} atingiu o limite de 999 tags. Crie uma nova campanha para gerar mais.`,
+      proximaSeq,
+      qtdSolicitada: qtd,
+    })
+    return
+  }
 
   // UUID único pra este lote — toda tag desta chamada compartilha esse id.
   // Permite ao frontend agrupar com 100% de precisão.

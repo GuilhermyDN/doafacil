@@ -2268,7 +2268,7 @@ export default function AdminPage() {
     return (
       <div style={{ maxWidth: 820, margin: '0 auto', padding: '0 4px' }}>
         <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 800, color: C.ink, marginBottom: 4 }}>Tags</h2>
-        <p style={{ fontSize: 13, color: C.muted, marginBottom: 24 }}>Gere e gerencie os seriais no formato <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>GS-HB26-D26001-0247-59KJ</span></p>
+        <p style={{ fontSize: 13, color: C.muted, marginBottom: 24 }}>Gere e gerencie os seriais no formato <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>GS-HB26-FSCIVP-247-59KJ</span></p>
 
         {/* Gerar lote */}
         <div style={{ background: C.white, borderRadius: 16, border: `1px solid ${C.border}`, padding: '20px 24px', marginBottom: 20 }}>
