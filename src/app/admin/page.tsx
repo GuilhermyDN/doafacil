@@ -88,34 +88,61 @@ function QRPreview({ url, size = 140 }: { url: string; size?: number }) {
   return <img src={dataUrl} alt="QR" width={size} height={size} />;
 }
 
-/** Tipo mínimo para detectar lotes via createdAt. Tags geradas na mesma
- *  transação compartilham o mesmo instante (até ~5s de tolerância). */
-type TagLoteCalc = { sequencia: number; campanha: string; createdAt?: string | Date; ano?: number };
+/** Tipo mínimo para detectar lotes via createdAt + sequência. */
+type TagLoteCalc = { id?: number; sequencia: number; campanha: string; createdAt?: string | Date; ano?: number };
 
-/** Calcula contador NNN/TOTAL real do lote ao qual a tag pertence.
- *  Agrupa por (campanha, ano) E janela de tempo de 5s no createdAt. */
+function calcularLotes<T extends TagLoteCalc>(todas: T[]): Map<number, { numero: number; total: number }> {
+  const GAP_LOTE_MS = 60_000; // gap > 60s entre tags consecutivas → novo lote
+  const mapa = new Map<number, { numero: number; total: number }>();
+  // Agrupa por campanha+ano
+  const porGrupo = new Map<string, T[]>();
+  for (const t of todas) {
+    const k = `${t.campanha}|${t.ano ?? ""}`;
+    (porGrupo.get(k) ?? porGrupo.set(k, []).get(k)!).push(t);
+  }
+  for (const grupo of porGrupo.values()) {
+    // Sort por createdAt; tags sem createdAt vão por sequencia
+    grupo.sort((a, b) => {
+      const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (ta !== tb) return ta - tb;
+      return a.sequencia - b.sequencia;
+    });
+    // Detecção de lote por gap: percorre e quebra quando gap > 60s
+    let loteAtual: T[] = [];
+    const lotes: T[][] = [];
+    let prevTs: number | null = null;
+    for (const t of grupo) {
+      const ts = t.createdAt ? new Date(t.createdAt).getTime() : null;
+      if (prevTs !== null && ts !== null && (ts - prevTs) > GAP_LOTE_MS) {
+        if (loteAtual.length) lotes.push(loteAtual);
+        loteAtual = [];
+      }
+      loteAtual.push(t);
+      prevTs = ts;
+    }
+    if (loteAtual.length) lotes.push(loteAtual);
+    // Atribui numero/total a cada tag
+    for (const lote of lotes) {
+      const total = lote.length;
+      // Dentro do lote, ordena por sequencia pra numerar 1..N
+      const ordenado = [...lote].sort((a, b) => a.sequencia - b.sequencia);
+      ordenado.forEach((t, idx) => {
+        if (t.id !== undefined) mapa.set(t.id, { numero: idx + 1, total });
+      });
+    }
+  }
+  return mapa;
+}
+
+/** Calcula contador NNN/TOTAL real do lote ao qual a tag pertence. */
 function loteInfoDe<T extends TagLoteCalc>(tag: T, todas: T[]): { contador: string; numero: number; total: number } {
-  const JANELA_MS = 5_000;
-  const tCreated = tag.createdAt ? new Date(tag.createdAt).getTime() : 0;
-  // Lote = tags com mesma campanha+ano cujo createdAt esteja dentro da janela
-  const doMesmoLote = todas.filter(t => {
-    if (t.campanha !== tag.campanha) return false;
-    if (t.ano !== undefined && tag.ano !== undefined && t.ano !== tag.ano) return false;
-    if (!t.createdAt || !tag.createdAt) return false;
-    return Math.abs(new Date(t.createdAt).getTime() - tCreated) <= JANELA_MS;
-  });
-  // Fallback: se createdAt não chegou (backend antigo), cai no comportamento por campanha+ano
-  const grupo = doMesmoLote.length > 0 ? doMesmoLote : todas.filter(t => t.campanha === tag.campanha && (t.ano === undefined || tag.ano === undefined || t.ano === tag.ano));
-  // Posição da tag DENTRO do lote: ordenada por sequencia, conta quantas vêm antes
-  const ordenadas = [...grupo].sort((a, b) => a.sequencia - b.sequencia);
-  const indice = ordenadas.findIndex(t => t.sequencia === tag.sequencia);
-  const numero = indice + 1;
-  const total = grupo.length;
-  const padLen = String(total).length;
+  const info = (tag.id !== undefined ? calcularLotes(todas).get(tag.id) : undefined) ?? { numero: 1, total: 1 };
+  const padLen = String(info.total).length;
   return {
-    numero,
-    total,
-    contador: `${String(numero).padStart(padLen, '0')}/${total}`,
+    numero: info.numero,
+    total: info.total,
+    contador: `${String(info.numero).padStart(padLen, '0')}/${info.total}`,
   };
 }
 
