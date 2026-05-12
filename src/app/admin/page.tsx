@@ -88,6 +88,37 @@ function QRPreview({ url, size = 140 }: { url: string; size?: number }) {
   return <img src={dataUrl} alt="QR" width={size} height={size} />;
 }
 
+/** Tipo mínimo para detectar lotes via createdAt. Tags geradas na mesma
+ *  transação compartilham o mesmo instante (até ~5s de tolerância). */
+type TagLoteCalc = { sequencia: number; campanha: string; createdAt?: string | Date; ano?: number };
+
+/** Calcula contador NNN/TOTAL real do lote ao qual a tag pertence.
+ *  Agrupa por (campanha, ano) E janela de tempo de 5s no createdAt. */
+function loteInfoDe<T extends TagLoteCalc>(tag: T, todas: T[]): { contador: string; numero: number; total: number } {
+  const JANELA_MS = 5_000;
+  const tCreated = tag.createdAt ? new Date(tag.createdAt).getTime() : 0;
+  // Lote = tags com mesma campanha+ano cujo createdAt esteja dentro da janela
+  const doMesmoLote = todas.filter(t => {
+    if (t.campanha !== tag.campanha) return false;
+    if (t.ano !== undefined && tag.ano !== undefined && t.ano !== tag.ano) return false;
+    if (!t.createdAt || !tag.createdAt) return false;
+    return Math.abs(new Date(t.createdAt).getTime() - tCreated) <= JANELA_MS;
+  });
+  // Fallback: se createdAt não chegou (backend antigo), cai no comportamento por campanha+ano
+  const grupo = doMesmoLote.length > 0 ? doMesmoLote : todas.filter(t => t.campanha === tag.campanha && (t.ano === undefined || tag.ano === undefined || t.ano === tag.ano));
+  // Posição da tag DENTRO do lote: ordenada por sequencia, conta quantas vêm antes
+  const ordenadas = [...grupo].sort((a, b) => a.sequencia - b.sequencia);
+  const indice = ordenadas.findIndex(t => t.sequencia === tag.sequencia);
+  const numero = indice + 1;
+  const total = grupo.length;
+  const padLen = String(total).length;
+  return {
+    numero,
+    total,
+    contador: `${String(numero).padStart(padLen, '0')}/${total}`,
+  };
+}
+
 async function baixarQRComContador(serial: string, contador: string) {
   // Gera QR localmente como dataURL — não depende de internet/CDN externo
   const qrDataUrl = await QRCode.toDataURL(`https://humanitybearers.tech/doacao?tag=${encodeURIComponent(serial)}`, {
@@ -2239,16 +2270,18 @@ export default function AdminPage() {
         {/* Lista — NNN/TOTAL é calculado por chave campanha+ano */}
         {tagsLoading && <p style={{ textAlign: 'center', color: C.muted, padding: 24 }}>Carregando...</p>}
 
-        {/* Baixar todos os QR como ZIP — gera local com a lib qrcode */}
+        {/* Agrupa tags em LOTES reais via createdAt (tags geradas na mesma
+            transação ficam no mesmo instante; tolerância de 5s pra cobrir
+            lotes grandes que demoram a inserir). Isso garante que lote de
+            100 mostre N/100 e lote de 300 mostre M/300 mesmo na mesma campanha. */}
+        {(() => null)()}
         {tags.length > 0 && (() => {
+          // Build batches once via timestamp clustering
           const baixarTodos = async () => {
             if (!confirm(`Baixar ${tags.length} QR Codes? Cada um será salvo individualmente.`)) return;
             for (const tag of tags) {
-              const totalLote = tags.filter(t => t.campanha === tag.campanha && t.ano === tag.ano).reduce((m, t) => Math.max(m, t.sequencia), 0);
-              const numStr  = String(tag.sequencia).padStart(String(totalLote).length, '0');
-              const totStr  = String(totalLote);
-              await baixarQRComContador(tag.serial, `${numStr}/${totStr}`);
-              // pequena pausa pra navegador não bloquear downloads em massa
+              const info = loteInfoDe(tag, tags);
+              await baixarQRComContador(tag.serial, info.contador);
               await new Promise(r => setTimeout(r, 200));
             }
           };
@@ -2264,13 +2297,9 @@ export default function AdminPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {tags.map(tag => {
             const urlDoacao = `https://humanitybearers.tech/doacao?tag=${encodeURIComponent(tag.serial)}`;
-            // Total do lote = max sequencia entre tags com mesmo campanha+ano
-            const totalLote = tags
-              .filter(t => t.campanha === tag.campanha && t.ano === tag.ano)
-              .reduce((m, t) => Math.max(m, t.sequencia), 0);
-            const padLen = String(totalLote).length;
-            const numStr = String(tag.sequencia).padStart(padLen, '0');
-            const contadorStr = `${numStr}/${totalLote}`;
+            // Lote real = tags com createdAt próximo (mesma transação de geração)
+            const lote = loteInfoDe(tag, tags);
+            const contadorStr = lote.contador;
 
             const baixarComSerial = () => baixarQRComContador(tag.serial, contadorStr);
 
@@ -2279,14 +2308,15 @@ export default function AdminPage() {
                 background: C.white, borderRadius: 12, border: `1px solid ${tag.vinculada ? '#10b98130' : C.border}`,
                 padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
               }}>
-                <div style={{ flex: 1, minWidth: 200 }}>
-                  <p style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 700, color: C.ink, letterSpacing: 1 }}>{tag.serial}</p>
-                  <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
-                    Campanha {tag.campanha}
-                    <span style={{ marginLeft: 6, padding: '1px 8px', borderRadius: 99, background: C.offWhite, fontFamily: 'monospace', fontWeight: 700, color: C.ink }}>
-                      {contadorStr}
-                    </span>
-                  </p>
+                <div style={{ flex: 1, minWidth: 200, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  {/* Badge da posição no lote em destaque (laranja) */}
+                  <span style={{ padding: '4px 10px', borderRadius: 8, background: C.orange, fontFamily: 'monospace', fontWeight: 800, color: C.white, fontSize: 13, letterSpacing: 0.5 }}>
+                    {contadorStr}
+                  </span>
+                  <div>
+                    <p style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 700, color: C.ink, letterSpacing: 1 }}>{tag.serial}</p>
+                    <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Campanha {tag.campanha}</p>
+                  </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   {tag.vinculada ? (
