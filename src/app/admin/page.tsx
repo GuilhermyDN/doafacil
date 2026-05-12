@@ -347,6 +347,19 @@ function LoginForm({ onLogin }: { onLogin: () => void }) {
   const [erro, setErro]   = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Se chegou aqui via redirect de sessão expirada (?sessao=expirou),
+  // mostra aviso amigável em vez de "Credenciais inválidas" enigmático.
+  const [aviso, setAviso] = useState<string>("");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("sessao") === "expirou") {
+      setAviso("Sua sessão expirou. Faça login novamente.");
+      // limpa o param da URL pra não persistir no F5
+      window.history.replaceState({}, "", "/admin");
+    }
+  }, []);
+
   const handleLogin = async () => {
     if (!email || !senha) { setErro("Preencha email e senha"); return; }
     setLoading(true); setErro("");
@@ -378,6 +391,11 @@ function LoginForm({ onLogin }: { onLogin: () => void }) {
               {senhaVisivel ? "🙈" : "👁️"}
             </button>
           </div>
+          {aviso && (
+            <div style={{ background: "#fff3cd", border: "1px solid #ffe69c", borderRadius: 10, padding: "10px 12px", fontSize: 12, color: "#7a5d00", textAlign: "center" }}>
+              ⚠️ {aviso}
+            </div>
+          )}
           {erro && <p style={{ fontSize: 12, color: C.orange, textAlign: "center" }}>{erro}</p>}
           <button onClick={handleLogin} disabled={loading}
             style={{ background: C.black, color: C.white, border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", marginTop: 4 }}>

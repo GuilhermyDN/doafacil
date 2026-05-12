@@ -10,6 +10,14 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
+// Endpoints públicos não disparam auto-logout no 401 (não dependem de token).
+const ENDPOINTS_PUBLICOS = ['/api/auth/login', '/api/instituicoes', '/api/doacoes']
+
+function ehEndpointAdmin(path: string): boolean {
+  // qualquer endpoint que não esteja na whitelist pública é considerado autenticado
+  return !ENDPOINTS_PUBLICOS.some(p => path === p || path.startsWith(p + '/') || path.startsWith(p + '?'))
+}
+
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API}${path}`, {
     headers: {
@@ -18,6 +26,18 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
     },
     ...options,
   })
+  // Auto-logout: se um endpoint admin retorna 401, limpa o token e manda
+  // pra tela de login. Evita o usuário ficar travado quando o JWT expira (7d).
+  if (res.status === 401 && ehEndpointAdmin(path) && typeof window !== 'undefined') {
+    localStorage.removeItem('admin_token')
+    // só redireciona se já estiver numa rota admin (evita loop em páginas públicas)
+    if (window.location.pathname.startsWith('/admin')) {
+      // hard reload pra limpar estado React e voltar pra tela de login do /admin
+      window.location.href = '/admin?sessao=expirou'
+      // bloqueia o resto da promise — vai navegar embora
+      throw new Error('Sessão expirada — redirecionando para login')
+    }
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Erro desconhecido' }))
     const e = new Error(err.error || `Erro ${res.status}`) as Error & { codigo?: string }
