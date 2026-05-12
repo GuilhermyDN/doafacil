@@ -88,15 +88,36 @@ function QRPreview({ url, size = 140 }: { url: string; size?: number }) {
   return <img src={dataUrl} alt="QR" width={size} height={size} />;
 }
 
-/** Tipo mínimo para detectar lotes via createdAt + sequência. */
-type TagLoteCalc = { id?: number; sequencia: number; campanha: string; createdAt?: string | Date; ano?: number };
+/** Tipo mínimo para detectar lotes. Preferência: loteId (UUID gerado
+ *  pelo backend a partir do POST /api/tags/gerar). Fallback: gap detection
+ *  via createdAt+sequência (pra tags geradas antes do loteId existir). */
+type TagLoteCalc = { id?: number; sequencia: number; campanha: string; createdAt?: string | Date; ano?: number; loteId?: string | null };
 
 function calcularLotes<T extends TagLoteCalc>(todas: T[]): Map<number, { numero: number; total: number }> {
-  const GAP_LOTE_MS = 60_000; // gap > 60s entre tags consecutivas → novo lote
+  const GAP_LOTE_MS = 60_000; // gap > 60s entre tags consecutivas → novo lote (fallback)
   const mapa = new Map<number, { numero: number; total: number }>();
-  // Agrupa por campanha+ano
-  const porGrupo = new Map<string, T[]>();
+
+  // === 1) Tags COM loteId — agrupamento exato ===
+  const porLote = new Map<string, T[]>();
+  const semLote: T[] = [];
   for (const t of todas) {
+    if (t.loteId) {
+      (porLote.get(t.loteId) ?? porLote.set(t.loteId, []).get(t.loteId)!).push(t);
+    } else {
+      semLote.push(t);
+    }
+  }
+  for (const grupo of porLote.values()) {
+    const ordenado = [...grupo].sort((a, b) => a.sequencia - b.sequencia);
+    const total = ordenado.length;
+    ordenado.forEach((t, idx) => {
+      if (t.id !== undefined) mapa.set(t.id, { numero: idx + 1, total });
+    });
+  }
+
+  // === 2) Tags SEM loteId (legado) — gap detection por campanha+ano ===
+  const porGrupo = new Map<string, T[]>();
+  for (const t of semLote) {
     const k = `${t.campanha}|${t.ano ?? ""}`;
     (porGrupo.get(k) ?? porGrupo.set(k, []).get(k)!).push(t);
   }

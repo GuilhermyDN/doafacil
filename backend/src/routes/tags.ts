@@ -184,6 +184,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     campanha: t.campanha,
     ano: t.ano,
     sequencia: t.sequencia,
+    loteId: t.loteId,
     createdAt: t.createdAt,
     vinculada: !!t.doadorId,
     vinculadaEm: t.vinculadaEm,
@@ -214,6 +215,10 @@ router.post('/gerar', authMiddleware, async (req: Request, res: Response) => {
   })
   let proximaSeq = (ultima?.sequencia ?? 0) + 1
 
+  // UUID único pra este lote — toda tag desta chamada compartilha esse id.
+  // Permite ao frontend agrupar com 100% de precisão.
+  const loteId = crypto.randomUUID()
+
   const tags = []
   const seriesGeradas: string[] = []
 
@@ -228,13 +233,13 @@ router.post('/gerar', authMiddleware, async (req: Request, res: Response) => {
     } while (seriesGeradas.includes(serial))
 
     seriesGeradas.push(serial)
-    tags.push({ serial, ano: Number(ano), campanha, sequencia: proximaSeq, chave })
+    tags.push({ serial, ano: Number(ano), campanha, sequencia: proximaSeq, chave, loteId })
     proximaSeq++
   }
 
   await prisma.tag.createMany({ data: tags, skipDuplicates: true })
 
-  res.json({ ok: true, geradas: tags.length, primeira: tags[0].serial, ultima: tags[tags.length - 1].serial })
+  res.json({ ok: true, geradas: tags.length, primeira: tags[0].serial, ultima: tags[tags.length - 1].serial, loteId })
 })
 
 export default router

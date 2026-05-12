@@ -132,6 +132,10 @@ model Tag {
   campanha    String             // D01
   sequencia   Int                // 247
   chave       String             // 59KJ
+  // UUID do lote — todas as tags de um POST /api/tags/gerar compartilham
+  // o mesmo loteId. Permite agrupar com 100% de precisão (sem heurística).
+  // Nullable pra compatibilidade com tags geradas antes desta coluna.
+  loteId      String?
   doadorId    Int?
   vinculadaEm DateTime?
   createdAt   DateTime  @default(now())
