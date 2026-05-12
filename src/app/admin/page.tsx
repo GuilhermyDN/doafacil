@@ -2298,12 +2298,28 @@ export default function AdminPage() {
               {gerandoTags ? 'Gerando...' : '+ Gerar'}
             </button>
           </div>
-          {tagsGeradas && (
-            <div style={{ marginTop: 14, background: '#e6f7ee', border: '1px solid #00a65033', borderRadius: 10, padding: '10px 14px' }}>
-              <p style={{ fontSize: 13, color: '#00a650', fontWeight: 700 }}>✓ {tagsGeradas.geradas} tags geradas</p>
-              <p style={{ fontSize: 12, color: '#00a650', fontFamily: 'monospace', marginTop: 4 }}>{tagsGeradas.primeira} → {tagsGeradas.ultima}</p>
-            </div>
-          )}
+          {tagsGeradas && (() => {
+            const tot = tagsGeradas.geradas;
+            const padLen = String(tot).length;
+            const primeiroNum = String(1).padStart(padLen, '0');
+            const ultimoNum   = String(tot).padStart(padLen, '0');
+            return (
+              <div style={{ marginTop: 14, background: '#e6f7ee', border: '1px solid #00a65033', borderRadius: 10, padding: '12px 14px' }}>
+                <p style={{ fontSize: 13, color: '#00a650', fontWeight: 700, marginBottom: 8 }}>✓ {tot} tags geradas</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <span style={{ background: C.orange, color: C.white, fontWeight: 800, fontSize: 12, padding: '3px 8px', borderRadius: 6, fontFamily: 'monospace' }}>
+                    {primeiroNum}/{tot}
+                  </span>
+                  <span style={{ fontSize: 12, color: '#00a650', fontFamily: 'monospace' }}>{tagsGeradas.primeira}</span>
+                  <span style={{ color: '#00a650', fontWeight: 700 }}>→</span>
+                  <span style={{ fontSize: 12, color: '#00a650', fontFamily: 'monospace' }}>{tagsGeradas.ultima}</span>
+                  <span style={{ background: C.orange, color: C.white, fontWeight: 800, fontSize: 12, padding: '3px 8px', borderRadius: 6, fontFamily: 'monospace' }}>
+                    {ultimoNum}/{tot}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Resumo */}
